@@ -1,5 +1,5 @@
 [package]
-name = "rustyboi"
+name = "rustyboi-core"
 version = "0.1.0"
 authors = ["Hirtol <gameboy@hirtol.top>"]
 edition = "2018"
@@ -9,10 +9,3 @@ edition = "2018"
 [dependencies]
 log = "0.4.11"
 anyhow = "1.0.32"
-simplelog = "0.8.0"
-clap = "2.33.2"
-rustyboi-core = {path = "core" }
-
-
-[workspace]
-members = ["core"]

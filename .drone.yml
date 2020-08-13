@@ -1,0 +1,60 @@
+---
+kind: pipeline
+type: docker
+name: rust-1-45-2
+
+platform:
+  arch: amd64
+
+steps:
+  - name: build and test
+    environment:
+        CARGO_HOME: /drone/src/.cargo
+    image: hirtol/rust_chip_drone_image:1.0
+    pull: if-not-exists
+    volumes:
+    - name: cache-cargo
+      path: /drone/src/.cargo
+    - name: cache-target
+      path: /drone/src/target
+    commands:
+      - cargo build
+      - cargo test --verbose
+      
+  - name: Discord
+    image: hirtol/drone_discord_messenger:1.0
+    failure: ignore
+    when:
+        status:
+            - success
+            - failure
+    settings:
+        webhook_id:
+            from_secret: discord_web_hook_id
+        webhook_token:
+            from_secret: discord_web_hook_token
+        message: >
+            **{repo_name}  - #{build_number} **
+            
+            
+            📝 For commit: `{commit_message}`
+
+            :writing_hand: Sent by: {commit_author} on branch `{commit_branch}`
+            
+            
+            🕑 Build time: {duration | duration_formatter}
+            
+            
+            {{ if is_success }}
+            ✅ [Succeeded]({build_link})
+            {{ else }}
+            ❌ [Failed]({build_link}) @everyone
+            {{ endif }}
+
+volumes:
+  - name: cache-cargo
+    host:
+      path: /mnt/user/appdata/drone/cache/rustyboi/.cargo
+  - name: cache-target
+    host:
+      path: /mnt/user/appdata/drone/cache/rustyboi/target
