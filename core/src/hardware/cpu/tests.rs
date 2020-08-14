@@ -1,4 +1,5 @@
+
 #[test]
-fn hello(){
-    println!("HEY");
+fn test_add() {
+
 }

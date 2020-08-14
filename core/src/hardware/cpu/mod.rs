@@ -3,6 +3,7 @@ use crate::hardware::cpu::instructions::*;
 use log::*;
 use std::io::Read;
 use crate::hardware::cpu::traits::ToU8;
+use crate::hardware::memory::Memory;
 
 #[cfg(test)]
 mod tests;
@@ -13,9 +14,22 @@ mod traits;
 struct CPU {
     opcode: u8,
     registers: Registers,
+    memory: Memory,
 }
 
 impl CPU {
+
+    pub fn step_cycle(&mut self) {
+        self.opcode = self.memory.read_byte(self.registers.pc);
+        let instruction = Instruction::decode(self.opcode);
+
+        trace!("Executing opcode: {} - {:?}", self.opcode, instruction);
+
+        self.execute(instruction);
+
+        self.registers.pc += 1;
+    }
+
     pub fn execute(&mut self, instruction: Instruction) {
         match instruction {
             Instruction::ADD(target) => self.add(target),
@@ -38,9 +52,7 @@ impl CPU {
     }
 
     fn sub<T: Copy>(&mut self, target: T)
-        where Self: ToU8<T> {
-
-    }
+        where Self: ToU8<T> {}
 }
 
 impl ToU8<RegistryTarget> for CPU {
