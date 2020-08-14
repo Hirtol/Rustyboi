@@ -1,9 +1,8 @@
 
 const MEMORY_SIZE: usize = 0xFFFF;
 
-#[derive(Default, Debug)]
 pub struct Memory {
-    memory: [u8; MEMORY_SIZE],
+    memory: Box<[u8; MEMORY_SIZE]>,
 }
 
 impl Memory {
