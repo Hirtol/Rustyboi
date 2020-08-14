@@ -17,6 +17,14 @@ bitflags! {
     }
 }
 
+pub enum Reg8 {
+    A, B, C, D, E, H, L
+}
+
+pub enum Reg16{
+    AF, BC, DE, HL
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct Registers {
     pub a: u8,
