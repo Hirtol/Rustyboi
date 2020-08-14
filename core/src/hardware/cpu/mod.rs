@@ -18,6 +18,13 @@ struct CPU {
 }
 
 impl CPU {
+    pub fn new() -> Self {
+        CPU{
+            opcode: 0,
+            registers: Default::default(),
+            memory: Memory::new(),
+        }
+    }
 
     pub fn step_cycle(&mut self) {
         self.opcode = self.memory.read_byte(self.registers.pc);
@@ -38,6 +45,12 @@ impl CPU {
         }
     }
 
+    /// `A=A+r` OR `A=A+n` OR `A=A+(HL)`
+    /// Adds the provided `target` to the `A` register, setting any relevant flags
+    ///
+    /// # Arguments
+    ///
+    /// * `target` - The value to be added, a relevant `ToU8` implementation should exist for `CPU`
     fn add<T: Copy>(&mut self, target: T)
         where Self: ToU8<T> {
         let value = self.get_reg_value(target);
@@ -49,6 +62,8 @@ impl CPU {
         // together result in a value bigger than 0xF. If the result is larger than 0xF
         // than the addition caused a carry from the lower nibble to the upper nibble.
         self.registers.set_h((self.registers.a & 0xF) + (value & 0xF) > 0xF);
+
+        self.registers.a = new_value;
     }
 
     fn sub<T: Copy>(&mut self, target: T)
