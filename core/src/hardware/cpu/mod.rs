@@ -1,4 +1,6 @@
 
+#[cfg(test)]
+mod tests;
 
 struct CPU {
     // Stack pointer

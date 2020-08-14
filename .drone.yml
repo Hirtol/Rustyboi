@@ -19,7 +19,7 @@ steps:
       path: /drone/src/target
     commands:
       - cargo build
-      - cargo test --verbose
+      - cargo test -p rustyboi-core -p rustyboi --verbose
       
   - name: Discord
     image: hirtol/drone_discord_messenger:1.0
