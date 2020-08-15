@@ -7,9 +7,11 @@ pub struct Memory {
 
 impl Memory {
     pub fn new() -> Self {
-        Memory{ memory: Vec::with_capacity(MEMORY_SIZE) }
+        Memory {
+            memory: Vec::with_capacity(MEMORY_SIZE),
+        }
     }
-    
+
     pub fn read_byte(&self, address: u16) -> u8 {
         self.memory[address as usize]
     }

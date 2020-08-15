@@ -1,5 +1,5 @@
-use crate::hardware::cpu::CPU;
 use crate::hardware::cpu::instructions::{Instruction, RegistryTarget};
+use crate::hardware::cpu::CPU;
 use crate::hardware::registers::Flags;
 
 #[test]
@@ -21,10 +21,6 @@ fn test_add() {
     assert_eq!(cpu.registers.a, 4);
     assert!(cpu.registers.f.contains(Flags::CF));
 }
-
-
-
-
 
 fn initial_cpu() -> CPU {
     CPU::new()

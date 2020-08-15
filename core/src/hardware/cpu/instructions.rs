@@ -8,7 +8,7 @@ pub enum Instruction {
     XOR(RegistryTarget),
     OR(RegistryTarget),
     CP(RegistryTarget),
-    JP(JumpCondition)
+    JP(JumpModifier),
 }
 
 impl Instruction {
@@ -22,12 +22,12 @@ impl Instruction {
             0xA8..=0xAF => Instruction::XOR(RegistryTarget::decode(opcode)),
             0xB0..=0xB7 => Instruction::OR(RegistryTarget::decode(opcode)),
             0xB8..=0xBF => Instruction::CP(RegistryTarget::decode(opcode)),
-            0xC2 => Instruction::JP(JumpCondition::NotZero),
-            0xC3 => Instruction::JP(JumpCondition::Always),
-            0xCA => Instruction::JP(JumpCondition::Zero),
-            0xD2 => Instruction::JP(JumpCondition::NotCarry),
-            0xDA => Instruction::JP(JumpCondition::Carry),
-            0xE9 => Instruction::JP(JumpCondition::HL),
+            0xC2 => Instruction::JP(JumpModifier::NotZero),
+            0xC3 => Instruction::JP(JumpModifier::Always),
+            0xCA => Instruction::JP(JumpModifier::Zero),
+            0xD2 => Instruction::JP(JumpModifier::NotCarry),
+            0xDA => Instruction::JP(JumpModifier::Carry),
+            0xE9 => Instruction::JP(JumpModifier::HL),
             _ => panic!("Unknown instruction code encountered: {:X}", opcode),
         }
     }
@@ -52,13 +52,13 @@ pub enum RegistryTarget {
 }
 
 #[derive(Debug, Copy, Clone)]
-pub enum JumpCondition {
+pub enum JumpModifier {
     NotZero,
     Zero,
     NotCarry,
     Carry,
     Always,
-    HL
+    HL,
 }
 
 impl RegistryTarget {
@@ -74,7 +74,7 @@ impl RegistryTarget {
             0x6 => RegistryTarget::HL,
             0x7 => RegistryTarget::A,
             // This should never be called, unless maths has broken down.
-            _ => panic!("Invalid Nibble found: {:X}", relevant_nibble)
+            _ => panic!("Invalid Nibble found: {:X}", relevant_nibble),
         }
     }
 }

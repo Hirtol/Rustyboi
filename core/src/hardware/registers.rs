@@ -1,7 +1,7 @@
-use bitflags::*;
-use std::fmt::Display;
 use bitflags::_core::fmt::Formatter;
+use bitflags::*;
 use core::fmt;
+use std::fmt::Display;
 
 bitflags! {
     #[derive(Default)]
@@ -18,11 +18,20 @@ bitflags! {
 }
 
 pub enum Reg8 {
-    A, B, C, D, E, H, L
+    A,
+    B,
+    C,
+    D,
+    E,
+    H,
+    L,
 }
 
-pub enum Reg16{
-    AF, BC, DE, HL
+pub enum Reg16 {
+    AF,
+    BC,
+    DE,
+    HL,
 }
 
 #[derive(Debug, Default, Clone)]
