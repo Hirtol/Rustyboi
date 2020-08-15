@@ -80,7 +80,7 @@ pub enum WrapperEnum {
 }
 
 fn decode_prefixed_bit(opcode: u8) -> u8 {
-    let relevant_nibble = (opcode & 0xF0) % 0x4;
+    let relevant_nibble = ((opcode & 0xF0) >> 4) % 0x4;
     let lower_nibble = opcode & 0x0F;
     match relevant_nibble {
         0x0 if lower_nibble > 7 => 1,
@@ -115,7 +115,7 @@ fn horizontal_decode(opcode: u8) -> WrapperEnum {
 }
 
 fn vertical_decode(opcode: u8) -> WrapperEnum {
-    let relevant_nibble = opcode & 0xF0;
+    let relevant_nibble = (opcode & 0xF0) >> 4;
     let lower_nibble = opcode & 0x0F;
     match relevant_nibble {
         0x4 if lower_nibble < 0x8 => WrapperEnum::Reg8(Reg8::B),

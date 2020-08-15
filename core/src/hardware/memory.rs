@@ -8,7 +8,7 @@ pub struct Memory {
 impl Memory {
     pub fn new() -> Self {
         Memory {
-            memory: Vec::with_capacity(MEMORY_SIZE),
+            memory: vec![0u8; MEMORY_SIZE],
         }
     }
 
