@@ -7,20 +7,22 @@ use crate::hardware::cpu::CPU;
 impl CPU {
     /// Fetches the next instruction.
     /// Modifies the `opcode` value, as well as advances the `PC` as necessary
-    pub fn get_next_instruction(&mut self) -> Instruction {
+    ///
+    /// # Returns
+    ///
+    /// * `true` if the instruction is a prefix instruction, `false` otherwise.
+    pub fn read_next_instruction(&mut self) -> bool {
         self.opcode = self.memory.read_byte(self.registers.pc);
-        let instruction;
-
-        if self.opcode != 0xCB {
-            instruction = Instruction::decode(self.opcode);
-        } else {
-            self.registers.pc.wrapping_add(1);
-            instruction = Instruction::decode_prefix(self.memory.read_byte(self.registers.pc + 1));
-        }
 
         self.registers.pc.wrapping_add(1);
 
-        instruction
+        if self.opcode == 0xCB {
+            self.opcode = self.memory.read_byte(self.registers.pc);
+            self.registers.pc.wrapping_add(1);
+            true
+        } else {
+            false
+        }
     }
 
     /// Based on the current `PC` will interpret the value at the location in memory as a `u8`

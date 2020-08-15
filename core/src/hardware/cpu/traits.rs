@@ -19,4 +19,3 @@ pub trait ToU16<T: Copy> {
 pub trait SetU16<T: Copy> {
     fn set_value(&mut self, target: T, value: u16);
 }
-
