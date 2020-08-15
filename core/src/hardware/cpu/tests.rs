@@ -1,7 +1,7 @@
+use crate::hardware::cpu::execute::InstructionAddress;
 use crate::hardware::cpu::instructions::{Instruction, RegistryTarget};
 use crate::hardware::cpu::CPU;
 use crate::hardware::registers::{Flags, Reg8::*};
-use crate::hardware::cpu::execute::InstructionAddress;
 
 #[test]
 fn test_add() {
@@ -37,19 +37,16 @@ fn test_load_8bit() {
     assert_eq!(cpu.registers.b, 40);
 
     // Test from memory
-
     cpu.load_8bit(D, InstructionAddress::HLI);
 
     assert_eq!(cpu.registers.d, 30);
 
     // Test to memory
-
     cpu.load_8bit(InstructionAddress::HLI, C);
 
     assert_eq!(cpu.memory.read_byte(cpu.registers.hl()), 40);
 
     // Test if execute can handle some instructions.
-
     cpu.execute(0x7A);
 
     assert_eq!(cpu.registers.a, 30);

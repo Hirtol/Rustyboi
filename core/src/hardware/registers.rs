@@ -34,6 +34,7 @@ pub enum Reg16 {
     BC,
     DE,
     HL,
+    SP,
 }
 
 #[derive(Debug, Default, Clone)]

@@ -52,6 +52,10 @@ impl CPU {
         }
     }
 
+    fn nop(&mut self) {
+        return;
+    }
+
     fn load_8bit<T: Copy, U: Copy>(&mut self, destination: T, source: U)
     where
         Self: SetU8<T>,
@@ -287,8 +291,8 @@ impl ToU8<InstructionAddress> for CPU {
             DEI => 0,
             HLI => self.memory.read_byte(self.registers.hl()),
             HLIP => 0,
-            HLID => 0,
-            ADDR => self.get_instr_u8(),
+            HLIN => 0,
+            DIRECT => self.get_instr_u8(),
         }
     }
 }
@@ -302,8 +306,8 @@ impl SetU8<InstructionAddress> for CPU {
             DEI => {}
             HLI => self.memory.set_byte(self.registers.hl(), value),
             HLIP => {}
-            HLID => {}
-            ADDR => {
+            HLIN => {}
+            DIRECT => {
                 let address = self.get_instr_u16();
                 self.memory.set_byte(address, value)
             }
