@@ -11,3 +11,12 @@ pub trait ToU8<T: Copy> {
 pub trait SetU8<T: Copy> {
     fn set_value(&mut self, target: T, value: u8);
 }
+
+pub trait ToU16<T: Copy> {
+    fn get_reg_value(&mut self, target: T) -> u16;
+}
+
+pub trait SetU16<T: Copy> {
+    fn set_value(&mut self, target: T, value: u16);
+}
+

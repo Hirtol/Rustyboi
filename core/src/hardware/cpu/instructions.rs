@@ -1,3 +1,6 @@
+use crate::hardware::registers::Reg16;
+use crate::hardware::registers::Reg16::*;
+
 #[derive(Debug)]
 pub enum Instruction {
     NOP,
@@ -24,10 +27,10 @@ pub enum Instruction {
     OR(RegistryTarget),
     CP(RegistryTarget),
     RET,
-    POP,
+    POP(Reg16),
     JP(JumpModifier),
     CALL,
-    PUSH,
+    PUSH(Reg16),
     RST,
     PREFIX,
     RETI,
@@ -62,12 +65,20 @@ impl Instruction {
             0xA8..=0xAF => Instruction::XOR(RegistryTarget::decode(opcode)),
             0xB0..=0xB7 => Instruction::OR(RegistryTarget::decode(opcode)),
             0xB8..=0xBF => Instruction::CP(RegistryTarget::decode(opcode)),
+            0xC1 => Instruction::POP(BC),
             0xC2 => Instruction::JP(JumpModifier::NotZero),
+            0xC5 => Instruction::PUSH(BC),
             0xC3 => Instruction::JP(JumpModifier::Always),
             0xCA => Instruction::JP(JumpModifier::Zero),
+            0xD1 => Instruction::POP(DE),
             0xD2 => Instruction::JP(JumpModifier::NotCarry),
+            0xD5 => Instruction::PUSH(DE),
             0xDA => Instruction::JP(JumpModifier::Carry),
+            0xE1 => Instruction::POP(HL),
+            0xE5 => Instruction::PUSH(HL),
             0xE9 => Instruction::JP(JumpModifier::HL),
+            0xF1 => Instruction::POP(AF),
+            0xF5 => Instruction::PUSH(AF),
             _ => panic!("Unknown instruction code encountered: {:X}", opcode),
         }
     }
