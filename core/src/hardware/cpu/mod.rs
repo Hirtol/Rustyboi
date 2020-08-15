@@ -1,5 +1,5 @@
 use crate::hardware::cpu::instructions::*;
-use crate::hardware::cpu::traits::ToU8;
+use crate::hardware::cpu::traits::{SetU8, ToU8};
 use crate::hardware::memory::Memory;
 use crate::hardware::registers::{Flags, Reg8, Registers};
 use log::*;
@@ -12,10 +12,11 @@ mod fetch;
 mod instructions;
 mod traits;
 
-struct CPU {
+pub struct CPU {
     opcode: u8,
     registers: Registers,
     memory: Memory,
+    halted: bool,
 }
 
 impl CPU {
@@ -24,11 +25,16 @@ impl CPU {
             opcode: 0,
             registers: Registers::new(),
             memory: Memory::new(),
+            halted: false,
         }
     }
 
     /// Fetches the next instruction and executes it as well.
     pub fn step_cycle(&mut self) {
+        if self.halted {
+            return;
+        }
+
         let instruction = self.get_next_instruction();
 
         trace!("Executing opcode: {} - {:?}", self.opcode, instruction);
@@ -40,11 +46,18 @@ impl CPU {
     /// unless done so by an instruction itself.
     pub fn execute(&mut self, instruction: Instruction) {
         match instruction {
+            Instruction::NOP => return,
+            Instruction::HALT => self.halt(),
             Instruction::ADD(target) => self.add(target),
             Instruction::SUB(target) => self.sub(target),
             Instruction::JP(condition) => self.jump(condition),
             _ => debug!("Unimplemented instruction: {:?}", instruction),
         }
+    }
+
+    /// `halt until interrupt occurs (low power)`
+    fn halt(&mut self) {
+        self.halted = true;
     }
 
     /// `A=A+r` OR `A=A+n` OR `A=A+(HL)`
@@ -113,7 +126,7 @@ impl CPU {
 }
 
 impl ToU8<RegistryTarget> for CPU {
-    fn get_reg_value(&self, target: RegistryTarget) -> u8 {
+    fn get_reg_value(&mut self, target: RegistryTarget) -> u8 {
         use RegistryTarget::*;
 
         match target {
@@ -129,8 +142,43 @@ impl ToU8<RegistryTarget> for CPU {
     }
 }
 
+impl SetU8<RegistryTarget> for CPU {
+    fn set_value(&mut self, target: RegistryTarget, value: u8) {
+        use RegistryTarget::*;
+
+        match target {
+            A => self.registers.a = value,
+            B => self.registers.b = value,
+            C => self.registers.c = value,
+            D => self.registers.d = value,
+            E => self.registers.e = value,
+            H => self.registers.h = value,
+            L => self.registers.l = value,
+            HL => self.memory.set_byte(self.registers.hl(), value),
+        }
+    }
+}
+
 impl ToU8<u8> for CPU {
-    fn get_reg_value(&self, target: u8) -> u8 {
+    fn get_reg_value(&mut self, target: u8) -> u8 {
         target
+    }
+}
+
+impl ToU8<LoadByteSource> for CPU {
+    fn get_reg_value(&mut self, target: LoadByteSource) -> u8 {
+        use LoadByteSource::*;
+
+        match target {
+            A => self.registers.a,
+            B => self.registers.b,
+            C => self.registers.c,
+            D => self.registers.d,
+            E => self.registers.e,
+            H => self.registers.h,
+            L => self.registers.l,
+            DirectU8 => self.get_instr_u8(),
+            HL => self.memory.read_byte(self.registers.hl()),
+        }
     }
 }
