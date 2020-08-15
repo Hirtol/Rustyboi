@@ -8,7 +8,7 @@ pub enum Instruction {
     XOR(RegistryTarget),
     OR(RegistryTarget),
     CP(RegistryTarget),
-
+    JP(JumpCondition)
 }
 
 impl Instruction {
@@ -22,7 +22,19 @@ impl Instruction {
             0xA8..=0xAF => Instruction::XOR(RegistryTarget::decode(opcode)),
             0xB0..=0xB7 => Instruction::OR(RegistryTarget::decode(opcode)),
             0xB8..=0xBF => Instruction::CP(RegistryTarget::decode(opcode)),
+            0xC2 => Instruction::JP(JumpCondition::NotZero),
+            0xC3 => Instruction::JP(JumpCondition::Always),
+            0xCA => Instruction::JP(JumpCondition::Zero),
+            0xD2 => Instruction::JP(JumpCondition::NotCarry),
+            0xDA => Instruction::JP(JumpCondition::Carry),
+            0xE9 => Instruction::JP(JumpCondition::HL),
             _ => panic!("Unknown instruction code encountered: {:X}", opcode),
+        }
+    }
+
+    pub fn decode_prefix(opcode: u8) -> Self {
+        match opcode {
+            _ => panic!("Unknown prefix instruction code encountered: {:X}", opcode),
         }
     }
 }
@@ -39,6 +51,16 @@ pub enum RegistryTarget {
     A = 0x7,
 }
 
+#[derive(Debug, Copy, Clone)]
+pub enum JumpCondition {
+    NotZero,
+    Zero,
+    NotCarry,
+    Carry,
+    Always,
+    HL
+}
+
 impl RegistryTarget {
     pub fn decode(opcode: u8) -> Self {
         let relevant_nibble = (opcode & 0x0F) % 0x8;
@@ -51,6 +73,7 @@ impl RegistryTarget {
             0x5 => RegistryTarget::L,
             0x6 => RegistryTarget::HL,
             0x7 => RegistryTarget::A,
+            // This should never be called, unless maths has broken down.
             _ => panic!("Invalid Nibble found: {:X}", relevant_nibble)
         }
     }

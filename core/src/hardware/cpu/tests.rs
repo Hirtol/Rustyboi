@@ -19,7 +19,7 @@ fn test_add() {
     cpu.execute(Instruction::ADD(RegistryTarget::C));
 
     assert_eq!(cpu.registers.a, 4);
-    assert!(cpu.registers.f.contains(Flags::CY));
+    assert!(cpu.registers.f.contains(Flags::CF));
 }
 
 

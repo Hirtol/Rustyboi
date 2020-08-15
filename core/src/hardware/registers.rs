@@ -13,7 +13,7 @@ bitflags! {
         /// Half Carry Flag (BCD)
         const H =  0b0010_0000;
         /// Carry Flag
-        const CY = 0b0001_0000;
+        const CF = 0b0001_0000;
     }
 }
 
@@ -107,7 +107,7 @@ impl Registers {
     /// Set the Carry Flag.
     #[inline]
     pub fn set_cf(&mut self, value: bool) {
-        self.f.set(Flags::CY, value);
+        self.f.set(Flags::CF, value);
     }
 }
 
