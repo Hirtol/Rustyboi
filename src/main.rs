@@ -1,5 +1,6 @@
 use log::trace;
 use log::LevelFilter;
+use rustyboi_core::hardware::cpu::*;
 use rustyboi_core::hardware::*;
 use simplelog::{CombinedLogger, Config, TermLogger, TerminalMode, WriteLogger};
 
@@ -9,7 +10,7 @@ fn main() {
         //WriteLogger::new(LevelFilter::Warn, Config::default(), File::create("my_rust_binary.log").unwrap()),
     ])
     .unwrap();
-
-    println!("Hello");
+    let mut cpu = CPU::new();
+    cpu.step_cycle();
     trace!("Hello World!");
 }

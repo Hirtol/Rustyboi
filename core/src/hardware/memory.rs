@@ -29,7 +29,7 @@ impl Memory {
         (most_s_byte << 8) | least_s_byte
     }
 
-    pub fn set_short(&mut self, address: u16, value: u16){
+    pub fn set_short(&mut self, address: u16, value: u16) {
         self.set_byte(address, (value & 0xFF) as u8);
         self.set_byte(address.wrapping_add(1), ((value & 0xFF00) >> 8) as u8);
     }

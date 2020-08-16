@@ -1,13 +1,13 @@
-use crate::hardware::cpu::execute::InstructionAddress;
+use crate::hardware::cpu::execute::{InstructionAddress, JumpModifier};
+use crate::hardware::cpu::execute::InstructionAddress::HLI;
 use crate::hardware::cpu::instructions::{Instruction, RegistryTarget};
 use crate::hardware::cpu::CPU;
-use crate::hardware::registers::{Flags, Reg8::*, Reg16::*};
-use crate::hardware::cpu::execute::InstructionAddress::HLI;
+use crate::hardware::registers::{Flags, Reg16::*, Reg8::*};
 
 #[test]
 fn test_load_16bit() {
-    use InstructionAddress::*;
     use crate::hardware::registers::Reg16::*;
+    use InstructionAddress::*;
     let mut cpu = initial_cpu();
 
     // Test register load
@@ -86,7 +86,7 @@ fn test_increment() {
 }
 
 #[test]
-fn test_increment_flags(){
+fn test_increment_flags() {
     let mut cpu = initial_cpu();
 
     cpu.registers.a = 15;
@@ -116,7 +116,7 @@ fn test_increment_16() {
 }
 
 #[test]
-fn test_rlca(){
+fn test_rlca() {
     let mut cpu = initial_cpu();
 
     cpu.registers.a = 0b0100_0101;
@@ -133,7 +133,7 @@ fn test_rlca(){
 }
 
 #[test]
-fn test_add_16bit(){
+fn test_add_16bit() {
     let mut cpu = initial_cpu();
 
     cpu.registers.set_bc(0x0FFF);
@@ -152,7 +152,7 @@ fn test_add_16bit(){
 }
 
 #[test]
-fn test_decrement(){
+fn test_decrement() {
     let mut cpu = initial_cpu();
     cpu.registers.a = 5;
 
@@ -185,7 +185,7 @@ fn test_decrement_16bit() {
 }
 
 #[test]
-fn test_rrca(){
+fn test_rrca() {
     let mut cpu = initial_cpu();
 
     cpu.registers.a = 0b0100_0001;
@@ -201,7 +201,7 @@ fn test_rrca(){
 }
 
 #[test]
-fn test_rla(){
+fn test_rla() {
     let mut cpu = initial_cpu();
 
     cpu.registers.a = 0b0100_0101;
@@ -216,6 +216,31 @@ fn test_rla(){
 
     assert_eq!(cpu.registers.a, 0b0001_0110);
     assert!(cpu.registers.f.contains(Flags::CF));
+}
+
+#[test]
+fn test_relative_jump() {
+    let mut cpu = initial_cpu();
+
+    cpu.memory.set_byte(0, 0x18); // JR code
+    cpu.memory.set_byte(1, 30);
+
+    cpu.step_cycle();
+
+    // TODO: Check if relative jump should also jump relative to it's own execution size (2 bytes)
+    assert_eq!(cpu.registers.pc, 32);
+    let test: i8 = -20;
+    cpu.memory.set_byte(32, 0x18); // JR code
+    cpu.memory.set_byte(33, test as u8);
+
+    cpu.step_cycle();
+
+    assert_eq!(cpu.registers.pc, 14);
+
+    cpu.memory.set_byte(14, 0x28); // JR z-flag code
+    cpu.step_cycle();
+
+    assert_eq!(cpu.registers.pc, 16);
 }
 
 #[test]
@@ -238,7 +263,6 @@ fn test_add() {
     assert!(cpu.registers.f.contains(Flags::CF));
 }
 
-fn initial_cpu() -> CPU
-{
+fn initial_cpu() -> CPU {
     CPU::new()
 }

@@ -18,7 +18,7 @@ impl CPU {
 
         if self.opcode == 0xCB {
             self.opcode = self.memory.read_byte(self.registers.pc);
-            self.registers.pc =  self.registers.pc.wrapping_add(1);
+            self.registers.pc = self.registers.pc.wrapping_add(1);
             true
         } else {
             false
@@ -44,5 +44,4 @@ impl CPU {
 
         (most_s_byte << 8) | least_s_byte
     }
-
 }
