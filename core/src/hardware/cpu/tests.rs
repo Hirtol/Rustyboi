@@ -2,6 +2,7 @@ use crate::hardware::cpu::execute::InstructionAddress;
 use crate::hardware::cpu::instructions::{Instruction, RegistryTarget};
 use crate::hardware::cpu::CPU;
 use crate::hardware::registers::{Flags, Reg8::*};
+use crate::hardware::cpu::execute::InstructionAddress::HLI;
 
 #[test]
 fn test_load_16bit() {
@@ -68,6 +69,42 @@ fn test_load_8bit() {
 }
 
 #[test]
+fn test_increment() {
+    let mut cpu = initial_cpu();
+
+    cpu.registers.c = 20;
+
+    cpu.increment(C);
+
+    assert_eq!(cpu.registers.c, 21);
+
+    assert_eq!(cpu.memory.read_byte(0), 0);
+
+    cpu.increment(HLI);
+
+    assert_eq!(cpu.memory.read_byte(0), 1);
+}
+
+#[test]
+fn test_increment_flags(){
+    let mut cpu = initial_cpu();
+
+    cpu.registers.a = 15;
+
+    cpu.increment(A);
+
+    assert_eq!(cpu.registers.a, 16);
+    assert!(cpu.registers.f.contains(Flags::H));
+
+    cpu.registers.b = 255;
+
+    cpu.increment(B);
+
+    assert_eq!(cpu.registers.b, 0);
+    assert!(cpu.registers.f.contains(Flags::ZF));
+}
+
+#[test]
 fn test_add() {
     let mut cpu = initial_cpu();
     // Test normal add
@@ -87,6 +124,7 @@ fn test_add() {
     assert!(cpu.registers.f.contains(Flags::CF));
 }
 
-fn initial_cpu() -> CPU {
+fn initial_cpu() -> CPU
+{
     CPU::new()
 }

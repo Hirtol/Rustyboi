@@ -52,10 +52,14 @@ impl CPU {
         }
     }
 
+    /// Pass 4 ticks
     fn nop(&mut self) {
         return;
     }
 
+    /// `ld   rr,nn       x1 nn nn  12 ---- rr=nn (rr may be BC,DE,HL or SP)`
+    /// OR
+    /// `ld   SP,HL       F9         8 ---- SP=HL`
     fn load_16bit<T: Copy, U: Copy>(&mut self, destination: T, source: U)
         where
             Self: SetU16<T>,
@@ -66,6 +70,7 @@ impl CPU {
         self.set_u16_value(destination, source_value);
     }
 
+    /// `ld` never sets any flags.
     fn load_8bit<T: Copy, U: Copy>(&mut self, destination: T, source: U)
         where
             Self: SetU8<T>,
@@ -77,16 +82,26 @@ impl CPU {
     }
 
     /// `r=r+1` OR `(HL)=(HL)+1`
+    ///
+    /// Flags: `z0h-`
     fn increment<T: Copy>(&mut self, target: T)
         where
             Self: ToU8<T>,
+            Self: SetU8<T>,
     {
+        let old_value = self.get_reg_value(target);
+        let new_value = old_value.wrapping_add(1);
 
+        self.registers.set_zf(new_value == 0);
+        self.registers.set_n(false);
+        self.registers.set_h((old_value & 0xF) + 0x1 > 0xF);
+
+        self.set_value(target, new_value);
     }
 
     /// `rr = rr+1      ;rr may be BC,DE,HL,SP`
     ///
-    /// Flags: ----
+    /// Flags: `----`
     fn increment16(&mut self, target: Reg16){
 
     }
