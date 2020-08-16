@@ -1,7 +1,7 @@
 use crate::hardware::cpu::execute::InstructionAddress;
 use crate::hardware::cpu::instructions::{Instruction, RegistryTarget};
 use crate::hardware::cpu::CPU;
-use crate::hardware::registers::{Flags, Reg8::*};
+use crate::hardware::registers::{Flags, Reg8::*, Reg16::*};
 use crate::hardware::cpu::execute::InstructionAddress::HLI;
 
 #[test]
@@ -102,6 +102,34 @@ fn test_increment_flags(){
 
     assert_eq!(cpu.registers.b, 0);
     assert!(cpu.registers.f.contains(Flags::ZF));
+}
+
+#[test]
+fn test_increment_16() {
+    let mut cpu = initial_cpu();
+
+    cpu.registers.set_bc(50);
+
+    cpu.increment16(BC);
+
+    assert_eq!(cpu.registers.bc(), 51);
+}
+
+#[test]
+fn test_rlca(){
+    let mut cpu = initial_cpu();
+
+    cpu.registers.a = 0b0100_0101;
+
+    cpu.rlca();
+
+    assert_eq!(cpu.registers.a, 0b1000_1010);
+    assert!(!cpu.registers.f.contains(Flags::CF));
+
+    cpu.rlca();
+
+    assert_eq!(cpu.registers.a, 0b0001_0100);
+    assert!(cpu.registers.f.contains(Flags::CF));
 }
 
 #[test]

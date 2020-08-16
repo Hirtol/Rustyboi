@@ -103,11 +103,21 @@ impl CPU {
     ///
     /// Flags: `----`
     fn increment16(&mut self, target: Reg16){
+        let new_value = self.get_u16_value(target).wrapping_add(1);
 
+        self.set_u16_value(target, new_value);
     }
 
-    /// `rotate akku left`
+    /// `rotate A left; 7th bit to Carry flag`
     fn rlca(&mut self){
+        let carry_bit = self.registers.a & 0x80 != 0;
+        //TODO: Check if ZF should be set here, conflicting documentation.
+        self.registers.set_zf(false);
+        self.registers.set_n(false);
+        self.registers.set_h(false);
+        self.registers.set_cf(carry_bit);
+
+        self.registers.a = self.registers.a.wrapping_shl(1);
 
     }
 
