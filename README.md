@@ -16,4 +16,9 @@ one would best refer to another fully working emulator, e.g [PyBoy](https://gith
 4. Execute `rustyboi.exe` or your OS's equivalent.
 
 ## Sources
-https://blog.ryanlevick.com/DMG-01/public/book/introduction.html
+* https://blog.ryanlevick.com/DMG-01/public/book/introduction.html
+* https://gbdev.io/pandocs/
+* https://izik1.github.io/gbops/
+* https://rednex.github.io/rgbds/gbz80.7.html
+* http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf
+* https://github.com/Gekkio/mooneye-gb
