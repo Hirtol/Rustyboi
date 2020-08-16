@@ -128,8 +128,60 @@ fn test_rlca(){
 
     cpu.rlca();
 
-    assert_eq!(cpu.registers.a, 0b0001_0100);
+    assert_eq!(cpu.registers.a, 0b0001_0101);
     assert!(cpu.registers.f.contains(Flags::CF));
+}
+
+#[test]
+fn test_add_16bit(){
+    let mut cpu = initial_cpu();
+
+    cpu.registers.set_bc(0x0FFF);
+
+    cpu.add_16bit(BC);
+
+    assert_eq!(cpu.registers.hl(), 0x0FFF);
+    assert!(!cpu.registers.f.contains(Flags::H));
+
+    cpu.registers.set_de(0x001);
+
+    cpu.add_16bit(DE);
+
+    assert_eq!(cpu.registers.hl(), 0x1000);
+    assert!(cpu.registers.f.contains(Flags::H));
+}
+
+#[test]
+fn test_decrement(){
+    let mut cpu = initial_cpu();
+    cpu.registers.a = 5;
+
+    cpu.decrement(A);
+
+    assert_eq!(cpu.registers.a, 4);
+
+    cpu.registers.set_hl(0x100);
+    cpu.memory.set_byte(0x100, 1);
+    cpu.decrement(HLI);
+
+    assert_eq!(cpu.memory.read_byte(0x100), 0);
+    assert!(cpu.registers.f.contains(Flags::ZF));
+}
+
+#[test]
+fn test_decrement_16bit() {
+    let mut cpu = initial_cpu();
+
+    cpu.registers.set_bc(10);
+
+    cpu.decrement16(BC);
+
+    assert_eq!(cpu.registers.bc(), 9);
+
+    cpu.registers.set_bc(0);
+    cpu.decrement16(BC);
+
+    assert_eq!(cpu.registers.bc(), u16::max_value());
 }
 
 #[test]

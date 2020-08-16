@@ -109,6 +109,8 @@ impl CPU {
     }
 
     /// `rotate A left; 7th bit to Carry flag`
+    ///
+    /// Flags: `000c` (current) OR `z00c`
     fn rlca(&mut self){
         let carry_bit = self.registers.a & 0x80 != 0;
         //TODO: Check if ZF should be set here, conflicting documentation.
@@ -117,31 +119,48 @@ impl CPU {
         self.registers.set_h(false);
         self.registers.set_cf(carry_bit);
 
-        self.registers.a = self.registers.a.wrapping_shl(1);
-
+        self.registers.a = self.registers.a.rotate_left(1);
     }
 
     /// `HL = HL+rr     ;rr may be BC,DE,HL,SP`
-    fn add_16bit<T: Copy>(&mut self, target: T)
-        where
-        Self: ToU16<T>,
-    {
+    ///
+    /// Flags: `-0hc`
+    fn add_16bit(&mut self, target: Reg16) {
+        let old_value = self.get_u16_value(target);
+        let (result, overflowed) = old_value.overflowing_add(self.registers.hl());
+        self.registers.set_n(false);
+        self.registers.set_cf(overflowed);
+        self.registers.set_h((old_value & 0x0FFF) + (self.registers.hl() & 0x0FFF) > 0x0FFF);
 
+        self.registers.set_hl(result);
     }
 
     /// `r=r-1` OR `(HL)=(HL)-1`
+    ///
+    /// Flags: `z1h-`
     fn decrement<T: Copy>(&mut self, target: T)
         where
             Self: ToU8<T>,
+            Self: SetU8<T>,
     {
+        let old_value = self.get_reg_value(target);
+        let new_value = old_value.wrapping_sub(1);
 
+        self.registers.set_zf(new_value == 0);
+        self.registers.set_n(true);
+        //TODO: Check half carry flag for decrement
+        self.registers.set_h(old_value & 0xF == 0);
+
+        self.set_value(target, new_value);
     }
 
     /// `rr = rr-1      ;rr may be BC,DE,HL,SP`
     ///
-    /// Flags: ----
+    /// Flags: `----`
     fn decrement16(&mut self, target: Reg16){
+        let new_value = self.get_u16_value(target).wrapping_sub(1);
 
+        self.set_u16_value(target, new_value);
     }
 
     /// `rotate akku right`
