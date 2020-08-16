@@ -21,4 +21,16 @@ impl Memory {
         //TODO: Add bound checks to ensure we're not accessing protected memory.
         self.memory[address as usize] = value;
     }
+
+    pub fn read_short(&self, address: u16) -> u16 {
+        let least_s_byte = self.read_byte(address) as u16;
+        let most_s_byte = self.read_byte(address.wrapping_add(1)) as u16;
+
+        (most_s_byte << 8) | least_s_byte
+    }
+
+    pub fn set_short(&mut self, address: u16, value: u16){
+        self.set_byte(address, (value & 0xFF) as u8);
+        self.set_byte(address.wrapping_add(1), ((value & 0xFF00) >> 8) as u8);
+    }
 }

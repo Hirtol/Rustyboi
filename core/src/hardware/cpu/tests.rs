@@ -52,6 +52,41 @@ fn test_load_8bit() {
     assert_eq!(cpu.registers.a, 30);
 }
 
+#[test]
+fn test_load_16bit() {
+    use InstructionAddress::*;
+    use crate::hardware::registers::Reg16::*;
+    let mut cpu = initial_cpu();
+
+    // Test register load
+
+    cpu.registers.sp = 0x200;
+    cpu.registers.set_hl(0x500);
+
+    cpu.load_16bit(SP, HL);
+
+    assert_eq!(cpu.registers.sp, 0x500);
+
+    // Test mem -> registry load.
+
+    cpu.registers.pc = 1;
+    cpu.memory.set_short(1, 0x0105);
+
+    cpu.load_16bit(BC, DIRECT);
+
+    assert_eq!(cpu.registers.bc(), 0x0105);
+
+    // Test cycle
+
+    cpu.registers.pc = 0;
+    cpu.memory.set_byte(0, 0x8);
+
+    cpu.step_cycle();
+
+    assert_eq!(cpu.memory.read_short(0x0105), 0x500);
+    assert_eq!(cpu.registers.pc, 3);
+}
+
 fn initial_cpu() -> CPU {
     CPU::new()
 }

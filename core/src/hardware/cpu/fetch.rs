@@ -14,11 +14,11 @@ impl CPU {
     pub fn read_next_instruction(&mut self) -> bool {
         self.opcode = self.memory.read_byte(self.registers.pc);
 
-        self.registers.pc.wrapping_add(1);
+        self.registers.pc = self.registers.pc.wrapping_add(1);
 
         if self.opcode == 0xCB {
             self.opcode = self.memory.read_byte(self.registers.pc);
-            self.registers.pc.wrapping_add(1);
+            self.registers.pc =  self.registers.pc.wrapping_add(1);
             true
         } else {
             false
@@ -30,7 +30,7 @@ impl CPU {
     /// Advances the `PC` by 1.
     pub fn get_instr_u8(&mut self) -> u8 {
         let result = self.memory.read_byte(self.registers.pc);
-        self.registers.pc.wrapping_add(1);
+        self.registers.pc = self.registers.pc.wrapping_add(1);
 
         result
     }
@@ -44,4 +44,5 @@ impl CPU {
 
         (most_s_byte << 8) | least_s_byte
     }
+
 }

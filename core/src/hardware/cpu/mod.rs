@@ -244,7 +244,7 @@ impl CPU {
         } else {
             // 3 byte wide instruction, we by default increment 1.
             // Therefore we still need to increment by 2.
-            self.registers.pc.wrapping_add(2);
+            self.registers.pc = self.registers.pc.wrapping_add(2);
         }
     }
 
@@ -539,10 +539,14 @@ impl SetU16<InstructionAddress> for CPU {
             DIRECT => {
                 //TODO: Check if big endian/little endian
                 let address = self.get_instr_u16();
-                self.memory.set_byte(address, (value & 0x0F) as u8);
-                self.memory.set_byte(address.wrapping_add(1), (value & 0xF0 >> 8) as u8);
+                self.memory.set_short(address, value);
+                // self.memory.set_byte(address, (value & 0x0F) as u8);
+                // self.memory.set_byte(address.wrapping_add(1), (value & 0xF0 >> 8) as u8);
             },
-            DirectMem => unimplemented!(),
+            DirectMem => {
+                let address = self.get_instr_u16();
+                self.memory.set_short(address, value);
+            },
             IoDirect => unimplemented!(),
             IoC => unimplemented!(),
         }
