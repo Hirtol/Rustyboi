@@ -1,4 +1,5 @@
-const MEMORY_SIZE: usize = 0xFFFF;
+pub const MEMORY_SIZE: usize = 0xFFFF;
+pub const IO_START_ADDRESS: u16 = 0xFF00;
 
 #[derive(Debug)]
 pub struct Memory {

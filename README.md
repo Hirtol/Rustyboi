@@ -14,3 +14,6 @@ one would best refer to another fully working emulator, e.g [PyBoy](https://gith
 2. `cargo build --release`
 3. `cd target/release`
 4. Execute `rustyboi.exe` or your OS's equivalent.
+
+## Sources
+https://blog.ryanlevick.com/DMG-01/public/book/introduction.html
