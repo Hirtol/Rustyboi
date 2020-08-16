@@ -76,6 +76,87 @@ impl CPU {
         self.set_value(destination, source_value);
     }
 
+    /// `r=r+1` OR `(HL)=(HL)+1`
+    fn increment<T: Copy>(&mut self, target: T)
+        where
+            Self: ToU8<T>,
+    {
+
+    }
+
+    /// `rr = rr+1      ;rr may be BC,DE,HL,SP`
+    ///
+    /// Flags: ----
+    fn increment16(&mut self, target: Reg16){
+
+    }
+
+    /// `rotate akku left`
+    fn rlca(&mut self){
+
+    }
+
+    /// `HL = HL+rr     ;rr may be BC,DE,HL,SP`
+    fn add_16bit<T: Copy>(&mut self, target: T)
+        where
+        Self: ToU16<T>,
+    {
+
+    }
+
+    /// `r=r-1` OR `(HL)=(HL)-1`
+    fn decrement<T: Copy>(&mut self, target: T)
+        where
+            Self: ToU8<T>,
+    {
+
+    }
+
+    /// `rr = rr-1      ;rr may be BC,DE,HL,SP`
+    ///
+    /// Flags: ----
+    fn decrement16(&mut self, target: Reg16){
+
+    }
+
+    /// `rotate akku right`
+    fn rrca(&mut self){
+
+    }
+
+    /// low power standby mode (VERY low power)
+    fn stop(&mut self){
+
+    }
+
+    fn rla(&mut self){
+
+    }
+
+    fn relative_jump(&mut self, condition: JumpModifier) {
+
+    }
+
+    fn rra(&mut self){
+
+    }
+
+    fn daa(&mut self){
+
+    }
+
+    fn cpl(&mut self){
+
+    }
+
+    fn scf(&mut self){
+
+    }
+
+    fn ccf(&mut self){
+
+    }
+
     /// `halt until interrupt occurs (low power)`
     fn halt(&mut self) {
         self.halted = true;
@@ -181,6 +262,38 @@ impl CPU {
     fn call(&mut self, target: JumpModifier) {}
 
     fn push(&mut self, target: Reg16) {}
+
+    fn rst(&mut self, numb: u8){
+
+    }
+
+    /// There are a few instructions in the GameBoy's instruction set which are not used.
+    /// For now we'll panic, but it may be some games call them erroneously, so consider
+    /// just returning instead.
+    fn unknown(&mut self){
+        panic!("Unknown function was called, opcode: {}", self.opcode)
+    }
+
+    fn reti(&mut self){
+
+    }
+
+    fn add_sp(&mut self){
+
+    }
+
+    fn di(&mut self) {
+
+    }
+
+    fn load_sp(&mut self){
+
+    }
+
+    fn ei(&mut self){
+
+    }
+
 
     /*
        Prefixed Instructions
@@ -294,8 +407,14 @@ impl ToU8<InstructionAddress> for CPU {
                 result
             },
             DIRECT => self.get_instr_u8(),
-            DirectMem => self.memory.read_byte(self.get_instr_u16()),
-            IoDirect => self.memory.read_byte(IO_START_ADDRESS + self.get_instr_u8() as u16),
+            DirectMem => {
+                let address = self.get_instr_u16();
+                self.memory.read_byte(address)
+            },
+            IoDirect => {
+                let address = self.get_instr_u8() as u16;
+                self.memory.read_byte(IO_START_ADDRESS + address)
+            },
             IoC => self.memory.read_byte(IO_START_ADDRESS + self.registers.c as u16),
         }
     }
@@ -368,7 +487,7 @@ impl ToU16<Reg16> for CPU {
             BC => self.registers.bc(),
             DE => self.registers.de(),
             HL => self.registers.hl(),
-            SP => self.registers.sp(),
+            SP => self.registers.sp,
         }
     }
 }
@@ -382,7 +501,7 @@ impl SetU16<Reg16> for CPU {
             BC => self.registers.set_bc(value),
             DE => self.registers.set_de(value),
             HL => self.registers.set_hl(value),
-            SP => self.registers.set_sp(value),
+            SP => self.registers.sp = value,
         }
     }
 }
