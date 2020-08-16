@@ -98,6 +98,26 @@ impl Registers {
         self.l = value as u8;
     }
 
+    #[inline]
+    pub fn zf(&self) -> bool {
+        self.f.contains(Flags::ZF)
+    }
+
+    #[inline]
+    pub fn n(&self) -> bool {
+        self.f.contains(Flags::N)
+    }
+
+    #[inline]
+    pub fn h(&self) -> bool {
+        self.f.contains(Flags::H)
+    }
+
+    #[inline]
+    pub fn cf(&self) -> bool {
+        self.f.contains(Flags::CF)
+    }
+
     /// Set the Zero Flag.
     #[inline]
     pub fn set_zf(&mut self, value: bool) {

@@ -185,6 +185,40 @@ fn test_decrement_16bit() {
 }
 
 #[test]
+fn test_rrca(){
+    let mut cpu = initial_cpu();
+
+    cpu.registers.a = 0b0100_0001;
+    cpu.rrca();
+
+    assert_eq!(cpu.registers.a, 0b1010_0000);
+    assert!(cpu.registers.f.contains(Flags::CF));
+
+    cpu.rrca();
+
+    assert_eq!(cpu.registers.a, 0b0101_0000);
+    assert!(!cpu.registers.f.contains(Flags::CF));
+}
+
+#[test]
+fn test_rla(){
+    let mut cpu = initial_cpu();
+
+    cpu.registers.a = 0b0100_0101;
+
+    cpu.registers.set_cf(true);
+    cpu.rla();
+
+    assert_eq!(cpu.registers.a, 0b1000_1011);
+    assert!(!cpu.registers.f.contains(Flags::CF));
+
+    cpu.rla();
+
+    assert_eq!(cpu.registers.a, 0b0001_0110);
+    assert!(cpu.registers.f.contains(Flags::CF));
+}
+
+#[test]
 fn test_add() {
     let mut cpu = initial_cpu();
     // Test normal add

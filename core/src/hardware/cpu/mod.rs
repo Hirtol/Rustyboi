@@ -76,9 +76,9 @@ impl CPU {
             Self: SetU8<T>,
             Self: ToU8<U>,
     {
-        let source_value = self.get_reg_value(source);
+        let source_value = self.read_u8_value(source);
 
-        self.set_value(destination, source_value);
+        self.set_u8_value(destination, source_value);
     }
 
     /// `r=r+1` OR `(HL)=(HL)+1`
@@ -89,14 +89,14 @@ impl CPU {
             Self: ToU8<T>,
             Self: SetU8<T>,
     {
-        let old_value = self.get_reg_value(target);
+        let old_value = self.read_u8_value(target);
         let new_value = old_value.wrapping_add(1);
 
         self.registers.set_zf(new_value == 0);
         self.registers.set_n(false);
         self.registers.set_h((old_value & 0xF) + 0x1 > 0xF);
 
-        self.set_value(target, new_value);
+        self.set_u8_value(target, new_value);
     }
 
     /// `rr = rr+1      ;rr may be BC,DE,HL,SP`
@@ -143,7 +143,7 @@ impl CPU {
             Self: ToU8<T>,
             Self: SetU8<T>,
     {
-        let old_value = self.get_reg_value(target);
+        let old_value = self.read_u8_value(target);
         let new_value = old_value.wrapping_sub(1);
 
         self.registers.set_zf(new_value == 0);
@@ -151,7 +151,7 @@ impl CPU {
         //TODO: Check half carry flag for decrement
         self.registers.set_h(old_value & 0xF == 0);
 
-        self.set_value(target, new_value);
+        self.set_u8_value(target, new_value);
     }
 
     /// `rr = rr-1      ;rr may be BC,DE,HL,SP`
@@ -163,18 +163,39 @@ impl CPU {
         self.set_u16_value(target, new_value);
     }
 
-    /// `rotate akku right`
+    /// `Rotate A right. Old bit 0 to Carry flag.`
+    ///
+    /// Flags: `000C`
     fn rrca(&mut self){
+        let carry_bit = self.registers.a & 0x01 != 0;
+        //TODO: Check if ZF should be set here, conflicting documentation.
+        self.registers.set_zf(false);
+        self.registers.set_n(false);
+        self.registers.set_h(false);
+        self.registers.set_cf(carry_bit);
 
+        self.registers.a = self.registers.a.rotate_right(1);
     }
 
     /// low power standby mode (VERY low power)
     fn stop(&mut self){
-
+        //TODO: Implement (Interrupts?)
+        unimplemented!("STOP called, implement!");
     }
 
+    /// Rotate A left through Carry flag.
+    ///
+    /// Flags: `000C`
     fn rla(&mut self){
+        let carry_bit = self.registers.a & 0x80;
+        let new_value = (self.registers.a.wrapping_shl(1)) | self.registers.cf() as u8;
 
+        self.registers.set_zf(false);
+        self.registers.set_n(false);
+        self.registers.set_h(false);
+        self.registers.set_cf(carry_bit != 0);
+
+        self.registers.a = new_value;
     }
 
     fn relative_jump(&mut self, condition: JumpModifier) {
@@ -216,7 +237,7 @@ impl CPU {
         where
             Self: ToU8<T>,
     {
-        let value = self.get_reg_value(target);
+        let value = self.read_u8_value(target);
         let (new_value, overflowed) = self.registers.a.overflowing_add(value);
         self.registers.set_zf(new_value == 0);
         self.registers.set_n(false);
@@ -294,10 +315,10 @@ impl CPU {
 
     fn matches_jmp_condition(&self, condition: JumpModifier) -> bool {
         match condition {
-            JumpModifier::NotZero => !self.registers.f.contains(Flags::ZF),
-            JumpModifier::Zero => self.registers.f.contains(Flags::ZF),
-            JumpModifier::NotCarry => !self.registers.f.contains(Flags::CF),
-            JumpModifier::Carry => self.registers.f.contains(Flags::CF),
+            JumpModifier::NotZero => !self.registers.zf(),
+            JumpModifier::Zero => self.registers.zf(),
+            JumpModifier::NotCarry => !self.registers.cf(),
+            JumpModifier::Carry => self.registers.cf(),
             JumpModifier::Always => true,
             JumpModifier::HL => true,
         }
@@ -400,7 +421,7 @@ impl CPU {
 }
 
 impl ToU8<Reg8> for CPU {
-    fn get_reg_value(&mut self, target: Reg8) -> u8 {
+    fn read_u8_value(&mut self, target: Reg8) -> u8 {
         use Reg8::*;
 
         match target {
@@ -416,7 +437,7 @@ impl ToU8<Reg8> for CPU {
 }
 
 impl SetU8<Reg8> for CPU {
-    fn set_value(&mut self, target: Reg8, value: u8) {
+    fn set_u8_value(&mut self, target: Reg8, value: u8) {
         use Reg8::*;
 
         match target {
@@ -432,7 +453,7 @@ impl SetU8<Reg8> for CPU {
 }
 
 impl ToU8<InstructionAddress> for CPU {
-    fn get_reg_value(&mut self, target: InstructionAddress) -> u8 {
+    fn read_u8_value(&mut self, target: InstructionAddress) -> u8 {
         use InstructionAddress::*;
         use crate::hardware::memory::IO_START_ADDRESS;
 
@@ -441,12 +462,12 @@ impl ToU8<InstructionAddress> for CPU {
             DEI => self.memory.read_byte(self.registers.de()),
             HLI => self.memory.read_byte(self.registers.hl()),
             HLIP => {
-                let result = self.get_reg_value(HLI);
+                let result = self.read_u8_value(HLI);
                 self.registers.set_hl(self.registers.hl().wrapping_add(1));
                 result
             },
             HLIN => {
-                let result = self.get_reg_value(HLI);
+                let result = self.read_u8_value(HLI);
                 self.registers.set_hl(self.registers.hl().wrapping_sub(1));
                 result
             },
@@ -465,7 +486,7 @@ impl ToU8<InstructionAddress> for CPU {
 }
 
 impl SetU8<InstructionAddress> for CPU {
-    fn set_value(&mut self, target: InstructionAddress, value: u8) {
+    fn set_u8_value(&mut self, target: InstructionAddress, value: u8) {
         use InstructionAddress::*;
         use crate::hardware::memory::IO_START_ADDRESS;
 
@@ -474,11 +495,11 @@ impl SetU8<InstructionAddress> for CPU {
             DEI => self.memory.set_byte(self.registers.de(), value),
             HLI => self.memory.set_byte(self.registers.hl(), value),
             HLIP => {
-                self.set_value(HLI, value);
+                self.set_u8_value(HLI, value);
                 self.registers.set_hl(self.registers.hl().wrapping_add(1));
             }
             HLIN => {
-                self.set_value(HLI, value);
+                self.set_u8_value(HLI, value);
                 self.registers.set_hl(self.registers.hl().wrapping_sub(1));
             }
             DIRECT => {
@@ -499,25 +520,25 @@ impl SetU8<InstructionAddress> for CPU {
 }
 
 impl ToU8<WrapperEnum> for CPU {
-    fn get_reg_value(&mut self, target: WrapperEnum) -> u8 {
+    fn read_u8_value(&mut self, target: WrapperEnum) -> u8 {
         match target {
-            WrapperEnum::Reg8(result) => self.get_reg_value(result),
-            WrapperEnum::InstructionAddress(result) => self.get_reg_value(result),
+            WrapperEnum::Reg8(result) => self.read_u8_value(result),
+            WrapperEnum::InstructionAddress(result) => self.read_u8_value(result),
         }
     }
 }
 
 impl SetU8<WrapperEnum> for CPU {
-    fn set_value(&mut self, target: WrapperEnum, value: u8) {
+    fn set_u8_value(&mut self, target: WrapperEnum, value: u8) {
         match target {
-            WrapperEnum::Reg8(result) => self.set_value(result, value),
-            WrapperEnum::InstructionAddress(result) => self.set_value(result, value),
+            WrapperEnum::Reg8(result) => self.set_u8_value(result, value),
+            WrapperEnum::InstructionAddress(result) => self.set_u8_value(result, value),
         }
     }
 }
 
 impl ToU8<u8> for CPU {
-    fn get_reg_value(&mut self, target: u8) -> u8 {
+    fn read_u8_value(&mut self, target: u8) -> u8 {
         target
     }
 }
