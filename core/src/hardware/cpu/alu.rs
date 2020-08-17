@@ -94,7 +94,7 @@ impl CPU {
     }
 
     /// Shift Right Arithmetic register r8.
-    /// [7] -> [7 -> 0] -> C
+    /// 0 -> [7 -> 0] -> C
     pub(crate) fn shift_right<T: Copy>(&mut self, target: T)
     where
         Self: ToU8<T>,
