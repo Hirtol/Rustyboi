@@ -12,13 +12,10 @@ impl CPU {
     ///
     /// * `true` if the instruction is a prefix instruction, `false` otherwise.
     pub fn read_next_instruction(&mut self) -> bool {
-        self.opcode = self.memory.read_byte(self.registers.pc);
-
-        self.registers.pc = self.registers.pc.wrapping_add(1);
+        self.opcode = self.get_instr_u8();
 
         if self.opcode == 0xCB {
-            self.opcode = self.memory.read_byte(self.registers.pc);
-            self.registers.pc = self.registers.pc.wrapping_add(1);
+            self.opcode = self.get_instr_u8();
             true
         } else {
             false

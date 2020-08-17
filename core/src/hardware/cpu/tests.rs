@@ -536,59 +536,37 @@ fn test_load_sp() {
 }
 
 #[test]
-fn test_rlc(){
-
-}
+fn test_rlc() {}
 
 #[test]
-fn test_rrc(){
-
-}
+fn test_rrc() {}
 
 #[test]
-fn test_rl(){
-
-}
+fn test_rl() {}
 
 #[test]
-fn test_rr(){
-
-}
+fn test_rr() {}
 
 #[test]
-fn test_sla(){
-
-}
+fn test_sla() {}
 
 #[test]
-fn test_sra(){
-
-}
+fn test_sra() {}
 
 #[test]
-fn test_swap(){
-
-}
+fn test_swap() {}
 
 #[test]
-fn test_srl(){
-
-}
+fn test_srl() {}
 
 #[test]
-fn test_bit(){
-
-}
+fn test_bit() {}
 
 #[test]
-fn test_set(){
-
-}
+fn test_set() {}
 
 #[test]
-fn test_res(){
-
-}
+fn test_res() {}
 
 fn initial_cpu() -> CPU {
     CPU::new()

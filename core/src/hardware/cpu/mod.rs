@@ -164,14 +164,9 @@ impl CPU {
     ///
     /// Flags: `000C`
     fn rrca(&mut self) {
-        let carry_bit = self.registers.a & 0x01 != 0;
-        //TODO: Check if ZF should be set here, conflicting documentation.
-        self.registers.set_zf(false);
-        self.registers.set_n(false);
-        self.registers.set_h(false);
-        self.registers.set_cf(carry_bit);
+        self.rotate_right(A);
 
-        self.registers.a = self.registers.a.rotate_right(1);
+        self.registers.set_zf(false);
     }
 
     /// low power standby mode (VERY low power)
@@ -184,15 +179,8 @@ impl CPU {
     ///
     /// Flags: `000C`
     fn rla(&mut self) {
-        let carry_bit = self.registers.a & 0x80;
-        let new_value = (self.registers.a.wrapping_shl(1)) | self.registers.cf() as u8;
-
+        self.rotate_left_carry(A);
         self.registers.set_zf(false);
-        self.registers.set_n(false);
-        self.registers.set_h(false);
-        self.registers.set_cf(carry_bit != 0);
-
-        self.registers.a = new_value;
     }
 
     /// `jr   PC+dd` OR `jr   f,PC+dd`
@@ -216,15 +204,8 @@ impl CPU {
     ///
     /// Flags: `000C`
     fn rra(&mut self) {
-        let carry_bit = self.registers.a & 0x01;
-        let new_value = ((self.registers.cf() as u8) << 7) | (self.registers.a.wrapping_shr(1));
-
+        self.rotate_right_carry(A);
         self.registers.set_zf(false);
-        self.registers.set_n(false);
-        self.registers.set_h(false);
-        self.registers.set_cf(carry_bit != 0);
-
-        self.registers.a = new_value;
     }
 
     /// Decimal adjust register A.
@@ -597,7 +578,8 @@ impl CPU {
        Prefixed Instructions
     */
 
-    /// Rotate register r8 left.
+    /// `RLC r8/[HL]`
+    /// Rotate register `target` left.
     /// C <- [7 <- 0] <- [7]
     ///
     /// Flags: `Z00C`
@@ -609,63 +591,103 @@ impl CPU {
         self.rotate_left(target);
     }
 
+    /// `RRC r8/[HL]`
+    ///Rotate register r8 right.
+    /// [0] -> [7 -> 0] -> C
+    ///
+    /// Flags: `Z00C`
     fn rrc<T: Copy>(&mut self, target: T)
     where
         Self: ToU8<T>,
+        Self: SetU8<T>,
     {
+        self.rotate_right(target);
     }
 
+    /// `RL r8/[HL]`
+    /// Rotate bits in register `target` left through carry.
+    /// C <- [7 <- 0] <- C
+    ///
+    /// Flags: `Z00C`
     fn rl<T: Copy>(&mut self, target: T)
     where
         Self: ToU8<T>,
+        Self: SetU8<T>,
     {
+        self.rotate_left_carry(target);
     }
 
+    /// `RR r8/[HL]`
+    /// Rotate register `target` right through carry.
+    /// C -> [7 -> 0] -> C
+    ///
+    /// Flags: `Z00C`
     fn rr<T: Copy>(&mut self, target: T)
     where
         Self: ToU8<T>,
+        Self: SetU8<T>,
     {
+        self.rotate_right_carry(target);
     }
 
+    /// `SLA r8/[HL]`
+    /// Shift Left Arithmetic on register `target`.
+    /// C <- [7 <- 0] <- 0
+    ///
+    /// Flags: `Z00C`
     fn sla<T: Copy>(&mut self, target: T)
     where
         Self: ToU8<T>,
+        Self: SetU8<T>,
     {
+        self.shift_left(target);
     }
 
+    /// `SRA r8/[HL]`
+    /// Shift Right Arithmetic register `target`.
+    /// [7] -> [7 -> 0] -> C
+    ///
+    /// Flags: `Z00C`
     fn sra<T: Copy>(&mut self, target: T)
     where
         Self: ToU8<T>,
+        Self: SetU8<T>,
     {
+        self.shift_right(target);
     }
 
     fn swap<T: Copy>(&mut self, target: T)
     where
         Self: ToU8<T>,
+        Self: SetU8<T>,
     {
     }
 
     fn srl<T: Copy>(&mut self, target: T)
     where
         Self: ToU8<T>,
+        Self: SetU8<T>,
     {
     }
 
     fn bit<T: Copy>(&mut self, bit: u8, target: T)
     where
         Self: ToU8<T>,
+        Self: SetU8<T>,
     {
     }
 
     fn set<T: Copy>(&mut self, bit: u8, target: T)
     where
         Self: ToU8<T>,
+        Self: SetU8<T>,
     {
     }
 
     fn res<T: Copy>(&mut self, bit: u8, target: T)
     where
         Self: ToU8<T>,
+        Self: SetU8<T>,
     {
     }
 }
