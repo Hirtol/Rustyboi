@@ -58,7 +58,7 @@ impl SetU8<Reg8> for CPU {
 
 impl ToU8<InstructionAddress> for CPU {
     fn read_u8_value(&mut self, target: InstructionAddress) -> u8 {
-        use crate::hardware::memory::IO_START_ADDRESS;
+        use crate::hardware::memory::IO_START;
         use InstructionAddress::*;
 
         match target {
@@ -82,18 +82,18 @@ impl ToU8<InstructionAddress> for CPU {
             }
             IoDirect => {
                 let address = self.get_instr_u8() as u16;
-                self.memory.read_byte(IO_START_ADDRESS + address)
+                self.memory.read_byte(IO_START + address)
             }
             IoC => self
                 .memory
-                .read_byte(IO_START_ADDRESS + self.registers.c as u16),
+                .read_byte(IO_START + self.registers.c as u16),
         }
     }
 }
 
 impl SetU8<InstructionAddress> for CPU {
     fn set_u8_value(&mut self, target: InstructionAddress, value: u8) {
-        use crate::hardware::memory::IO_START_ADDRESS;
+        use crate::hardware::memory::IO_START;
         use InstructionAddress::*;
 
         match target {
@@ -118,11 +118,11 @@ impl SetU8<InstructionAddress> for CPU {
             }
             IoDirect => {
                 let addition = self.get_instr_u8() as u16;
-                self.memory.set_byte(IO_START_ADDRESS + addition, value);
+                self.memory.set_byte(IO_START + addition, value);
             }
             IoC => self
                 .memory
-                .set_byte(IO_START_ADDRESS + self.registers.c as u16, value),
+                .set_byte(IO_START + self.registers.c as u16, value),
         }
     }
 }
@@ -181,7 +181,7 @@ impl SetU16<Reg16> for CPU {
 
 impl ToU16<InstructionAddress> for CPU {
     fn read_u16_value(&mut self, target: InstructionAddress) -> u16 {
-        use crate::hardware::memory::IO_START_ADDRESS;
+        use crate::hardware::memory::IO_START;
         use InstructionAddress::*;
 
         match target {
@@ -200,7 +200,7 @@ impl ToU16<InstructionAddress> for CPU {
 
 impl SetU16<InstructionAddress> for CPU {
     fn set_u16_value(&mut self, target: InstructionAddress, value: u16) {
-        use crate::hardware::memory::IO_START_ADDRESS;
+        use crate::hardware::memory::IO_START;
         use InstructionAddress::*;
 
         match target {
