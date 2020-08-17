@@ -244,6 +244,53 @@ fn test_relative_jump() {
 }
 
 #[test]
+fn test_rra(){
+    let mut cpu = initial_cpu();
+
+    cpu.registers.a = 0b0100_0101;
+
+    cpu.rra();
+
+    println!("{:08b}", cpu.registers.a);
+
+    assert_eq!(cpu.registers.a, 0b0010_0010);
+    assert!(cpu.registers.f.contains(Flags::CF));
+
+    cpu.rra();
+
+    assert_eq!(cpu.registers.a, 0b1001_0001);
+    assert!(!cpu.registers.f.contains(Flags::CF));
+}
+
+#[test]
+fn test_daa() {
+    let mut cpu = initial_cpu();
+
+    cpu.registers.b = 0x03;
+    cpu.registers.a = 0x03;
+
+    cpu.add(B);
+    cpu.daa();
+
+    assert_eq!(cpu.registers.a, 0x06);
+
+    cpu.registers.c = 0x06;
+
+    cpu.add(C);
+    cpu.daa();
+
+    assert_eq!(cpu.registers.a, 0x12);
+
+    cpu.registers.d = 0x90;
+
+    cpu.add(D);
+    cpu.daa();
+
+    assert_eq!(cpu.registers.a, 0x02);
+    assert!(cpu.registers.cf());
+}
+
+#[test]
 fn test_add() {
     let mut cpu = initial_cpu();
     // Test normal add

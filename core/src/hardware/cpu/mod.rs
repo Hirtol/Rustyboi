@@ -209,16 +209,57 @@ impl CPU {
         if self.matches_jmp_condition(condition) {
             let offset = self.get_instr_u8() as i8;
             // No idea why this works, but wrapping_sub/add depending on negative/positive value
-            // always caused an addition.
+            // always caused an addition even when casting to u16.
             self.registers.pc = self.registers.pc.wrapping_add(offset as u16);
         } else {
             self.registers.pc = self.registers.pc.wrapping_add(1);
         }
     }
 
-    fn rra(&mut self) {}
+    /// Rotate A right through Carry flag.
+    ///
+    /// Flags: `000C`
+    fn rra(&mut self) {
+        let carry_bit = self.registers.a & 0x01;
+        let new_value = ((self.registers.cf() as u8) << 7) | (self.registers.a.wrapping_shr(1));
 
-    fn daa(&mut self) {}
+        self.registers.set_zf(false);
+        self.registers.set_n(false);
+        self.registers.set_h(false);
+        self.registers.set_cf(carry_bit != 0);
+
+        self.registers.a = new_value;
+    }
+
+    /// Decimal adjust register A.
+    /// This instruction adjusts register A so that the
+    /// correct representation of Binary Coded Decimal (BCD)is obtained.
+    ///
+    /// Flags: `Z-0C`
+    fn daa(&mut self) {
+        // after an addition, adjust if (half-)carry occurred or if result is out of bounds
+        if !self.registers.n() {
+            if self.registers.cf() || self.registers.a > 0x99 {
+                self.registers.a = self.registers.a.wrapping_add(0x60);
+                self.registers.set_cf(true);
+            }
+            if self.registers.h() || (self.registers.a & 0x0F) > 0x09 {
+                self.registers.a = self.registers.a.wrapping_add(0x06);
+            }
+        }
+        else {
+            // after a subtraction, only adjust if (half-)carry occurred
+            if self.registers.cf() {
+                self.registers.a = self.registers.a.wrapping_sub(0x60);
+            }
+            if self.registers.h() {
+                self.registers.a = self.registers.a.wrapping_sub(0x06);
+            }
+        }
+
+        self.registers.set_zf(self.registers.a == 0);
+        self.registers.set_h(false);
+    }
 
     fn cpl(&mut self) {}
 
@@ -228,6 +269,7 @@ impl CPU {
 
     /// `halt until interrupt occurs (low power)`
     fn halt(&mut self) {
+        //TODO: Finish implementing this.
         self.halted = true;
     }
 

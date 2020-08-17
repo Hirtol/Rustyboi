@@ -99,20 +99,24 @@ impl Registers {
     }
 
     #[inline]
+    /// Zero Flag
     pub fn zf(&self) -> bool {
         self.f.contains(Flags::ZF)
     }
 
     #[inline]
+    /// Add/Sub Flag, used for BCD
     pub fn n(&self) -> bool {
         self.f.contains(Flags::N)
     }
 
+    /// Half-Carry Flag
     #[inline]
     pub fn h(&self) -> bool {
         self.f.contains(Flags::H)
     }
 
+    /// Carry Flag
     #[inline]
     pub fn cf(&self) -> bool {
         self.f.contains(Flags::CF)
