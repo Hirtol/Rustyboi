@@ -322,46 +322,123 @@ impl CPU {
         self.registers.a = new_value;
     }
 
+    ///Add the value in `target` plus the carry flag to A.
+    ///
+    /// Flags: `Z0HC`
     fn adc<T: Copy>(&mut self, target: T)
     where
         Self: ToU8<T>,
     {
+        let value = self.read_u8_value(target) + self.registers.cf() as u8;
+        let (new_value, overflowed) = self.registers.a.overflowing_add(value);
+        self.registers.set_zf(new_value == 0);
+        self.registers.set_n(false);
+        self.registers.set_cf(overflowed);
+        self.registers
+            .set_h((self.registers.a & 0xF) + (value & 0xF) > 0xF);
+
+        self.registers.a = new_value;
     }
 
+    /// Subtract the value in `target` from A.
+    ///
+    /// Flags: `Z1HC`
     fn sub<T: Copy>(&mut self, target: T)
     where
         Self: ToU8<T>,
     {
+        let value = self.read_u8_value(target);
+        let (new_value, overflowed) = self.registers.a.overflowing_sub(value);
+        self.registers.set_zf(new_value == 0);
+        self.registers.set_n(true);
+        self.registers.set_cf(overflowed);
+        //TODO: Check if works
+        self.registers
+            .set_h(((self.registers.a & 0xF) - (value & 0xF)) < 0);
+
+        self.registers.a = new_value;
     }
 
+    /// Subtract the value in `target` and the carry flag from A.
+    ///
+    /// Flags: `Z1HC`
     fn sbc<T: Copy>(&mut self, target: T)
     where
         Self: ToU8<T>,
     {
+        let value = self.read_u8_value(target) + self.registers.cf() as u8;
+        let (new_value, overflowed) = self.registers.a.overflowing_sub(value);
+        self.registers.set_zf(new_value == 0);
+        self.registers.set_n(true);
+        self.registers.set_cf(overflowed);
+        //TODO: Check if works
+        self.registers
+            .set_h(((self.registers.a & 0xF) - (value & 0xF)) < 0);
+
+        self.registers.a = new_value;
     }
 
+    /// Bitwise AND between the value in `target` and A.
+    ///
+    /// Flags: `Z010`
     fn and<T: Copy>(&mut self, target: T)
     where
         Self: ToU8<T>,
     {
+        self.registers.a &= self.read_u8_value(target);
+
+        self.registers.set_zf(self.registers.a == 0);
+        self.registers.set_n(false);
+        self.registers.set_h(true);
+        self.registers.set_cf(false);
     }
 
+    /// Bitwise XOR between the value in `target` and A.
+    ///
+    /// Flags: `Z000`
     fn xor<T: Copy>(&mut self, target: T)
     where
         Self: ToU8<T>,
     {
+        self.registers.a ^= self.read_u8_value(target);
+
+        self.registers.set_zf(self.registers.a == 0);
+        self.registers.set_n(false);
+        self.registers.set_h(false);
+        self.registers.set_cf(false);
     }
 
+    /// Store into A the bitwise OR of the value in `target` and A.
+    ///
+    /// Flags: `Z000`
     fn or<T: Copy>(&mut self, target: T)
     where
         Self: ToU8<T>,
     {
+        self.registers.a |= self.read_u8_value(target);
+
+        self.registers.set_zf(self.registers.a == 0);
+        self.registers.set_n(false);
+        self.registers.set_h(false);
+        self.registers.set_cf(false);
     }
 
+    /// Subtract the value in `target` from A and set flags accordingly, but don't store the result.
+    /// This is useful for ComParing values.
+    ///
+    /// Flags: `Z1HC`
     fn compare<T: Copy>(&mut self, target: T)
     where
         Self: ToU8<T>,
     {
+        let value = self.read_u8_value(target);
+        let (new_value, overflowed) = self.registers.a.overflowing_sub(value);
+        self.registers.set_zf(new_value == 0);
+        self.registers.set_n(true);
+        self.registers.set_cf(overflowed);
+        //TODO: Check if works
+        self.registers
+            .set_h(((self.registers.a & 0xF) - (value & 0xF)) < 0);
     }
 
     fn ret(&mut self, target: JumpModifier) {}
@@ -378,6 +455,7 @@ impl CPU {
         //TODO: Timing.
         if self.matches_jmp_condition(condition) {
             let target_address: u16 = if let JumpModifier::HL = condition {
+                //TODO: Consider moving to seperate function to clean up enum.
                 self.registers.hl()
             } else {
                 self.get_instr_u16()
@@ -409,7 +487,7 @@ impl CPU {
     fn rst(&mut self, numb: u8) {}
 
     /// There are a few instructions in the GameBoy's instruction set which are not used.
-    /// For now we'll panic, but it may be some games call them erroneously, so consider
+    /// For now we'll panic, but it may be that some games call them erroneously, so consider
     /// just returning instead.
     fn unknown(&mut self) {
         panic!("Unknown function was called, opcode: {}", self.opcode)

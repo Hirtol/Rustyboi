@@ -349,6 +349,42 @@ fn test_add() {
     assert!(cpu.registers.f.contains(Flags::CF));
 }
 
+#[test]
+fn test_adc(){
+
+}
+
+#[test]
+fn test_sub(){
+
+}
+
+#[test]
+fn test_sbc(){
+
+}
+
+#[test]
+fn test_and(){
+
+}
+
+#[test]
+fn test_xor(){
+
+}
+
+#[test]
+fn test_or(){
+
+}
+
+#[test]
+fn test_compare(){
+
+}
+
+
 fn initial_cpu() -> CPU {
     CPU::new()
 }
