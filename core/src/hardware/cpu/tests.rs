@@ -1,5 +1,5 @@
-use crate::hardware::cpu::execute::{InstructionAddress, JumpModifier};
 use crate::hardware::cpu::execute::InstructionAddress::HLI;
+use crate::hardware::cpu::execute::{InstructionAddress, JumpModifier};
 use crate::hardware::cpu::instructions::{Instruction, RegistryTarget};
 use crate::hardware::cpu::CPU;
 use crate::hardware::registers::{Flags, Reg16::*, Reg8::*};
@@ -244,7 +244,7 @@ fn test_relative_jump() {
 }
 
 #[test]
-fn test_rra(){
+fn test_rra() {
     let mut cpu = initial_cpu();
 
     cpu.registers.a = 0b0100_0101;
@@ -291,7 +291,7 @@ fn test_daa() {
 }
 
 #[test]
-fn test_cpl(){
+fn test_cpl() {
     let mut cpu = initial_cpu();
 
     cpu.registers.a = 0b1010_0101;
@@ -304,7 +304,7 @@ fn test_cpl(){
 }
 
 #[test]
-fn test_scf(){
+fn test_scf() {
     let mut cpu = initial_cpu();
 
     cpu.scf();
@@ -315,7 +315,7 @@ fn test_scf(){
 }
 
 #[test]
-fn test_ccf(){
+fn test_ccf() {
     let mut cpu = initial_cpu();
 
     cpu.ccf();
@@ -350,7 +350,7 @@ fn test_add() {
 }
 
 #[test]
-fn test_adc(){
+fn test_adc() {
     let mut cpu = initial_cpu();
     // Test carry add
     cpu.registers.a = 10;
@@ -363,7 +363,7 @@ fn test_adc(){
 }
 
 #[test]
-fn test_sub(){
+fn test_sub() {
     let mut cpu = initial_cpu();
     // Test normal add
     cpu.registers.a = 20;
@@ -391,7 +391,7 @@ fn test_sub(){
 }
 
 #[test]
-fn test_sbc(){
+fn test_sbc() {
     let mut cpu = initial_cpu();
     // Test carry add
     cpu.registers.a = 20;
@@ -404,7 +404,7 @@ fn test_sbc(){
 }
 
 #[test]
-fn test_and(){
+fn test_and() {
     let mut cpu = initial_cpu();
     // Test carry add
     cpu.registers.a = 0b1000_1010;
@@ -416,7 +416,7 @@ fn test_and(){
 }
 
 #[test]
-fn test_xor(){
+fn test_xor() {
     let mut cpu = initial_cpu();
     // Test carry add
     cpu.registers.a = 0b0000_1010;
@@ -428,7 +428,7 @@ fn test_xor(){
 }
 
 #[test]
-fn test_or(){
+fn test_or() {
     let mut cpu = initial_cpu();
     // Test carry add
     cpu.registers.a = 0b0000_1010;
@@ -440,7 +440,7 @@ fn test_or(){
 }
 
 #[test]
-fn test_compare(){
+fn test_compare() {
     let mut cpu = initial_cpu();
     // Test overflow
     cpu.registers.c = 16;
@@ -461,7 +461,7 @@ fn test_compare(){
 }
 
 #[test]
-fn test_call_and_ret(){
+fn test_call_and_ret() {
     let mut cpu = initial_cpu();
     cpu.registers.sp = 0xFFFF;
     cpu.memory.set_byte(0, 0xCD);
@@ -480,7 +480,7 @@ fn test_call_and_ret(){
 }
 
 #[test]
-fn test_push_and_pop(){
+fn test_push_and_pop() {
     let mut cpu = initial_cpu();
     cpu.registers.set_bc(0x500);
     cpu.registers.sp = 0xFFFF;
@@ -496,7 +496,7 @@ fn test_push_and_pop(){
 }
 
 #[test]
-fn test_rst(){
+fn test_rst() {
     let mut cpu = initial_cpu();
     cpu.registers.sp = 0xFFFF;
 
@@ -508,7 +508,7 @@ fn test_rst(){
 }
 
 #[test]
-fn test_add_sp(){
+fn test_add_sp() {
     let mut cpu = initial_cpu();
     cpu.registers.sp = 50;
 
@@ -523,7 +523,7 @@ fn test_add_sp(){
 }
 
 #[test]
-fn test_load_sp(){
+fn test_load_sp() {
     let mut cpu = initial_cpu();
     cpu.registers.sp = 50;
     cpu.set_instruction((-30 as i8) as u8);
@@ -535,14 +535,63 @@ fn test_load_sp(){
     //TODO: Add flag tests once we figure out what they actually are supposed to be ._.
 }
 
+#[test]
+fn test_rlc(){
 
+}
+
+#[test]
+fn test_rrc(){
+
+}
+
+#[test]
+fn test_rl(){
+
+}
+
+#[test]
+fn test_rr(){
+
+}
+
+#[test]
+fn test_sla(){
+
+}
+
+#[test]
+fn test_sra(){
+
+}
+
+#[test]
+fn test_swap(){
+
+}
+
+#[test]
+fn test_srl(){
+
+}
+
+#[test]
+fn test_bit(){
+
+}
+
+#[test]
+fn test_set(){
+
+}
+
+#[test]
+fn test_res(){
+
+}
 
 fn initial_cpu() -> CPU {
     CPU::new()
-}
-
-fn set_instruction(cpu: &mut CPU, code: u8) {
-    cpu.memory.set_byte(0, code);
 }
 
 impl CPU {

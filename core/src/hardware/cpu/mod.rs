@@ -2,6 +2,7 @@ use crate::hardware::cpu::execute::{InstructionAddress, JumpModifier, WrapperEnu
 use crate::hardware::cpu::instructions::*;
 use crate::hardware::cpu::traits::{SetU16, SetU8, ToU16, ToU8};
 use crate::hardware::memory::Memory;
+use crate::hardware::registers::Reg8::A;
 use crate::hardware::registers::{Flags, Reg16, Reg8, Registers};
 use log::*;
 use std::io::Read;
@@ -9,6 +10,7 @@ use std::io::Read;
 #[cfg(test)]
 mod tests;
 
+mod alu;
 mod execute;
 mod fetch;
 mod instructions;
@@ -112,14 +114,8 @@ impl CPU {
     ///
     /// Flags: `000c` (current) OR `z00c`
     fn rlca(&mut self) {
-        let carry_bit = self.registers.a & 0x80 != 0;
-        //TODO: Check if ZF should be set here, conflicting documentation.
+        self.rotate_left(A);
         self.registers.set_zf(false);
-        self.registers.set_n(false);
-        self.registers.set_h(false);
-        self.registers.set_cf(carry_bit);
-
-        self.registers.a = self.registers.a.rotate_left(1);
     }
 
     /// `HL = HL+rr     ;rr may be BC,DE,HL,SP`
@@ -249,8 +245,7 @@ impl CPU {
             if self.registers.hf() || (self.registers.a & 0x0F) > 0x09 {
                 self.registers.a = self.registers.a.wrapping_add(0x06);
             }
-        }
-        else {
+        } else {
             // after a subtraction, only adjust if (half-)carry occurred
             if self.registers.cf() {
                 self.registers.a = self.registers.a.wrapping_sub(0x60);
@@ -517,7 +512,7 @@ impl CPU {
     }
 
     /// Helper function to push certain values to the stack.
-    fn push_helper(&mut self, value: u16){
+    fn push_helper(&mut self, value: u16) {
         self.registers.sp = self.registers.sp.wrapping_sub(2);
         self.memory.set_short(self.registers.sp, value);
     }
@@ -558,7 +553,8 @@ impl CPU {
         self.registers.set_zf(false);
         self.registers.set_n(false);
         //TODO: Check if this half flag is correct (doc says bit 3, but this should be a 16 bit?!)
-        self.registers.set_h((self.registers.sp & 0xF) + (value as u16 & 0xF) > 0xF);
+        self.registers
+            .set_h((self.registers.sp & 0xF) + (value as u16 & 0xF) > 0xF);
         self.registers.set_cf(overflowed);
 
         self.registers.sp = new_value;
@@ -584,7 +580,8 @@ impl CPU {
 
         self.registers.set_zf(false);
         self.registers.set_n(false);
-        self.registers.set_h((self.registers.sp & 0xF) + (value as u16 & 0xF) > 0xF);
+        self.registers
+            .set_h((self.registers.sp & 0xF) + (value as u16 & 0xF) > 0xF);
         self.registers.set_cf(overflowed);
     }
 
@@ -600,10 +597,16 @@ impl CPU {
        Prefixed Instructions
     */
 
+    /// Rotate register r8 left.
+    /// C <- [7 <- 0] <- [7]
+    ///
+    /// Flags: `Z00C`
     fn rlc<T: Copy>(&mut self, target: T)
     where
         Self: ToU8<T>,
+        Self: SetU8<T>,
     {
+        self.rotate_left(target);
     }
 
     fn rrc<T: Copy>(&mut self, target: T)
@@ -664,207 +667,5 @@ impl CPU {
     where
         Self: ToU8<T>,
     {
-    }
-}
-
-impl ToU8<Reg8> for CPU {
-    fn read_u8_value(&mut self, target: Reg8) -> u8 {
-        use Reg8::*;
-
-        match target {
-            A => self.registers.a,
-            B => self.registers.b,
-            C => self.registers.c,
-            D => self.registers.d,
-            E => self.registers.e,
-            H => self.registers.h,
-            L => self.registers.l,
-        }
-    }
-}
-
-impl SetU8<Reg8> for CPU {
-    fn set_u8_value(&mut self, target: Reg8, value: u8) {
-        use Reg8::*;
-
-        match target {
-            A => self.registers.a = value,
-            B => self.registers.b = value,
-            C => self.registers.c = value,
-            D => self.registers.d = value,
-            E => self.registers.e = value,
-            H => self.registers.h = value,
-            L => self.registers.l = value,
-        }
-    }
-}
-
-impl ToU8<InstructionAddress> for CPU {
-    fn read_u8_value(&mut self, target: InstructionAddress) -> u8 {
-        use crate::hardware::memory::IO_START_ADDRESS;
-        use InstructionAddress::*;
-
-        match target {
-            BCI => self.memory.read_byte(self.registers.bc()),
-            DEI => self.memory.read_byte(self.registers.de()),
-            HLI => self.memory.read_byte(self.registers.hl()),
-            HLIP => {
-                let result = self.read_u8_value(HLI);
-                self.registers.set_hl(self.registers.hl().wrapping_add(1));
-                result
-            }
-            HLIN => {
-                let result = self.read_u8_value(HLI);
-                self.registers.set_hl(self.registers.hl().wrapping_sub(1));
-                result
-            }
-            DIRECT => self.get_instr_u8(),
-            DirectMem => {
-                let address = self.get_instr_u16();
-                self.memory.read_byte(address)
-            }
-            IoDirect => {
-                let address = self.get_instr_u8() as u16;
-                self.memory.read_byte(IO_START_ADDRESS + address)
-            }
-            IoC => self
-                .memory
-                .read_byte(IO_START_ADDRESS + self.registers.c as u16),
-        }
-    }
-}
-
-impl SetU8<InstructionAddress> for CPU {
-    fn set_u8_value(&mut self, target: InstructionAddress, value: u8) {
-        use crate::hardware::memory::IO_START_ADDRESS;
-        use InstructionAddress::*;
-
-        match target {
-            BCI => self.memory.set_byte(self.registers.bc(), value),
-            DEI => self.memory.set_byte(self.registers.de(), value),
-            HLI => self.memory.set_byte(self.registers.hl(), value),
-            HLIP => {
-                self.set_u8_value(HLI, value);
-                self.registers.set_hl(self.registers.hl().wrapping_add(1));
-            }
-            HLIN => {
-                self.set_u8_value(HLI, value);
-                self.registers.set_hl(self.registers.hl().wrapping_sub(1));
-            }
-            DIRECT => {
-                let address = self.get_instr_u16();
-                self.memory.set_byte(address, value)
-            }
-            DirectMem => {
-                let address = self.get_instr_u16();
-                self.memory.set_byte(address, value)
-            }
-            IoDirect => {
-                let addition = self.get_instr_u8() as u16;
-                self.memory.set_byte(IO_START_ADDRESS + addition, value);
-            }
-            IoC => self
-                .memory
-                .set_byte(IO_START_ADDRESS + self.registers.c as u16, value),
-        }
-    }
-}
-
-impl ToU8<WrapperEnum> for CPU {
-    fn read_u8_value(&mut self, target: WrapperEnum) -> u8 {
-        match target {
-            WrapperEnum::Reg8(result) => self.read_u8_value(result),
-            WrapperEnum::InstructionAddress(result) => self.read_u8_value(result),
-        }
-    }
-}
-
-impl SetU8<WrapperEnum> for CPU {
-    fn set_u8_value(&mut self, target: WrapperEnum, value: u8) {
-        match target {
-            WrapperEnum::Reg8(result) => self.set_u8_value(result, value),
-            WrapperEnum::InstructionAddress(result) => self.set_u8_value(result, value),
-        }
-    }
-}
-
-impl ToU8<u8> for CPU {
-    fn read_u8_value(&mut self, target: u8) -> u8 {
-        target
-    }
-}
-
-impl ToU16<Reg16> for CPU {
-    fn read_u16_value(&mut self, target: Reg16) -> u16 {
-        use Reg16::*;
-
-        match target {
-            AF => self.registers.af(),
-            BC => self.registers.bc(),
-            DE => self.registers.de(),
-            HL => self.registers.hl(),
-            SP => self.registers.sp,
-        }
-    }
-}
-
-impl SetU16<Reg16> for CPU {
-    fn set_u16_value(&mut self, target: Reg16, value: u16) {
-        use Reg16::*;
-
-        match target {
-            AF => self.registers.set_af(value),
-            BC => self.registers.set_bc(value),
-            DE => self.registers.set_de(value),
-            HL => self.registers.set_hl(value),
-            SP => self.registers.sp = value,
-        }
-    }
-}
-
-impl ToU16<InstructionAddress> for CPU {
-    fn read_u16_value(&mut self, target: InstructionAddress) -> u16 {
-        use crate::hardware::memory::IO_START_ADDRESS;
-        use InstructionAddress::*;
-
-        match target {
-            BCI => unimplemented!(),
-            DEI => unimplemented!(),
-            HLI => unimplemented!(),
-            HLIP => unimplemented!(),
-            HLIN => unimplemented!(),
-            DIRECT => self.get_instr_u16(),
-            DirectMem => unimplemented!(),
-            IoDirect => unimplemented!(),
-            IoC => unimplemented!(),
-        }
-    }
-}
-
-impl SetU16<InstructionAddress> for CPU {
-    fn set_u16_value(&mut self, target: InstructionAddress, value: u16) {
-        use crate::hardware::memory::IO_START_ADDRESS;
-        use InstructionAddress::*;
-
-        match target {
-            BCI => unimplemented!(),
-            DEI => unimplemented!(),
-            HLI => unimplemented!(),
-            HLIP => unimplemented!(),
-            HLIN => unimplemented!(),
-            DIRECT => {
-                //TODO: Check if big endian/little endian
-                let address = self.get_instr_u16();
-                self.memory.set_short(address, value);
-                // self.memory.set_byte(address, (value & 0x0F) as u8);
-                // self.memory.set_byte(address.wrapping_add(1), (value & 0xF0 >> 8) as u8);
-            }
-            DirectMem => {
-                let address = self.get_instr_u16();
-                self.memory.set_short(address, value);
-            }
-            IoDirect => unimplemented!(),
-            IoC => unimplemented!(),
-        }
     }
 }
