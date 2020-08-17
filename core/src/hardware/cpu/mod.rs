@@ -301,9 +301,7 @@ impl CPU {
     /// `A=A+r` OR `A=A+n` OR `A=A+(HL)`
     /// Adds the provided `target` to the `A` register, setting any relevant flags.
     ///
-    /// # Arguments
-    ///
-    /// * `target` - The value to be added, a relevant `ToU8` implementation should exist for `CPU`
+    /// Flags: `Z0HC`
     fn add<T: Copy>(&mut self, target: T)
     where
         Self: ToU8<T>,
@@ -503,7 +501,7 @@ impl CPU {
     fn call(&mut self, target: JumpModifier) {
         if self.matches_jmp_condition(target) {
             let address = self.get_instr_u16();
-            self.push_to_stack(self.registers.pc);
+            self.push_helper(self.registers.pc);
             self.registers.pc = address;
         } else {
             self.registers.pc = self.registers.pc.wrapping_add(2);
@@ -515,16 +513,23 @@ impl CPU {
     /// Flags: `----`
     fn push(&mut self, target: Reg16) {
         let value = self.read_u16_value(target);
-        self.push_to_stack(value);
+        self.push_helper(value);
     }
 
     /// Helper function to push certain values to the stack.
-    fn push_to_stack(&mut self, value: u16){
+    fn push_helper(&mut self, value: u16){
         self.registers.sp = self.registers.sp.wrapping_sub(2);
         self.memory.set_short(self.registers.sp, value);
     }
 
-    fn rst(&mut self, numb: u8) {}
+    /// Call address `vec`.
+    /// This is a shorter and faster equivalent to `CALL` for suitable values of `vec`.
+    ///
+    /// Flags: `----`
+    fn rst(&mut self, vec: u8) {
+        self.push_helper(self.registers.pc);
+        self.registers.pc = vec as u16;
+    }
 
     /// There are a few instructions in the GameBoy's instruction set which are not used.
     /// For now we'll panic, but it may be that some games call them erroneously, so consider
@@ -533,15 +538,63 @@ impl CPU {
         panic!("Unknown function was called, opcode: {}", self.opcode)
     }
 
-    fn reti(&mut self) {}
+    /// Return from subroutine and enable interrupts.
+    /// This is basically equivalent to executing EI then RET,
+    /// meaning that IME is set right after this instruction.
+    ///
+    /// Flags: `----`
+    fn reti(&mut self) {
+        //TODO: Once we have interrupts.
+        unimplemented!("RETI NOT YET IMPLEMENTED");
+    }
 
-    fn add_sp(&mut self) {}
+    /// `ADD SP,e8`
+    /// Add the signed value e8 to SP.
+    ///
+    /// Flags: `00HC`
+    fn add_sp(&mut self) {
+        let value = self.get_instr_u8() as i8;
+        let (new_value, overflowed) = self.registers.sp.overflowing_add(value as u16);
+        self.registers.set_zf(false);
+        self.registers.set_n(false);
+        //TODO: Check if this half flag is correct (doc says bit 3, but this should be a 16 bit?!)
+        self.registers.set_h((self.registers.sp & 0xF) + (value as u16 & 0xF) > 0xF);
+        self.registers.set_cf(overflowed);
 
-    fn di(&mut self) {}
+        self.registers.sp = new_value;
+    }
 
-    fn load_sp(&mut self) {}
+    /// `DI`
+    /// Disable Interrupts by clearing the IME flag.
+    ///
+    /// Flags: `----`
+    fn di(&mut self) {
+        //TODO: Implement interrupts.
+        unimplemented!("RETI NOT YET IMPLEMENTED");
+    }
 
-    fn ei(&mut self) {}
+    /// `LD HL,SP+i8`
+    /// Load the value of `SP + i8` into the register `HL`.
+    ///
+    /// Flags: `00HC`
+    fn load_sp(&mut self) {
+        let value = self.get_instr_u8() as i8;
+        let (new_value, overflowed) = self.registers.sp.overflowing_add(value as u16);
+        self.registers.set_hl(new_value);
+
+        self.registers.set_zf(false);
+        self.registers.set_n(false);
+        self.registers.set_h((self.registers.sp & 0xF) + (value as u16 & 0xF) > 0xF);
+        self.registers.set_cf(overflowed);
+    }
+
+    /// `EI`
+    /// Enable Interrupts by setting the IME flag.
+    /// The flag is only set after the instruction following EI.
+    fn ei(&mut self) {
+        //TODO: Implement interrupts.
+        unimplemented!("RETI NOT YET IMPLEMENTED");
+    }
 
     /*
        Prefixed Instructions

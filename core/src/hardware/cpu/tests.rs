@@ -495,8 +495,58 @@ fn test_push_and_pop(){
     assert_eq!(cpu.registers.de(), 0x500);
 }
 
+#[test]
+fn test_rst(){
+    let mut cpu = initial_cpu();
+    cpu.registers.sp = 0xFFFF;
+
+    cpu.set_instruction(0xFF);
+
+    cpu.step_cycle();
+
+    assert_eq!(cpu.registers.pc, 0x38);
+}
+
+#[test]
+fn test_add_sp(){
+    let mut cpu = initial_cpu();
+    cpu.registers.sp = 50;
+
+    cpu.set_instruction(0xE8);
+    cpu.memory.set_byte(1, (-20 as i8) as u8);
+
+    cpu.step_cycle();
+
+    assert_eq!(cpu.registers.sp, 30);
+    assert_eq!(cpu.registers.pc, 2);
+    //TODO: Add flag tests once we figure out what they actually are supposed to be ._.
+}
+
+#[test]
+fn test_load_sp(){
+    let mut cpu = initial_cpu();
+    cpu.registers.sp = 50;
+    cpu.set_instruction((-30 as i8) as u8);
+
+    cpu.load_sp();
+
+    assert_eq!(cpu.registers.hl(), 20);
+    assert_eq!(cpu.registers.sp, 50);
+    //TODO: Add flag tests once we figure out what they actually are supposed to be ._.
+}
+
 
 
 fn initial_cpu() -> CPU {
     CPU::new()
+}
+
+fn set_instruction(cpu: &mut CPU, code: u8) {
+    cpu.memory.set_byte(0, code);
+}
+
+impl CPU {
+    fn set_instruction(&mut self, code: u8) {
+        self.memory.set_byte(0, code);
+    }
 }
