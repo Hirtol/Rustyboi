@@ -351,37 +351,113 @@ fn test_add() {
 
 #[test]
 fn test_adc(){
+    let mut cpu = initial_cpu();
+    // Test carry add
+    cpu.registers.a = 10;
+    cpu.registers.c = 20;
+    cpu.registers.set_cf(true);
 
+    cpu.adc(C);
+
+    assert_eq!(cpu.registers.a, 31);
 }
 
 #[test]
 fn test_sub(){
+    let mut cpu = initial_cpu();
+    // Test normal add
+    cpu.registers.a = 20;
+    cpu.registers.c = 10;
 
+    cpu.sub(C);
+
+    assert_eq!(cpu.registers.a, 10);
+
+    // Test overflow
+    cpu.registers.c = 16;
+
+    cpu.sub(C);
+
+    assert_eq!(cpu.registers.a, 250);
+    assert!(cpu.registers.cf());
+    assert!(!cpu.registers.hf());
+
+    cpu.registers.a = 0b0001_0101;
+    cpu.registers.b = 0b0000_1000;
+
+    cpu.sub(B);
+
+    assert!(cpu.registers.hf())
 }
 
 #[test]
 fn test_sbc(){
+    let mut cpu = initial_cpu();
+    // Test carry add
+    cpu.registers.a = 20;
+    cpu.registers.c = 10;
+    cpu.registers.set_cf(true);
 
+    cpu.sbc(C);
+
+    assert_eq!(cpu.registers.a, 9);
 }
 
 #[test]
 fn test_and(){
+    let mut cpu = initial_cpu();
+    // Test carry add
+    cpu.registers.a = 0b1000_1010;
+    cpu.registers.c = 0b1111_0011;
 
+    cpu.and(C);
+
+    assert_eq!(cpu.registers.a, 0b1000_0010);
 }
 
 #[test]
 fn test_xor(){
+    let mut cpu = initial_cpu();
+    // Test carry add
+    cpu.registers.a = 0b0000_1010;
+    cpu.registers.c = 0b1111_0011;
 
+    cpu.xor(C);
+
+    assert_eq!(cpu.registers.a, 0b1111_1001);
 }
 
 #[test]
 fn test_or(){
+    let mut cpu = initial_cpu();
+    // Test carry add
+    cpu.registers.a = 0b0000_1010;
+    cpu.registers.c = 0b1111_0011;
 
+    cpu.or(C);
+
+    assert_eq!(cpu.registers.a, 0b1111_1011);
 }
 
 #[test]
 fn test_compare(){
+    let mut cpu = initial_cpu();
+    // Test overflow
+    cpu.registers.c = 16;
+    cpu.registers.a = 10;
 
+    cpu.compare(C);
+
+    assert_eq!(cpu.registers.a, 10);
+    assert!(cpu.registers.cf());
+    assert!(!cpu.registers.hf());
+
+    cpu.registers.a = 0b0001_0101;
+    cpu.registers.b = 0b0000_1000;
+
+    cpu.compare(B);
+
+    assert!(cpu.registers.hf())
 }
 
 

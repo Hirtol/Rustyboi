@@ -354,7 +354,7 @@ impl CPU {
         self.registers.set_cf(overflowed);
         //TODO: Check if works
         self.registers
-            .set_h(((self.registers.a & 0xF) - (value & 0xF)) < 0);
+            .set_h(((self.registers.a & 0xF) < (value & 0xF)));
 
         self.registers.a = new_value;
     }
@@ -373,7 +373,7 @@ impl CPU {
         self.registers.set_cf(overflowed);
         //TODO: Check if works
         self.registers
-            .set_h(((self.registers.a & 0xF) - (value & 0xF)) < 0);
+            .set_h(((self.registers.a & 0xF) < (value & 0xF)));
 
         self.registers.a = new_value;
     }
@@ -438,7 +438,7 @@ impl CPU {
         self.registers.set_cf(overflowed);
         //TODO: Check if works
         self.registers
-            .set_h(((self.registers.a & 0xF) - (value & 0xF)) < 0);
+            .set_h(((self.registers.a & 0xF) < (value & 0xF)));
     }
 
     fn ret(&mut self, target: JumpModifier) {}
