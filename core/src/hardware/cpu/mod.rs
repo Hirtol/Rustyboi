@@ -65,7 +65,7 @@ impl CPU {
         Self: SetU16<T>,
         Self: ToU16<U>,
     {
-        let source_value = self.get_u16_value(source);
+        let source_value = self.read_u16_value(source);
 
         self.set_u16_value(destination, source_value);
     }
@@ -103,7 +103,7 @@ impl CPU {
     ///
     /// Flags: `----`
     fn increment16(&mut self, target: Reg16) {
-        let new_value = self.get_u16_value(target).wrapping_add(1);
+        let new_value = self.read_u16_value(target).wrapping_add(1);
 
         self.set_u16_value(target, new_value);
     }
@@ -126,7 +126,7 @@ impl CPU {
     ///
     /// Flags: `-0hc`
     fn add_16bit(&mut self, target: Reg16) {
-        let old_value = self.get_u16_value(target);
+        let old_value = self.read_u16_value(target);
         let (result, overflowed) = old_value.overflowing_add(self.registers.hl());
         self.registers.set_n(false);
         self.registers.set_cf(overflowed);
@@ -159,7 +159,7 @@ impl CPU {
     ///
     /// Flags: `----`
     fn decrement16(&mut self, target: Reg16) {
-        let new_value = self.get_u16_value(target).wrapping_sub(1);
+        let new_value = self.read_u16_value(target).wrapping_sub(1);
 
         self.set_u16_value(target, new_value);
     }
@@ -441,9 +441,23 @@ impl CPU {
             .set_h(((self.registers.a & 0xF) < (value & 0xF)));
     }
 
-    fn ret(&mut self, target: JumpModifier) {}
+    /// Return from subroutine.
+    /// This is basically a POP PC (if such an instruction existed).
+    fn ret(&mut self, target: JumpModifier) {
+        if self.matches_jmp_condition(target) {
+            self.registers.pc = self.memory.read_short(self.registers.sp);
+            self.registers.sp = self.registers.sp.wrapping_add(2);
+        }
+    }
 
-    fn pop(&mut self, target: Reg16) {}
+    /// Pop register `target` from the stack.
+    ///
+    /// Flags: `----`
+    fn pop(&mut self, target: Reg16) {
+        let sp_target = self.memory.read_short(self.registers.sp);
+        self.set_u16_value(target, sp_target);
+        self.registers.sp = self.registers.sp.wrapping_add(2);
+    }
 
     /// `jump to nn, PC=nn` OR `jump to HL, PC=HL` OR `conditional jump if nz,z,nc,c`
     /// Sets the `PC` to the relevant value based on the JumpCondition
@@ -480,9 +494,35 @@ impl CPU {
         }
     }
 
-    fn call(&mut self, target: JumpModifier) {}
+    /// Call address n16, if condition `target` is met.
+    /// This pushes the address of the instruction after the CALL on the stack,
+    /// such that RET can pop it later;
+    /// then, it executes an implicit JP n16.
+    ///
+    /// Flags: `----`
+    fn call(&mut self, target: JumpModifier) {
+        if self.matches_jmp_condition(target) {
+            let address = self.get_instr_u16();
+            self.push_to_stack(self.registers.pc);
+            self.registers.pc = address;
+        } else {
+            self.registers.pc = self.registers.pc.wrapping_add(2);
+        }
+    }
 
-    fn push(&mut self, target: Reg16) {}
+    /// Push register `target` into the stack.
+    ///
+    /// Flags: `----`
+    fn push(&mut self, target: Reg16) {
+        let value = self.read_u16_value(target);
+        self.push_to_stack(value);
+    }
+
+    /// Helper function to push certain values to the stack.
+    fn push_to_stack(&mut self, value: u16){
+        self.registers.sp = self.registers.sp.wrapping_sub(2);
+        self.memory.set_short(self.registers.sp, value);
+    }
 
     fn rst(&mut self, numb: u8) {}
 
@@ -702,7 +742,7 @@ impl ToU8<u8> for CPU {
 }
 
 impl ToU16<Reg16> for CPU {
-    fn get_u16_value(&mut self, target: Reg16) -> u16 {
+    fn read_u16_value(&mut self, target: Reg16) -> u16 {
         use Reg16::*;
 
         match target {
@@ -730,7 +770,7 @@ impl SetU16<Reg16> for CPU {
 }
 
 impl ToU16<InstructionAddress> for CPU {
-    fn get_u16_value(&mut self, target: InstructionAddress) -> u16 {
+    fn read_u16_value(&mut self, target: InstructionAddress) -> u16 {
         use crate::hardware::memory::IO_START_ADDRESS;
         use InstructionAddress::*;
 

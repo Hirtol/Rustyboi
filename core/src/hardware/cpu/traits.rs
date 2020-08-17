@@ -13,7 +13,7 @@ pub trait SetU8<T: Copy> {
 }
 
 pub trait ToU16<T: Copy> {
-    fn get_u16_value(&mut self, target: T) -> u16;
+    fn read_u16_value(&mut self, target: T) -> u16;
 }
 
 pub trait SetU16<T: Copy> {
