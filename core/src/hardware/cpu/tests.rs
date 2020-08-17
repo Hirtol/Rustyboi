@@ -291,6 +291,45 @@ fn test_daa() {
 }
 
 #[test]
+fn test_cpl(){
+    let mut cpu = initial_cpu();
+
+    cpu.registers.a = 0b1010_0101;
+
+    cpu.cpl();
+
+    assert_eq!(cpu.registers.a, 0b0101_1010);
+    assert!(cpu.registers.hf());
+    assert!(cpu.registers.n());
+}
+
+#[test]
+fn test_scf(){
+    let mut cpu = initial_cpu();
+
+    cpu.scf();
+
+    assert!(cpu.registers.cf());
+    assert!(!cpu.registers.hf());
+    assert!(!cpu.registers.n());
+}
+
+#[test]
+fn test_ccf(){
+    let mut cpu = initial_cpu();
+
+    cpu.ccf();
+
+    assert!(cpu.registers.cf());
+    assert!(!cpu.registers.hf());
+    assert!(!cpu.registers.n());
+
+    cpu.ccf();
+
+    assert!(!cpu.registers.cf());
+}
+
+#[test]
 fn test_add() {
     let mut cpu = initial_cpu();
     // Test normal add

@@ -233,9 +233,12 @@ impl CPU {
 
     /// Decimal adjust register A.
     /// This instruction adjusts register A so that the
-    /// correct representation of Binary Coded Decimal (BCD)is obtained.
+    /// correct representation of Binary Coded Decimal (BCD) is obtained.
+    /// Used [this] for the implementation as it was a rather confusing instruction.
     ///
     /// Flags: `Z-0C`
+    ///
+    /// [this]: https://forums.nesdev.com/viewtopic.php?t=15944#:~:text=The%20DAA%20instruction%20adjusts%20the,%2C%20lower%20nybble%2C%20or%20both.
     fn daa(&mut self) {
         // after an addition, adjust if (half-)carry occurred or if result is out of bounds
         if !self.registers.n() {
@@ -243,7 +246,7 @@ impl CPU {
                 self.registers.a = self.registers.a.wrapping_add(0x60);
                 self.registers.set_cf(true);
             }
-            if self.registers.h() || (self.registers.a & 0x0F) > 0x09 {
+            if self.registers.hf() || (self.registers.a & 0x0F) > 0x09 {
                 self.registers.a = self.registers.a.wrapping_add(0x06);
             }
         }
@@ -252,7 +255,7 @@ impl CPU {
             if self.registers.cf() {
                 self.registers.a = self.registers.a.wrapping_sub(0x60);
             }
-            if self.registers.h() {
+            if self.registers.hf() {
                 self.registers.a = self.registers.a.wrapping_sub(0x06);
             }
         }
@@ -261,11 +264,33 @@ impl CPU {
         self.registers.set_h(false);
     }
 
-    fn cpl(&mut self) {}
+    /// ComPLement accumulator (A = ~A).
+    ///
+    /// Flags: `-11-`
+    fn cpl(&mut self) {
+        self.registers.a = !self.registers.a;
 
-    fn scf(&mut self) {}
+        self.registers.set_n(true);
+        self.registers.set_h(true);
+    }
 
-    fn ccf(&mut self) {}
+    /// Set Carry Flag.
+    ///
+    /// Flags: `-001`
+    fn scf(&mut self) {
+        self.registers.set_n(false);
+        self.registers.set_h(false);
+        self.registers.set_cf(true);
+    }
+
+    /// Complement Carry Flag.
+    ///
+    /// Flags: `-00i` where `i = inverted`
+    fn ccf(&mut self) {
+        self.registers.set_n(false);
+        self.registers.set_h(false);
+        self.registers.f.toggle(Flags::CF);
+    }
 
     /// `halt until interrupt occurs (low power)`
     fn halt(&mut self) {

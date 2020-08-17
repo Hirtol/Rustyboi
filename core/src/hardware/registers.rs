@@ -112,7 +112,7 @@ impl Registers {
 
     /// Half-Carry Flag
     #[inline]
-    pub fn h(&self) -> bool {
+    pub fn hf(&self) -> bool {
         self.f.contains(Flags::H)
     }
 
