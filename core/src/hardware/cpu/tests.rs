@@ -536,37 +536,170 @@ fn test_load_sp() {
 }
 
 #[test]
-fn test_rlc() {}
+fn test_rlc() {
+    let mut cpu = initial_cpu();
+    cpu.registers.b = 0b1010_1001;
+
+    cpu.rlc(B);
+
+    assert_eq!(cpu.registers.b, 0b0101_0011);
+    assert!(cpu.registers.cf());
+
+    cpu.rlc(B);
+
+    assert_eq!(cpu.registers.b, 0b1010_0110);
+    assert!(!cpu.registers.cf())
+}
 
 #[test]
-fn test_rrc() {}
+fn test_rrc() {
+    let mut cpu = initial_cpu();
+    cpu.registers.b = 0b1010_1001;
+
+    cpu.rrc(B);
+
+    assert_eq!(cpu.registers.b, 0b1101_0100);
+    assert!(cpu.registers.cf());
+
+    cpu.rrc(B);
+
+    assert_eq!(cpu.registers.b, 0b0110_1010);
+    assert!(!cpu.registers.cf());
+}
 
 #[test]
-fn test_rl() {}
+fn test_rl() {
+    let mut cpu = initial_cpu();
+    cpu.registers.b = 0b1010_1001;
+
+    cpu.rl(B);
+
+    assert_eq!(cpu.registers.b, 0b0101_0010);
+    assert!(cpu.registers.cf());
+
+    cpu.rl(B);
+
+    assert_eq!(cpu.registers.b, 0b1010_0101);
+    assert!(!cpu.registers.cf())
+}
 
 #[test]
-fn test_rr() {}
+fn test_rr() {
+    let mut cpu = initial_cpu();
+    cpu.registers.b = 0b1010_1001;
+
+    cpu.rr(B);
+
+    assert_eq!(cpu.registers.b, 0b0101_0100);
+    assert!(cpu.registers.cf());
+
+    cpu.rr(B);
+
+    assert_eq!(cpu.registers.b, 0b1010_1010);
+    assert!(!cpu.registers.cf());
+}
 
 #[test]
-fn test_sla() {}
+fn test_sla() {
+    let mut cpu = initial_cpu();
+    cpu.registers.b = 0b1010_1001;
+
+    cpu.sla(B);
+
+    assert_eq!(cpu.registers.b, 0b0101_0010);
+    assert!(cpu.registers.cf());
+
+    cpu.sla(B);
+
+    assert_eq!(cpu.registers.b, 0b1010_0100);
+    assert!(!cpu.registers.cf())
+}
 
 #[test]
-fn test_sra() {}
+fn test_sra() {
+    let mut cpu = initial_cpu();
+    cpu.registers.b = 0b1010_1001;
+
+    cpu.sra(B);
+
+    assert_eq!(cpu.registers.b, 0b1101_0100);
+    assert!(cpu.registers.cf());
+
+    cpu.sra(B);
+
+    assert_eq!(cpu.registers.b, 0b1110_1010);
+    assert!(!cpu.registers.cf());
+
+    cpu.registers.c = 0b0110_0110;
+
+    cpu.sra(C);
+
+    assert_eq!(cpu.registers.c, 0b0011_0011);
+}
 
 #[test]
-fn test_swap() {}
+fn test_swap() {
+    let mut cpu = initial_cpu();
+    cpu.registers.b = 0b1010_1001;
+
+    cpu.swap(B);
+
+    assert_eq!(cpu.registers.b, 0b1001_1010);
+
+    cpu.swap(B);
+
+    assert_eq!(cpu.registers.b, 0b1010_1001);
+}
 
 #[test]
-fn test_srl() {}
+fn test_srl() {
+    let mut cpu = initial_cpu();
+    cpu.registers.b = 0b1010_1001;
+
+    cpu.srl(B);
+
+    assert_eq!(cpu.registers.b, 0b0101_0100);
+    assert!(cpu.registers.cf());
+
+    cpu.srl(B);
+
+    assert_eq!(cpu.registers.b, 0b0010_1010);
+    assert!(!cpu.registers.cf());
+}
 
 #[test]
-fn test_bit() {}
+fn test_bit() {
+    let mut cpu = initial_cpu();
+    cpu.registers.b = 0b1010_1001;
+
+    cpu.bit(7, B);
+
+    assert!(!cpu.registers.zf());
+
+    cpu.bit(6, B);
+
+    assert!(cpu.registers.zf());
+}
 
 #[test]
-fn test_set() {}
+fn test_set() {
+    let mut cpu = initial_cpu();
+    cpu.registers.b = 0b1010_1001;
+
+    cpu.set(6, B);
+
+    assert_eq!(cpu.registers.b, 0b1110_1001);
+}
 
 #[test]
-fn test_res() {}
+fn test_res() {
+    let mut cpu = initial_cpu();
+    cpu.registers.b = 0b1010_1001;
+
+    cpu.res(7, B);
+
+    assert_eq!(cpu.registers.b, 0b0010_1001);
+}
 
 fn initial_cpu() -> CPU {
     CPU::new()

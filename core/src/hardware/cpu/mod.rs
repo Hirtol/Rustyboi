@@ -580,6 +580,7 @@ impl CPU {
 
     /// `RLC r8/[HL]`
     /// Rotate register `target` left.
+    ///
     /// C <- [7 <- 0] <- [7]
     ///
     /// Flags: `Z00C`
@@ -593,6 +594,7 @@ impl CPU {
 
     /// `RRC r8/[HL]`
     /// Rotate register r8 right.
+    ///
     /// [0] -> [7 -> 0] -> C
     ///
     /// Flags: `Z00C`
@@ -606,6 +608,7 @@ impl CPU {
 
     /// `RL r8/[HL]`
     /// Rotate bits in register `target` left through carry.
+    ///
     /// C <- [7 <- 0] <- C
     ///
     /// Flags: `Z00C`
@@ -619,6 +622,7 @@ impl CPU {
 
     /// `RR r8/[HL]`
     /// Rotate register `target` right through carry.
+    ///
     /// C -> [7 -> 0] -> C
     ///
     /// Flags: `Z00C`
@@ -632,6 +636,7 @@ impl CPU {
 
     /// `SLA r8/[HL]`
     /// Shift Left Arithmetic on register `target`.
+    ///
     /// C <- [7 <- 0] <- 0
     ///
     /// Flags: `Z00C`
@@ -645,6 +650,7 @@ impl CPU {
 
     /// `SRA r8/[HL]`
     /// Shift Right Arithmetic register `target`.
+    ///
     /// [7] -> [7 -> 0] -> C
     ///
     /// Flags: `Z00C`
@@ -665,7 +671,7 @@ impl CPU {
     }
 
     /// `SWAP r8/[HL]`
-    /// Swap upper 4 bits in register r8 and the lower 4 ones.
+    /// Swap upper 4 bits in register `target` and the lower 4 ones.
     ///
     /// Flags: `Z000`
     fn swap<T: Copy>(&mut self, target: T)
@@ -674,7 +680,7 @@ impl CPU {
         Self: SetU8<T>,
     {
         let value = self.read_u8_value(target);
-        let new_value = (value & 0x0F) | (value & 0xF0);
+        let new_value = ((value & 0x0F) << 4) | ((value & 0xF0) >> 4);
 
         self.registers.set_zf(new_value == 0);
         self.registers.set_n(false);
@@ -685,7 +691,8 @@ impl CPU {
     }
 
     /// `SRL r8/[HL]`
-    /// Shift Right Logic register r8.
+    /// Shift Right Logic register `target`.
+    ///
     /// 0 -> [7 -> 0] -> C
     ///
     /// Flags: `Z00C`
@@ -698,26 +705,17 @@ impl CPU {
     }
 
     /// `BIT u3,r8/[HL]`
-    /// Test bit u3 in register r8, set the zero flag if bit not set.
+    /// Test bit u3 in register `target`, set the zero flag if bit not set.
     ///
     /// Flags: `Z01-`
     fn bit<T: Copy>(&mut self, bit: u8, target: T)
     where
-        Self: ToU8<T>
+        Self: ToU8<T>,
     {
         let value = self.read_u8_value(target);
+        let bitmask = 1 << bit;
 
-        self.registers.set_zf(match bit {
-            0 => value & 0b0000_0001,
-            1 => value & 0b0000_0010,
-            2 => value & 0b0000_0100,
-            3 => value & 0b0000_1000,
-            4 => value & 0b0001_0000,
-            5 => value & 0b0010_0000,
-            6 => value & 0b0100_0000,
-            7 => value & 0b1000_0000,
-            _ => panic!("Unknown bit position was passed to BIT function: {}", bit),
-        } == 0);
+        self.registers.set_zf((value & bitmask) == 0);
         self.registers.set_n(false);
         self.registers.set_h(true)
     }
@@ -733,26 +731,15 @@ impl CPU {
         Self: SetU8<T>,
     {
         let value = self.read_u8_value(target);
+        let bitmask: u8 = 1 << bit;
 
-        let new_value = match bit {
-            0 => value | 0b0000_0001,
-            1 => value | 0b0000_0010,
-            2 => value | 0b0000_0100,
-            3 => value | 0b0000_1000,
-            4 => value | 0b0001_0000,
-            5 => value | 0b0010_0000,
-            6 => value | 0b0100_0000,
-            7 => value | 0b1000_0000,
-            _ => panic!("Unknown bit position was passed to BIT function: {}", bit),
-        };
-
-        self.set_u8_value(target, new_value);
+        self.set_u8_value(target, value | bitmask);
     }
 
     /// `RES u3,r8/[HL]`
     /// Set bit u3 in register r8 to 0.
     /// Bit 0 is the rightmost one, bit 7 the leftmost one.
-    /// 
+    ///
     /// Flags: `----`
     fn res<T: Copy>(&mut self, bit: u8, target: T)
     where
@@ -760,19 +747,8 @@ impl CPU {
         Self: SetU8<T>,
     {
         let value = self.read_u8_value(target);
+        let bit_mask: u8 = 0x1 << bit;
 
-        let new_value = match bit {
-            0 => value & 0b1111_1110,
-            1 => value & 0b1111_1101,
-            2 => value & 0b1111_1011,
-            3 => value & 0b1111_0111,
-            4 => value & 0b1110_1111,
-            5 => value & 0b1101_1111,
-            6 => value & 0b1011_1111,
-            7 => value & 0b0111_1111,
-            _ => panic!("Unknown bit position was passed to BIT function: {}", bit),
-        };
-
-        self.set_u8_value(target, new_value);
+        self.set_u8_value(target, value & !bit_mask);
     }
 }
