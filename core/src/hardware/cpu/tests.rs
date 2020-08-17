@@ -460,6 +460,42 @@ fn test_compare(){
     assert!(cpu.registers.hf())
 }
 
+#[test]
+fn test_call_and_ret(){
+    let mut cpu = initial_cpu();
+    cpu.registers.sp = 0xFFFF;
+    cpu.memory.set_byte(0, 0xCD);
+    cpu.memory.set_short(1, 0x1445);
+
+    cpu.step_cycle();
+
+    assert_eq!(cpu.registers.pc, 0x1445);
+    assert_eq!(cpu.registers.sp, 0xFFFD);
+    // Previous PC
+    assert_eq!(cpu.memory.read_short(0xFFFD), 3);
+
+    cpu.ret(JumpModifier::Always);
+
+    assert_eq!(cpu.registers.pc, 3);
+}
+
+#[test]
+fn test_push_and_pop(){
+    let mut cpu = initial_cpu();
+    cpu.registers.set_bc(0x500);
+    cpu.registers.sp = 0xFFFF;
+
+    cpu.push(BC);
+
+    assert_eq!(cpu.registers.sp, 0xFFFD);
+    assert_eq!(cpu.memory.read_short(cpu.registers.sp), 0x500);
+
+    cpu.pop(DE);
+
+    assert_eq!(cpu.registers.de(), 0x500);
+}
+
+
 
 fn initial_cpu() -> CPU {
     CPU::new()
