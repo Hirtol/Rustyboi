@@ -5,12 +5,11 @@ use crate::io::bootrom::*;
 use crate::hardware::ppu::PPU;
 use crate::hardware::cartridge::Cartridge;
 
-#[derive(Debug)]
 pub struct Emulator {
     cpu: CPU,
     mmu: Memory,
     ppu: PPU,
-    boot_rom: Option<BootRom>,
+    boot_rom: BootRom,
     cartridge: Cartridge,
 }
 
