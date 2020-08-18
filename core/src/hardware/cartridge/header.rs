@@ -1,6 +1,6 @@
 use bitflags::_core::str::from_utf8;
-use std::path::Path;
 use std::fs::File;
+use std::path::Path;
 
 pub const HEADER_START: u16 = 0x0100;
 pub const HEADER_END: u16 = 0x014F;
@@ -45,9 +45,9 @@ pub struct CartridgeHeader {
 }
 
 impl CartridgeHeader {
-    pub fn new(rom: &[u8]) -> Self{
+    pub fn new(rom: &[u8]) -> Self {
         let is_cgb_rom = read_cgb_flag(rom);
-        CartridgeHeader{
+        CartridgeHeader {
             title: read_title(rom, is_cgb_rom),
             cgb_flag: is_cgb_rom,
             new_licensee_code: read_new_licensee(rom),
@@ -64,9 +64,13 @@ impl CartridgeHeader {
     }
 }
 
-fn read_title(rom: &[u8], cgb_mode: bool) -> String{
+fn read_title(rom: &[u8], cgb_mode: bool) -> String {
     // CGB apparently varies between 11 and 15 characters, chose the pessimistic option here.
-    let slice = if cgb_mode { &rom[0x134..=0x13E]} else { &rom[0x134..=0x143]};
+    let slice = if cgb_mode {
+        &rom[0x134..=0x13E]
+    } else {
+        &rom[0x134..=0x143]
+    };
 
     from_utf8(slice)
         .expect("Could not parse title from ROM Header!")
@@ -136,15 +140,20 @@ fn read_global_checksum(rom: &[u8]) -> u16 {
 
 #[cfg(test)]
 mod tests {
-    use crate::hardware::cartridge::header::{CartridgeHeader, read_cgb_flag, read_title};
-    use std::io::Read;
+    use crate::hardware::cartridge::header::{read_cgb_flag, read_title, CartridgeHeader};
     use std::fs::read;
+    use std::io::Read;
 
     #[test]
-    fn test_read_title(){
+    fn test_read_title() {
         let mut test = vec![0u8; 0x10000];
-        for (loc, i) in [0x48,0x65,0x6c,0x6c,0x6f,0x20,0x57,0x6f,0x72,0x00,0x00].iter().enumerate() {
-            test[0x134+loc] = *i;
+        for (loc, i) in [
+            0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x57, 0x6f, 0x72, 0x00, 0x00,
+        ]
+        .iter()
+        .enumerate()
+        {
+            test[0x134 + loc] = *i;
         }
         assert_eq!("Hello Wor", read_title(&test, false))
     }

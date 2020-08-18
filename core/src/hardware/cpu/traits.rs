@@ -84,9 +84,7 @@ impl ToU8<InstructionAddress> for CPU {
                 let address = self.get_instr_u8() as u16;
                 self.memory.read_byte(IO_START + address)
             }
-            IoC => self
-                .memory
-                .read_byte(IO_START + self.registers.c as u16),
+            IoC => self.memory.read_byte(IO_START + self.registers.c as u16),
         }
     }
 }
