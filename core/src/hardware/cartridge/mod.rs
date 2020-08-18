@@ -3,24 +3,37 @@ use bitflags::_core::fmt::{Debug, Formatter};
 use std::fmt;
 
 mod header;
+mod mbc;
 
-pub trait MBC {
+pub trait MBC {}
 
-}
-
-pub struct Cartridge{
+pub struct Cartridge {
     header: CartridgeHeader,
+    rom: Box<[u8]>,
     mbc: Box<dyn MBC>,
 }
 
 impl Cartridge {
-        pub fn new(rom: &[u8]) -> Self {
-            let header = CartridgeHeader::new(rom);
-            let mbc = Box::from(create_mbc(&header));
-            Self {
-                header,
-                mbc,
+    pub fn new(rom: &[u8]) -> Self {
+        let header = CartridgeHeader::new(rom);
+        let mbc = Box::from(create_mbc(&header));
+        Self {
+            header,
+            rom: Box::from(rom),
+            mbc,
         }
+    }
+
+    pub fn read_0000_3fff(&self, address: u16){
+        rom[address]
+    }
+
+    pub fn read_4000_7fff(&self, address: u16){
+        rom[address]
+    }
+
+    pub fn write(&self, address: u16){
+        unimplemented!("ROM is read only, to be used for bank switching")
     }
 }
 
@@ -30,17 +43,13 @@ impl Debug for Cartridge {
     }
 }
 
-fn create_mbc(header: &CartridgeHeader) -> impl MBC{
-    test{}
+fn create_mbc(header: &CartridgeHeader) -> impl MBC {
+    test {}
 }
 
 #[derive(Debug)]
-struct test{
+struct test {}
 
-}
-
-impl MBC for test {
-
-}
+impl MBC for test {}
 
 

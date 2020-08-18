@@ -16,6 +16,7 @@ mod fetch;
 mod instructions;
 mod traits;
 
+#[derive(Debug)]
 pub struct CPU {
     opcode: u8,
     registers: Registers,
