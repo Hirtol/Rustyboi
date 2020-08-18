@@ -12,7 +12,7 @@ pub const CARTRIDGE_HEADER_END: u16 = 0x014F;
 // 8 KB of VRAM, only bank 0 in Non-CGB mode. Switchable bank 0/1 in CGB mode.
 pub const VRAM_START: u16 = 0x8000;
 pub const VRAM_END: u16 = 0x9FFF;
-// 8 KB of External Ram, In cartridge, switchable bank if any(?)
+// 8 KB of External Ram, In cartridge, switchable bank if any(?). Could hold save data.
 pub const EXTERNAL_RAM_START: u16 = 0xA000;
 pub const EXTERNAL_RAM_END: u16 = 0xBFFF;
 // 4 KB Work RAM bank 0
