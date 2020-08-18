@@ -24,12 +24,12 @@ impl Cartridge {
         }
     }
 
-    pub fn read_0000_3fff(&self, address: u16){
-        rom[address]
+    pub fn read_0000_3fff(&self, address: u16) -> u8{
+        self.rom[address as usize]
     }
 
-    pub fn read_4000_7fff(&self, address: u16){
-        rom[address]
+    pub fn read_4000_7fff(&self, address: u16) -> u8{
+        self.rom[address as usize]
     }
 
     pub fn write(&self, address: u16){
