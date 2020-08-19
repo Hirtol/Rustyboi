@@ -7,7 +7,7 @@ pub struct BootRom{
 }
 
 impl BootRom {
-    
+
     pub fn new(data: Option<BootRomData>) -> Self {
         match data {
             Some(rom) => Self{is_finished: false, data: rom},
