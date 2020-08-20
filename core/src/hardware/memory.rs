@@ -1,3 +1,8 @@
+use crate::io::bootrom::BootRom;
+use crate::hardware::cartridge::Cartridge;
+use bitflags::_core::fmt::{Debug, Formatter};
+use std::fmt;
+
 pub const MEMORY_SIZE: usize = 0x10000;
 // 16 KB ROM bank, usually 00. From Cartridge, read-only
 pub const ROM_BANK_00_START: u16 = 0x0000;
@@ -40,19 +45,31 @@ pub const HRAM_END: u16 = 0xFFFE;
 pub const INTERRUPTS_REGISTER_START: u16 = 0xFFFF;
 pub const INTERRUPTS_REGISTER_END: u16 = 0xFFFF;
 
-#[derive(Debug)]
 pub struct Memory {
     memory: Vec<u8>,
+    pub boot_rom: BootRom,
+    cartridge: Cartridge,
 }
 
 impl Memory {
-    pub fn new() -> Self {
+    pub fn new(boot_rom: Option<[u8; 0x100]>, cartridge: &[u8]) -> Self {
         Memory {
             memory: vec![0u8; MEMORY_SIZE],
+            boot_rom: BootRom::new(boot_rom),
+            cartridge: Cartridge::new(cartridge),
         }
     }
 
-    pub fn read_byte(&self, address: u16) -> u8 {
+    pub fn read_byte(&self, address: u16) -> u8
+    {
+        match address >> 8 {
+            0x00..=0xFF if !self.boot_rom.is_finished => self.boot_rom.read_byte(address),
+            ROM_BANK_00_START..=ROM_BANK_00_END => self.cartridge.read_0000_3fff(address),
+            ROM_BANK_NN_START..=ROM_BANK_NN_END => self.cartridge.read_4000_7fff(address),
+
+            _ => self.memory[address as usize]
+
+        }
         self.memory[address as usize]
     }
 
@@ -71,5 +88,11 @@ impl Memory {
     pub fn set_short(&mut self, address: u16, value: u16) {
         self.set_byte(address, (value & 0xFF) as u8); // Least significant byte first.
         self.set_byte(address.wrapping_add(1), ((value & 0xFF00) >> 8) as u8);
+    }
+}
+
+impl Debug for Memory{
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "Memory: {:?}\nCartridge: {:?}", self.memory, self.cartridge)
     }
 }
