@@ -702,7 +702,7 @@ fn test_res() {
 }
 
 fn initial_cpu() -> CPU {
-    CPU::new()
+    CPU::new(Option::None, &vec![0; 500])
 }
 
 impl CPU {

@@ -62,15 +62,20 @@ impl Memory {
 
     pub fn read_byte(&self, address: u16) -> u8
     {
+        if cfg!(test) {
+            return self.memory[address as usize];
+        }
+
         match address >> 8 {
-            0x00..=0xFF if !self.boot_rom.is_finished => self.boot_rom.read_byte(address),
+            // Due to strong coupeling between all components I've kinda screwed myself
+            // over with my CPU tests, until we decouple our architecture in a refactoring this'll
+            // have to stay
+            0x0000..=0x00FF if !self.boot_rom.is_finished => self.boot_rom.read_byte(address),
             ROM_BANK_00_START..=ROM_BANK_00_END => self.cartridge.read_0000_3fff(address),
             ROM_BANK_NN_START..=ROM_BANK_NN_END => self.cartridge.read_4000_7fff(address),
 
             _ => self.memory[address as usize]
-
         }
-        self.memory[address as usize]
     }
 
     pub fn set_byte(&mut self, address: u16, value: u8) {

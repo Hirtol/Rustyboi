@@ -5,6 +5,7 @@ use rustyboi_core::hardware::*;
 use simplelog::{CombinedLogger, Config, TermLogger, TerminalMode, WriteLogger};
 use rustyboi_core::hardware::cartridge::Cartridge;
 use std::fs::read;
+use std::convert::TryInto;
 
 fn main() {
     CombinedLogger::init(vec![
@@ -12,7 +13,10 @@ fn main() {
         //WriteLogger::new(LevelFilter::Warn, Config::default(), File::create("my_rust_binary.log").unwrap()),
     ])
     .unwrap();
-    let mut cpu = CPU::new();
+
+    let bootrom_file = read("C:\\Users\\Valentijn\\Desktop\\Rust\\Rustyboi\\roms\\DMG_ROM.bin").unwrap();
+
+    let mut cpu = CPU::new(Option::None, &vec![0u8]);
     cpu.step_cycle();
     trace!("Hello World!");
 

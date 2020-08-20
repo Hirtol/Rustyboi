@@ -25,11 +25,11 @@ pub struct CPU {
 }
 
 impl CPU {
-    pub fn new() -> Self {
+    pub fn new(boot_rom: Option<[u8; 0x100]>, cartridge: &[u8]) -> Self {
         CPU {
             opcode: 0,
             registers: Registers::new(),
-            memory: Memory::new(),
+            memory: Memory::new(boot_rom, cartridge),
             halted: false,
         }
     }
