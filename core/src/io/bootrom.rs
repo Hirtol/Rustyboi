@@ -1,3 +1,5 @@
+use bitflags::_core::fmt::{Debug, Formatter};
+use core::fmt;
 
 type BootRomData = [u8; 0x100];
 
@@ -18,5 +20,4 @@ impl BootRom {
     pub fn read_byte(&self, address: u16) -> u8 {
         self.data[address as usize]
     }
-
 }

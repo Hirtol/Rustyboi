@@ -69,7 +69,7 @@ impl Memory {
             return self.memory[address as usize];
         }
 
-        match address >> 8 {
+        match address {
             0x0000..=0x00FF if !self.boot_rom.is_finished => self.boot_rom.read_byte(address),
             ROM_BANK_00_START..=ROM_BANK_00_END => self.cartridge.read_0000_3fff(address),
             ROM_BANK_NN_START..=ROM_BANK_NN_END => self.cartridge.read_4000_7fff(address),
@@ -99,5 +99,15 @@ impl Memory {
 impl Debug for Memory{
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "Memory: {:?}\nCartridge: {:?}", self.memory, self.cartridge)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::hardware::memory::Memory;
+
+    #[test]
+    fn test_read() {
+
     }
 }

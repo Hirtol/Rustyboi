@@ -6,6 +6,7 @@ use crate::hardware::ppu::PPU;
 use crate::hardware::cartridge::Cartridge;
 use std::rc::Rc;
 use bitflags::_core::cell::RefCell;
+use log::*;
 
 pub type MMU = Rc<RefCell<Memory>>;
 
@@ -20,7 +21,13 @@ impl Emulator {
         let mmu = MMU::new(RefCell::new(Memory::new(boot_rom, cartridge)));
         Emulator { cpu: CPU::new(&mmu), mmu, ppu: PPU {} }
     }
+
+    pub fn emulate_cycle(&mut self) {
+        self.cpu.step_cycle();
+    }
 }
+
+
 
 impl HardwareOwner for Emulator {
     fn read_byte(&mut self, address: u16) -> u8 {
