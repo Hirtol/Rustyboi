@@ -6,6 +6,9 @@ use crate::hardware::registers::Reg8::A;
 use crate::hardware::registers::{Flags, Reg16, Reg8, Registers};
 use log::*;
 use std::io::Read;
+use std::rc::Rc;
+use bitflags::_core::cell::RefCell;
+use crate::emulator::*;
 
 #[cfg(test)]
 mod tests;
@@ -20,16 +23,16 @@ mod traits;
 pub struct CPU {
     opcode: u8,
     registers: Registers,
-    memory: Memory,
+    mmu: MMU,
     halted: bool,
 }
 
 impl CPU {
-    pub fn new(boot_rom: Option<[u8; 0x100]>, cartridge: &[u8]) -> Self {
+    pub fn new(mmu: &MMU) -> Self {
         CPU {
             opcode: 0,
             registers: Registers::new(),
-            memory: Memory::new(boot_rom, cartridge),
+            mmu: mmu.clone(),
             halted: false,
         }
     }
@@ -420,7 +423,7 @@ impl CPU {
     /// This is basically a POP PC (if such an instruction existed).
     fn ret(&mut self, target: JumpModifier) {
         if self.matches_jmp_condition(target) {
-            self.registers.pc = self.memory.read_short(self.registers.sp);
+            self.registers.pc = self.mmu.borrow_mut().read_short(self.registers.sp);
             self.registers.sp = self.registers.sp.wrapping_add(2);
         }
     }
@@ -429,7 +432,7 @@ impl CPU {
     ///
     /// Flags: `----`
     fn pop(&mut self, target: Reg16) {
-        let sp_target = self.memory.read_short(self.registers.sp);
+        let sp_target = self.mmu.borrow_mut().read_short(self.registers.sp);
         self.set_u16_value(target, sp_target);
         self.registers.sp = self.registers.sp.wrapping_add(2);
     }
@@ -496,7 +499,7 @@ impl CPU {
     /// Helper function to push certain values to the stack.
     fn push_helper(&mut self, value: u16) {
         self.registers.sp = self.registers.sp.wrapping_sub(2);
-        self.memory.set_short(self.registers.sp, value);
+        self.mmu.borrow_mut().set_short(self.registers.sp, value);
     }
 
     /// Call address `vec`.

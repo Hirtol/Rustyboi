@@ -26,7 +26,7 @@ impl CPU {
     /// value.
     /// Advances the `PC` by 1.
     pub fn get_instr_u8(&mut self) -> u8 {
-        let result = self.memory.read_byte(self.registers.pc);
+        let result = self.mmu.borrow().read_byte(self.registers.pc);
         self.registers.pc = self.registers.pc.wrapping_add(1);
 
         result

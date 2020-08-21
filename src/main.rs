@@ -16,8 +16,6 @@ fn main() {
 
     let bootrom_file = read("C:\\Users\\Valentijn\\Desktop\\Rust\\Rustyboi\\roms\\DMG_ROM.bin").unwrap();
 
-    let mut cpu = CPU::new(Option::None, &vec![0u8]);
-    cpu.step_cycle();
     trace!("Hello World!");
 
     let mut cartridge = Cartridge::new(&read("***REMOVED***roms\\Tetris.gb").unwrap());

@@ -3,6 +3,9 @@ use crate::hardware::cpu::execute::{InstructionAddress, JumpModifier};
 use crate::hardware::cpu::instructions::{Instruction, RegistryTarget};
 use crate::hardware::cpu::CPU;
 use crate::hardware::registers::{Flags, Reg16::*, Reg8::*};
+use crate::emulator::MMU;
+use bitflags::_core::cell::RefCell;
+use crate::hardware::memory::Memory;
 
 #[test]
 fn test_load_16bit() {
@@ -22,7 +25,7 @@ fn test_load_16bit() {
     // Test mem -> registry load.
 
     cpu.registers.pc = 1;
-    cpu.memory.set_short(1, 0x0105);
+    cpu.mmu.borrow_mut().set_short(1, 0x0105);
 
     cpu.load_16bit(BC, DIRECT);
 
@@ -31,11 +34,11 @@ fn test_load_16bit() {
     // Test cycle
 
     cpu.registers.pc = 0;
-    cpu.memory.set_byte(0, 0x8);
+    cpu.mmu.borrow_mut().set_byte(0, 0x8);
 
     cpu.step_cycle();
 
-    assert_eq!(cpu.memory.read_short(0x0105), 0x500);
+    assert_eq!(cpu.mmu.borrow().read_short(0x0105), 0x500);
     assert_eq!(cpu.registers.pc, 3);
 }
 
@@ -45,7 +48,7 @@ fn test_load_8bit() {
 
     cpu.registers.c = 40;
     cpu.registers.set_hl(0x4000);
-    cpu.memory.set_byte(0x4000, 30);
+    cpu.mmu.borrow_mut().set_byte(0x4000, 30);
 
     // Basic test
     cpu.load_8bit(B, C);
@@ -60,7 +63,7 @@ fn test_load_8bit() {
     // Test to memory
     cpu.load_8bit(InstructionAddress::HLI, C);
 
-    assert_eq!(cpu.memory.read_byte(cpu.registers.hl()), 40);
+    assert_eq!(cpu.mmu.borrow().read_byte(cpu.registers.hl()), 40);
 
     // Test if execute can handle some instructions.
     cpu.execute(0x7A);
@@ -78,11 +81,11 @@ fn test_increment() {
 
     assert_eq!(cpu.registers.c, 21);
 
-    assert_eq!(cpu.memory.read_byte(0), 0);
+    assert_eq!(cpu.mmu.borrow().read_byte(0), 0);
 
     cpu.increment(HLI);
 
-    assert_eq!(cpu.memory.read_byte(0), 1);
+    assert_eq!(cpu.mmu.borrow().read_byte(0), 1);
 }
 
 #[test]
@@ -161,10 +164,10 @@ fn test_decrement() {
     assert_eq!(cpu.registers.a, 4);
 
     cpu.registers.set_hl(0x100);
-    cpu.memory.set_byte(0x100, 1);
+    cpu.mmu.borrow_mut().set_byte(0x100, 1);
     cpu.decrement(HLI);
 
-    assert_eq!(cpu.memory.read_byte(0x100), 0);
+    assert_eq!(cpu.mmu.borrow().read_byte(0x100), 0);
     assert!(cpu.registers.f.contains(Flags::ZF));
 }
 
@@ -222,22 +225,22 @@ fn test_rla() {
 fn test_relative_jump() {
     let mut cpu = initial_cpu();
 
-    cpu.memory.set_byte(0, 0x18); // JR code
-    cpu.memory.set_byte(1, 30);
+    cpu.mmu.borrow_mut().set_byte(0, 0x18); // JR code
+    cpu.mmu.borrow_mut().set_byte(1, 30);
 
     cpu.step_cycle();
 
     // TODO: Check if relative jump should also jump relative to it's own execution size (2 bytes)
     assert_eq!(cpu.registers.pc, 32);
     let test: i8 = -20;
-    cpu.memory.set_byte(32, 0x18); // JR code
-    cpu.memory.set_byte(33, test as u8);
+    cpu.mmu.borrow_mut().set_byte(32, 0x18); // JR code
+    cpu.mmu.borrow_mut().set_byte(33, test as u8);
 
     cpu.step_cycle();
 
     assert_eq!(cpu.registers.pc, 14);
 
-    cpu.memory.set_byte(14, 0x28); // JR z-flag code
+    cpu.mmu.borrow_mut().set_byte(14, 0x28); // JR z-flag code
     cpu.step_cycle();
 
     assert_eq!(cpu.registers.pc, 16);
@@ -464,15 +467,15 @@ fn test_compare() {
 fn test_call_and_ret() {
     let mut cpu = initial_cpu();
     cpu.registers.sp = 0xFFFF;
-    cpu.memory.set_byte(0, 0xCD);
-    cpu.memory.set_short(1, 0x1445);
+    cpu.mmu.borrow_mut().set_byte(0, 0xCD);
+    cpu.mmu.borrow_mut().set_short(1, 0x1445);
 
     cpu.step_cycle();
 
     assert_eq!(cpu.registers.pc, 0x1445);
     assert_eq!(cpu.registers.sp, 0xFFFD);
     // Previous PC
-    assert_eq!(cpu.memory.read_short(0xFFFD), 3);
+    assert_eq!(cpu.mmu.borrow().read_short(0xFFFD), 3);
 
     cpu.ret(JumpModifier::Always);
 
@@ -488,7 +491,7 @@ fn test_push_and_pop() {
     cpu.push(BC);
 
     assert_eq!(cpu.registers.sp, 0xFFFD);
-    assert_eq!(cpu.memory.read_short(cpu.registers.sp), 0x500);
+    assert_eq!(cpu.mmu.borrow().read_short(cpu.registers.sp), 0x500);
 
     cpu.pop(DE);
 
@@ -513,7 +516,7 @@ fn test_add_sp() {
     cpu.registers.sp = 50;
 
     cpu.set_instruction(0xE8);
-    cpu.memory.set_byte(1, (-20 as i8) as u8);
+    cpu.mmu.borrow_mut().set_byte(1, (-20 as i8) as u8);
 
     cpu.step_cycle();
 
@@ -702,11 +705,12 @@ fn test_res() {
 }
 
 fn initial_cpu() -> CPU {
-    CPU::new(Option::None, &vec![0; 500])
+    let mmu = MMU::new(RefCell::new(Memory::new(Option::None, &vec![0; 500])));
+    CPU::new(&mmu)
 }
 
 impl CPU {
     fn set_instruction(&mut self, code: u8) {
-        self.memory.set_byte(0, code);
+        self.mmu.borrow_mut().set_byte(0, code);
     }
 }

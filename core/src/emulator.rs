@@ -4,17 +4,26 @@ use crate::hardware::memory::Memory;
 use crate::io::bootrom::*;
 use crate::hardware::ppu::PPU;
 use crate::hardware::cartridge::Cartridge;
+use std::rc::Rc;
+use bitflags::_core::cell::RefCell;
+
+pub type MMU = Rc<RefCell<Memory>>;
 
 pub struct Emulator {
     cpu: CPU,
-    mmu: Memory,
+    mmu: MMU,
     ppu: PPU,
-    boot_rom: BootRom,
-    cartridge: Cartridge,
+}
+
+impl Emulator {
+    pub fn new(boot_rom: Option<[u8; 256]>, cartridge: &[u8]) -> Self {
+        let mmu = MMU::new(RefCell::new(Memory::new(boot_rom, cartridge)));
+        Emulator { cpu: CPU::new(&mmu), mmu, ppu: PPU {} }
+    }
 }
 
 impl HardwareOwner for Emulator {
     fn read_byte(&mut self, address: u16) -> u8 {
-        self.mmu.read_byte(address)
+        self.mmu.borrow().read_byte(address)
     }
 }
