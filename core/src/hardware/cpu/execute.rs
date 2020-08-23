@@ -182,7 +182,7 @@ pub enum WrapperEnum {
     InstructionAddress(InstructionAddress),
 }
 
-fn decode_prefixed_bit(opcode: u8) -> u8 {
+pub fn decode_prefixed_bit(opcode: u8) -> u8 {
     let relevant_nibble = ((opcode & 0xF0) >> 4) % 0x4;
     let lower_nibble = opcode & 0x0F;
     match relevant_nibble {
@@ -201,7 +201,7 @@ fn decode_prefixed_bit(opcode: u8) -> u8 {
     }
 }
 
-fn horizontal_decode(opcode: u8) -> WrapperEnum {
+pub fn horizontal_decode(opcode: u8) -> WrapperEnum {
     let relevant_nibble = (opcode & 0x0F) % 0x8;
     match relevant_nibble {
         0x0 => WrapperEnum::Reg8(Reg8::B),
@@ -217,7 +217,7 @@ fn horizontal_decode(opcode: u8) -> WrapperEnum {
     }
 }
 
-fn vertical_decode(opcode: u8) -> WrapperEnum {
+pub fn vertical_decode(opcode: u8) -> WrapperEnum {
     let relevant_nibble = (opcode & 0xF0) >> 4;
     let lower_nibble = opcode & 0x0F;
     match relevant_nibble {

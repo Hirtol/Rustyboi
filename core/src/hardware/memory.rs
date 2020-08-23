@@ -2,6 +2,7 @@ use crate::io::bootrom::BootRom;
 use crate::hardware::cartridge::Cartridge;
 use bitflags::_core::fmt::{Debug, Formatter};
 use std::fmt;
+use log::*;
 
 pub const MEMORY_SIZE: usize = 0x10000;
 // 16 KB ROM bank, usually 00. From Cartridge, read-only
@@ -80,6 +81,20 @@ impl Memory {
 
     pub fn set_byte(&mut self, address: u16, value: u8) {
         //TODO: Add bound checks to ensure we're not accessing protected memory.
+        let usize_address = address as usize;
+
+        if cfg!(test) {
+            self.memory[usize_address] = value;
+        }
+
+        match address {
+            0xFF50 if !self.boot_rom.is_finished => {
+                self.boot_rom.is_finished = true;
+                debug!("Finished executing BootRom!");
+            },
+            _ => self.memory[usize_address] = value,
+        }
+
         self.memory[address as usize] = value;
     }
 

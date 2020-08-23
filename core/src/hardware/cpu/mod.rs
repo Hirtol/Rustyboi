@@ -4,6 +4,7 @@ use crate::hardware::cpu::traits::{SetU16, SetU8, ToU16, ToU8};
 use crate::hardware::memory::Memory;
 use crate::hardware::registers::Reg8::A;
 use crate::hardware::registers::{Flags, Reg16, Reg8, Registers};
+use std::fmt::*;
 use log::*;
 use std::io::Read;
 use std::rc::Rc;
@@ -46,9 +47,10 @@ impl CPU {
         let is_prefix = self.read_next_instruction();
 
         trace!(
-            "Executing opcode: {} - prefixed: {}",
+            "Executing opcode: {:04X} - prefixed: {} - name: {}",
             self.opcode,
-            is_prefix
+            is_prefix,
+            get_assembly_from_opcode(self.opcode)
         );
 
         if is_prefix {
@@ -82,6 +84,7 @@ impl CPU {
         Self: SetU8<T>,
         Self: ToU8<U>,
     {
+
         let source_value = self.read_u8_value(source);
 
         self.set_u8_value(destination, source_value);
@@ -712,13 +715,13 @@ impl CPU {
     /// Test bit u3 in register `target`, set the zero flag if bit not set.
     ///
     /// Flags: `Z01-`
-    fn bit<T: Copy>(&mut self, bit: u8, target: T)
+    fn bit<T: Copy + Debug>(&mut self, bit: u8, target: T)
     where
         Self: ToU8<T>,
     {
         let value = self.read_u8_value(target);
         let bitmask = 1 << bit;
-
+        log::debug!("Executing BIT {}, {:?} with bitmask: {:08b} and H value {:08b}", bit, target, bitmask, value);
         self.registers.set_zf((value & bitmask) == 0);
         self.registers.set_n(false);
         self.registers.set_h(true)
