@@ -19,8 +19,11 @@ fn main() {
     let bootrom_file = read("C:\\Users\\Valentijn\\Desktop\\Rust\\Rustyboi\\roms\\DMG_ROM.bin").unwrap();
 
     let mut cartridge = read("C:\\Users\\Valentijn\\Desktop\\Rust\\Rustyboi\\roms\\Tetris.gb").unwrap();
+    let mut cpu_test = read("C:\\Users\\Valentijn\\Desktop\\Rust\\Rustyboi\\test roms\\cpu_instrs\\individual\\06-ld r,r.gb").unwrap();
 
-    let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(bootrom_file)), &cartridge);
+
+    //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(bootrom_file)), &cartridge);
+    let mut emulator = Emulator::new(Option::None, &cpu_test);
 
     loop {
         emulator.emulate_cycle();

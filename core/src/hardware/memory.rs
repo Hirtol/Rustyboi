@@ -86,6 +86,10 @@ impl Memory {
         if cfg!(test) {
             self.memory[usize_address] = value;
         }
+        // Temporary for BLARG's tests without visual aid, this writes to the Serial port
+        if address == 0xFF02 && value == 0x81 {
+            println!("Output: {}", self.read_byte(0xFF01) as char);
+        }
 
         match address {
             0xFF50 if !self.boot_rom.is_finished => {

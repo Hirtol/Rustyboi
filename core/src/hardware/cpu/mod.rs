@@ -30,12 +30,18 @@ pub struct CPU {
 
 impl CPU {
     pub fn new(mmu: &MMU) -> Self {
-        CPU {
+        let mut result = CPU {
             opcode: 0,
             registers: Registers::new(),
             mmu: mmu.clone(),
             halted: false,
+        };
+
+        if mmu.borrow().boot_rom.is_finished {
+            result.registers.pc = 0x100;
         }
+
+        result
     }
 
     /// Fetches the next instruction and executes it as well.
