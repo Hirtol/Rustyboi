@@ -39,6 +39,13 @@ impl CPU {
 
         if mmu.borrow().boot_rom.is_finished {
             result.registers.pc = 0x100;
+            // Set the registers to the state they would
+            // have if we used the bootrom, missing MEM values
+            result.registers.set_af(0x01B0);
+            result.registers.set_bc(0x0013);
+            result.registers.set_de(0x00D8);
+            result.registers.set_hl(0x014D);
+            result.registers.sp = 0xFFFE;
         }
 
         result
