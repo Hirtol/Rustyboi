@@ -706,7 +706,9 @@ fn test_res() {
 
 fn initial_cpu() -> CPU {
     let mmu = MMU::new(RefCell::new(Memory::new(Option::None, &vec![0; 500])));
-    CPU::new(&mmu)
+    let mut cpu = CPU::new(&mmu);
+    cpu.registers.pc = 0;
+    cpu
 }
 
 impl CPU {
