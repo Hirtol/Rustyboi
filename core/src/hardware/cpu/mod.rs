@@ -1,15 +1,15 @@
+use crate::emulator::*;
 use crate::hardware::cpu::execute::{InstructionAddress, JumpModifier, WrapperEnum};
 use crate::hardware::cpu::instructions::*;
 use crate::hardware::cpu::traits::{SetU16, SetU8, ToU16, ToU8};
 use crate::hardware::memory::Memory;
 use crate::hardware::registers::Reg8::A;
 use crate::hardware::registers::{Flags, Reg16, Reg8, Registers};
-use std::fmt::*;
+use bitflags::_core::cell::RefCell;
 use log::*;
+use std::fmt::*;
 use std::io::Read;
 use std::rc::Rc;
-use bitflags::_core::cell::RefCell;
-use crate::emulator::*;
 
 #[cfg(test)]
 mod tests;
@@ -90,7 +90,6 @@ impl CPU {
         Self: SetU8<T>,
         Self: ToU8<U>,
     {
-
         let source_value = self.read_u8_value(source);
 
         self.set_u8_value(destination, source_value);
@@ -727,7 +726,13 @@ impl CPU {
     {
         let value = self.read_u8_value(target);
         let bitmask = 1 << bit;
-        log::debug!("Executing BIT {}, {:?} with bitmask: {:08b} and H value {:08b}", bit, target, bitmask, value);
+        log::debug!(
+            "Executing BIT {}, {:?} with bitmask: {:08b} and H value {:08b}",
+            bit,
+            target,
+            bitmask,
+            value
+        );
         self.registers.set_zf((value & bitmask) == 0);
         self.registers.set_n(false);
         self.registers.set_h(true)

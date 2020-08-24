@@ -84,7 +84,10 @@ impl ToU8<InstructionAddress> for CPU {
                 let address = self.get_instr_u8() as u16;
                 self.mmu.borrow().read_byte(IO_START + address)
             }
-            IoC => self.mmu.borrow().read_byte(IO_START + self.registers.c as u16),
+            IoC => self
+                .mmu
+                .borrow()
+                .read_byte(IO_START + self.registers.c as u16),
         }
     }
 }
@@ -118,7 +121,10 @@ impl SetU8<InstructionAddress> for CPU {
                 let addition = self.get_instr_u8() as u16;
                 self.mmu.borrow_mut().set_byte(IO_START + addition, value);
             }
-            IoC => self.mmu.borrow_mut().set_byte(IO_START + self.registers.c as u16, value),
+            IoC => self
+                .mmu
+                .borrow_mut()
+                .set_byte(IO_START + self.registers.c as u16, value),
         }
     }
 }

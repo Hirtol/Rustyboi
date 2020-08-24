@@ -1,11 +1,11 @@
+use crate::emulator::MMU;
 use crate::hardware::cpu::execute::InstructionAddress::HLI;
 use crate::hardware::cpu::execute::{InstructionAddress, JumpModifier};
 use crate::hardware::cpu::instructions::{Instruction, RegistryTarget};
 use crate::hardware::cpu::CPU;
-use crate::hardware::registers::{Flags, Reg16::*, Reg8::*};
-use crate::emulator::MMU;
-use bitflags::_core::cell::RefCell;
 use crate::hardware::memory::Memory;
+use crate::hardware::registers::{Flags, Reg16::*, Reg8::*};
+use bitflags::_core::cell::RefCell;
 
 #[test]
 fn test_load_16bit() {

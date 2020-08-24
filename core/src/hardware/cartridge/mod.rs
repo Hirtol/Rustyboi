@@ -24,15 +24,15 @@ impl Cartridge {
         }
     }
 
-    pub fn read_0000_3fff(&self, address: u16) -> u8{
+    pub fn read_0000_3fff(&self, address: u16) -> u8 {
         self.rom[address as usize]
     }
 
-    pub fn read_4000_7fff(&self, address: u16) -> u8{
+    pub fn read_4000_7fff(&self, address: u16) -> u8 {
         self.rom[address as usize]
     }
 
-    pub fn write(&self, address: u16){
+    pub fn write(&self, address: u16) {
         unimplemented!("ROM is read only, to be used for bank switching")
     }
 }
@@ -51,5 +51,3 @@ fn create_mbc(header: &CartridgeHeader) -> impl MBC {
 struct test {}
 
 impl MBC for test {}
-
-

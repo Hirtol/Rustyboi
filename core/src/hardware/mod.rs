@@ -1,7 +1,7 @@
+use crate::hardware::cartridge::Cartridge;
 use crate::hardware::memory::Memory;
 use crate::hardware::ppu::PPU;
 use crate::io::bootrom::BootRom;
-use crate::hardware::cartridge::Cartridge;
 
 pub mod cartridge;
 pub mod cpu;

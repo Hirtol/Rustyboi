@@ -1,5 +1,2 @@
-
 #[derive(Debug)]
-pub struct PPU {
-
-}
+pub struct PPU {}

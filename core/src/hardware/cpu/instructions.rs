@@ -2,11 +2,12 @@
 //! for the small bit of extra clarity that an enum would provide
 //! Keep around in case we want to turn back.
 
-use crate::hardware::cpu::execute::{JumpModifier, InstructionAddress, vertical_decode, horizontal_decode};
+use crate::hardware::cpu::execute::{
+    horizontal_decode, vertical_decode, InstructionAddress, JumpModifier,
+};
 use crate::hardware::registers::Reg16;
 use crate::hardware::registers::Reg16::*;
 use crate::hardware::registers::Reg8::*;
-
 
 pub fn get_assembly_from_opcode(opcode: u8) -> String {
     match opcode {
@@ -64,7 +65,11 @@ pub fn get_assembly_from_opcode(opcode: u8) -> String {
         0x33 => format!("increment16 {:?}", SP),
         0x34 => format!("increment {:?}", InstructionAddress::HLI),
         0x35 => format!("decrement {:?}", InstructionAddress::HLI),
-        0x36 => format!("load_8bit {:?} {:?}", InstructionAddress::HLI, InstructionAddress::DIRECT),
+        0x36 => format!(
+            "load_8bit {:?} {:?}",
+            InstructionAddress::HLI,
+            InstructionAddress::DIRECT
+        ),
         0x37 => format!("scf"),
         0x38 => format!("relative_jump {:?}", JumpModifier::Carry),
         0x39 => format!("add_16bit {:?}", SP),
@@ -74,9 +79,17 @@ pub fn get_assembly_from_opcode(opcode: u8) -> String {
         0x3D => format!("decrement {:?}", A),
         0x3E => format!("load_8bit {:?} {:?}", A, InstructionAddress::DIRECT),
         0x3F => format!("ccf"),
-        0x40..=0x75 => format!("load_8bit {:?} {:?}", vertical_decode(opcode), horizontal_decode(opcode)),
+        0x40..=0x75 => format!(
+            "load_8bit {:?} {:?}",
+            vertical_decode(opcode),
+            horizontal_decode(opcode)
+        ),
         0x76 => format!("halt"),
-        0x77..=0x7F => format!("load_8bit {:?} {:?}", vertical_decode(opcode), horizontal_decode(opcode)),
+        0x77..=0x7F => format!(
+            "load_8bit {:?} {:?}",
+            vertical_decode(opcode),
+            horizontal_decode(opcode)
+        ),
         0x80..=0x87 => format!("add {:?}", horizontal_decode(opcode)),
         0x88..=0x8F => format!("adc {:?}", horizontal_decode(opcode)),
         0x90..=0x97 => format!("sub {:?}", horizontal_decode(opcode)),
@@ -148,7 +161,6 @@ pub fn get_assembly_from_opcode(opcode: u8) -> String {
         _ => panic!("Unknown instruction code encountered: {:X}", opcode),
     }
 }
-
 
 #[derive(Debug)]
 pub enum Instruction {

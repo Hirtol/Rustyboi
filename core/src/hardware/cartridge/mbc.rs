@@ -1,4 +1,4 @@
-enum MBC{
+enum MBC {
     NONE,
     MBC1,
     MBC2,

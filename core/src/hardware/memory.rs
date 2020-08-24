@@ -1,8 +1,8 @@
-use crate::io::bootrom::BootRom;
 use crate::hardware::cartridge::Cartridge;
+use crate::io::bootrom::BootRom;
 use bitflags::_core::fmt::{Debug, Formatter};
-use std::fmt;
 use log::*;
+use std::fmt;
 
 pub const MEMORY_SIZE: usize = 0x10000;
 // 16 KB ROM bank, usually 00. From Cartridge, read-only
@@ -61,8 +61,7 @@ impl Memory {
         }
     }
 
-    pub fn read_byte(&self, address: u16) -> u8
-    {
+    pub fn read_byte(&self, address: u16) -> u8 {
         // Due to strong coupling between all components I've kinda screwed myself
         // over with my CPU tests, until we decouple our architecture in a refactoring this'll
         // have to stay
@@ -75,7 +74,7 @@ impl Memory {
             ROM_BANK_00_START..=ROM_BANK_00_END => self.cartridge.read_0000_3fff(address),
             ROM_BANK_NN_START..=ROM_BANK_NN_END => self.cartridge.read_4000_7fff(address),
 
-            _ => self.memory[address as usize]
+            _ => self.memory[address as usize],
         }
     }
 
@@ -95,7 +94,7 @@ impl Memory {
             0xFF50 if !self.boot_rom.is_finished => {
                 self.boot_rom.is_finished = true;
                 debug!("Finished executing BootRom!");
-            },
+            }
             _ => self.memory[usize_address] = value,
         }
 
@@ -115,9 +114,13 @@ impl Memory {
     }
 }
 
-impl Debug for Memory{
+impl Debug for Memory {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Memory: {:?}\nCartridge: {:?}", self.memory, self.cartridge)
+        write!(
+            f,
+            "Memory: {:?}\nCartridge: {:?}",
+            self.memory, self.cartridge
+        )
     }
 }
 
@@ -126,7 +129,5 @@ mod tests {
     use crate::hardware::memory::Memory;
 
     #[test]
-    fn test_read() {
-
-    }
+    fn test_read() {}
 }
