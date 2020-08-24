@@ -4,7 +4,7 @@ use crate::hardware::cpu::execute::{InstructionAddress, JumpModifier};
 use crate::hardware::cpu::instructions::{Instruction, RegistryTarget};
 use crate::hardware::cpu::CPU;
 use crate::hardware::memory::Memory;
-use crate::hardware::registers::{Flags, Reg16::*, Reg8::*};
+use crate::hardware::registers::{Flags, Reg16::*, Reg8::*, Registers};
 use bitflags::_core::cell::RefCell;
 
 #[test]
@@ -707,7 +707,7 @@ fn test_res() {
 fn initial_cpu() -> CPU {
     let mmu = MMU::new(RefCell::new(Memory::new(Option::None, &vec![0; 500])));
     let mut cpu = CPU::new(&mmu);
-    cpu.registers.pc = 0;
+    cpu.registers = Registers::new();
     cpu
 }
 
