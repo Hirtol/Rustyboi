@@ -26,6 +26,7 @@ pub struct CPU {
     registers: Registers,
     mmu: MMU,
     halted: bool,
+    cycles_performed: u128,
 }
 
 impl CPU {
@@ -35,6 +36,7 @@ impl CPU {
             registers: Registers::new(),
             mmu: mmu.clone(),
             halted: false,
+            cycles_performed: 0,
         };
 
         if mmu.borrow().boot_rom.is_finished {
@@ -438,7 +440,7 @@ impl CPU {
     /// This is basically a POP PC (if such an instruction existed).
     fn ret(&mut self, target: JumpModifier) {
         if self.matches_jmp_condition(target) {
-            self.registers.pc = self.mmu.borrow_mut().read_short(self.registers.sp);
+            self.registers.pc = self.read_short_cycle(self.registers.sp);
             self.registers.sp = self.registers.sp.wrapping_add(2);
         }
     }
@@ -447,7 +449,7 @@ impl CPU {
     ///
     /// Flags: `----`
     fn pop(&mut self, target: Reg16) {
-        let sp_target = self.mmu.borrow_mut().read_short(self.registers.sp);
+        let sp_target = self.read_short_cycle(self.registers.sp);
         self.set_u16_value(target, sp_target);
         self.registers.sp = self.registers.sp.wrapping_add(2);
     }
@@ -514,7 +516,7 @@ impl CPU {
     /// Helper function to push certain values to the stack.
     fn push_helper(&mut self, value: u16) {
         self.registers.sp = self.registers.sp.wrapping_sub(2);
-        self.mmu.borrow_mut().set_short(self.registers.sp, value);
+        self.write_short_cycle(self.registers.sp, value);
     }
 
     /// Call address `vec`.
@@ -566,7 +568,7 @@ impl CPU {
     /// Flags: `----`
     fn di(&mut self) {
         //TODO: Implement interrupts.
-        //unimplemented!("DI NOT YET IMPLEMENTED");
+        unimplemented!("DI NOT YET IMPLEMENTED");
     }
 
     /// `LD HL,SP+i8`

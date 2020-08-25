@@ -62,9 +62,9 @@ impl ToU8<InstructionAddress> for CPU {
         use InstructionAddress::*;
 
         match target {
-            BCI => self.mmu.borrow().read_byte(self.registers.bc()),
-            DEI => self.mmu.borrow().read_byte(self.registers.de()),
-            HLI => self.mmu.borrow().read_byte(self.registers.hl()),
+            BCI => self.read_byte_cycle(self.registers.bc()),
+            DEI => self.read_byte_cycle(self.registers.de()),
+            HLI => self.read_byte_cycle(self.registers.hl()),
             HLIP => {
                 let result = self.read_u8_value(HLI);
                 self.registers.set_hl(self.registers.hl().wrapping_add(1));
@@ -78,11 +78,11 @@ impl ToU8<InstructionAddress> for CPU {
             DIRECT => self.get_instr_u8(),
             DirectMem => {
                 let address = self.get_instr_u16();
-                self.mmu.borrow().read_byte(address)
+                self.read_byte_cycle(address)
             }
             IoDirect => {
                 let address = self.get_instr_u8() as u16;
-                self.mmu.borrow().read_byte(IO_START + address)
+                self.read_byte_cycle(IO_START + address)
             }
             IoC => self
                 .mmu
@@ -98,9 +98,9 @@ impl SetU8<InstructionAddress> for CPU {
         use InstructionAddress::*;
 
         match target {
-            BCI => self.mmu.borrow_mut().set_byte(self.registers.bc(), value),
-            DEI => self.mmu.borrow_mut().set_byte(self.registers.de(), value),
-            HLI => self.mmu.borrow_mut().set_byte(self.registers.hl(), value),
+            BCI => self.write_byte_cycle(self.registers.bc(), value),
+            DEI => self.write_byte_cycle(self.registers.de(), value),
+            HLI => self.write_byte_cycle(self.registers.hl(), value),
             HLIP => {
                 self.set_u8_value(HLI, value);
                 self.registers.set_hl(self.registers.hl().wrapping_add(1));
@@ -111,20 +111,17 @@ impl SetU8<InstructionAddress> for CPU {
             }
             DIRECT => {
                 let address = self.get_instr_u16();
-                self.mmu.borrow_mut().set_byte(address, value)
+                self.write_byte_cycle(address, value)
             }
             DirectMem => {
                 let address = self.get_instr_u16();
-                self.mmu.borrow_mut().set_byte(address, value)
+                self.write_byte_cycle(address, value)
             }
             IoDirect => {
                 let addition = self.get_instr_u8() as u16;
-                self.mmu.borrow_mut().set_byte(IO_START + addition, value);
+                self.write_byte_cycle(IO_START + addition, value);
             }
-            IoC => self
-                .mmu
-                .borrow_mut()
-                .set_byte(IO_START + self.registers.c as u16, value),
+            IoC => self.write_byte_cycle(IO_START + self.registers.c as u16, value),
         }
     }
 }
@@ -214,13 +211,13 @@ impl SetU16<InstructionAddress> for CPU {
             DIRECT => {
                 //TODO: Check if big endian/little endian
                 let address = self.get_instr_u16();
-                self.mmu.borrow_mut().set_short(address, value);
+                self.write_short_cycle(address, value);
                 // self.mmu.borrow().set_byte(address, (value & 0x0F) as u8);
                 // self.mmu.borrow().set_byte(address.wrapping_add(1), (value & 0xF0 >> 8) as u8);
             }
             DirectMem => {
                 let address = self.get_instr_u16();
-                self.mmu.borrow_mut().set_short(address, value);
+                self.write_short_cycle(address, value);
             }
             IoDirect => unimplemented!(),
             IoC => unimplemented!(),

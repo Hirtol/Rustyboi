@@ -25,7 +25,7 @@ fn test_load_16bit() {
     // Test mem -> registry load.
 
     cpu.registers.pc = 1;
-    cpu.mmu.borrow_mut().set_short(1, 0x0105);
+    set_short(&mut cpu, 1, 0x0105);
 
     cpu.load_16bit(BC, DIRECT);
 
@@ -38,7 +38,7 @@ fn test_load_16bit() {
 
     cpu.step_cycle();
 
-    assert_eq!(cpu.mmu.borrow().read_short(0x0105), 0x500);
+    assert_eq!(read_short(&cpu, 0x0105), 0x500);
     assert_eq!(cpu.registers.pc, 3);
 }
 
@@ -468,14 +468,14 @@ fn test_call_and_ret() {
     let mut cpu = initial_cpu();
     cpu.registers.sp = 0xFFFF;
     cpu.mmu.borrow_mut().set_byte(0, 0xCD);
-    cpu.mmu.borrow_mut().set_short(1, 0x1445);
+    set_short(&mut cpu, 1, 0x1445);
 
     cpu.step_cycle();
 
     assert_eq!(cpu.registers.pc, 0x1445);
     assert_eq!(cpu.registers.sp, 0xFFFD);
     // Previous PC
-    assert_eq!(cpu.mmu.borrow().read_short(0xFFFD), 3);
+    assert_eq!(read_short(&cpu, 0xFFFD), 3);
 
     cpu.ret(JumpModifier::Always);
 
@@ -491,7 +491,7 @@ fn test_push_and_pop() {
     cpu.push(BC);
 
     assert_eq!(cpu.registers.sp, 0xFFFD);
-    assert_eq!(cpu.mmu.borrow().read_short(cpu.registers.sp), 0x500);
+    assert_eq!(read_short(&cpu,cpu.registers.sp), 0x500);
 
     cpu.pop(DE);
 
@@ -709,6 +709,18 @@ fn initial_cpu() -> CPU {
     let mut cpu = CPU::new(&mmu);
     cpu.registers = Registers::new();
     cpu
+}
+
+pub fn read_short(cpu: &CPU, address: u16) -> u16 {
+    let least_s_byte = cpu.mmu.borrow().read_byte(address) as u16;
+    let most_s_byte = cpu.mmu.borrow().read_byte(address.wrapping_add(1)) as u16;
+
+    (most_s_byte << 8) | least_s_byte
+}
+
+pub fn set_short(cpu: &mut CPU, address: u16, value: u16) {
+    cpu.mmu.borrow_mut().set_byte(address, (value & 0xFF) as u8); // Least significant byte first.
+    cpu.mmu.borrow_mut().set_byte(address.wrapping_add(1), ((value & 0xFF00) >> 8) as u8);
 }
 
 impl CPU {
