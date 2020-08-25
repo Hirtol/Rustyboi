@@ -322,7 +322,7 @@ impl CPU {
     where
         Self: ToU8<T>,
     {
-        let value = self.read_u8_value(target) + self.registers.cf() as u8;
+        let value = self.read_u8_value(target).wrapping_add(self.registers.cf() as u8);
         let (new_value, overflowed) = self.registers.a.overflowing_add(value);
         self.registers.set_zf(new_value == 0);
         self.registers.set_n(false);
@@ -359,7 +359,7 @@ impl CPU {
     where
         Self: ToU8<T>,
     {
-        let value = self.read_u8_value(target) + self.registers.cf() as u8;
+        let value = self.read_u8_value(target).wrapping_add(self.registers.cf() as u8);
         let (new_value, overflowed) = self.registers.a.overflowing_sub(value);
         self.registers.set_zf(new_value == 0);
         self.registers.set_n(true);
@@ -566,7 +566,7 @@ impl CPU {
     /// Flags: `----`
     fn di(&mut self) {
         //TODO: Implement interrupts.
-        unimplemented!("RETI NOT YET IMPLEMENTED");
+        //unimplemented!("DI NOT YET IMPLEMENTED");
     }
 
     /// `LD HL,SP+i8`
@@ -733,13 +733,13 @@ impl CPU {
     {
         let value = self.read_u8_value(target);
         let bitmask = 1 << bit;
-        log::debug!(
-            "Executing BIT {}, {:?} with bitmask: {:08b} and H value {:08b}",
-            bit,
-            target,
-            bitmask,
-            value
-        );
+        // log::debug!(
+        //     "Executing BIT {}, {:?} with bitmask: {:08b} and H value {:08b}",
+        //     bit,
+        //     target,
+        //     bitmask,
+        //     value
+        // );
         self.registers.set_zf((value & bitmask) == 0);
         self.registers.set_n(false);
         self.registers.set_h(true)

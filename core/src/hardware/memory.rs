@@ -84,6 +84,7 @@ impl Memory {
 
         if cfg!(test) {
             self.memory[usize_address] = value;
+            return;
         }
         // Temporary for BLARG's tests without visual aid, this writes to the Serial port
         if address == 0xFF02 && value == 0x81 {
@@ -91,6 +92,7 @@ impl Memory {
         }
 
         match address {
+            0x0000..=ROM_BANK_NN_END => self.cartridge.write(address),
             0xFF50 if !self.boot_rom.is_finished => {
                 self.boot_rom.is_finished = true;
                 debug!("Finished executing BootRom!");

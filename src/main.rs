@@ -12,7 +12,7 @@ use std::time::Duration;
 
 fn main() {
     CombinedLogger::init(vec![
-        TermLogger::new(LevelFilter::Trace, Config::default(), TerminalMode::Mixed),
+        TermLogger::new(LevelFilter::Debug, Config::default(), TerminalMode::Mixed),
         //WriteLogger::new(LevelFilter::Warn, Config::default(), File::create("my_rust_binary.log").unwrap()),
     ])
     .unwrap();
@@ -25,14 +25,18 @@ fn main() {
     let mut cartridge =
         read("***REMOVED***roms\\Tetris.gb")
             .unwrap();
-    let mut cpu_test = read("***REMOVED***test roms\\cpu_instrs\\individual\\10-bit ops.gb").unwrap();
+    let mut cpu_test = read("***REMOVED***test roms\\cpu_instrs\\individual\\03-op sp,hl.gb").unwrap();
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(bootrom_file)), &cartridge);
     let mut emulator = Emulator::new(Option::None, &cpu_test);
-
+    let mut count: u128 = 0;
     loop {
         emulator.emulate_cycle();
-        sleep(Duration::from_millis(10));
+        count += 1;
+        if count % 1_000_000 == 0 {
+            warn!("REACHED VALUE: {}", count);
+        }
+        //sleep(Duration::from_millis(10));
     }
 }
 
