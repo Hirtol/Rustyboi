@@ -2,13 +2,13 @@ use crate::emulator::MMU;
 use crate::hardware::cpu::execute::InstructionAddress::HLI;
 use crate::hardware::cpu::execute::{InstructionAddress, JumpModifier};
 use crate::hardware::cpu::instructions::{Instruction, RegistryTarget};
+use crate::hardware::cpu::tests::{initial_cpu, read_short, set_short};
 use crate::hardware::cpu::CPU;
 use crate::hardware::memory::{Memory, MemoryMapper};
 use crate::hardware::registers::{Flags, Reg16::*, Reg8::*, Registers};
+use crate::io::bootrom::BootRom;
 use bitflags::_core::cell::RefCell;
 use std::rc::Rc;
-use crate::io::bootrom::BootRom;
-use crate::hardware::cpu::tests::{initial_cpu, read_short, set_short};
 
 #[test]
 fn test_load_16bit() {
@@ -495,7 +495,7 @@ fn test_push_and_pop() {
     cpu.push(BC);
 
     assert_eq!(cpu.registers.sp, 0xFFFD);
-    assert_eq!(read_short(&cpu,cpu.registers.sp), 0x500);
+    assert_eq!(read_short(&cpu, cpu.registers.sp), 0x500);
 
     cpu.pop(DE);
 

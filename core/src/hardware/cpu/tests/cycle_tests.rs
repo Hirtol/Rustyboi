@@ -1,4 +1,4 @@
-use crate::hardware::cpu::tests::{initial_cpu, set_short, read_short};
+use crate::hardware::cpu::tests::{initial_cpu, read_short, set_short};
 use crate::hardware::memory::MemoryMapper;
 
 #[test]
@@ -16,7 +16,7 @@ fn basic_cycle_test() {
 
     assert_eq!(cpu.cycles_performed, 24);
 
-    set_short(&mut cpu, 0x4,0x0009);
+    set_short(&mut cpu, 0x4, 0x0009);
     cpu.step_cycle();
 
     assert_eq!(cpu.cycles_performed, 32);

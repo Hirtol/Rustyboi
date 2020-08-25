@@ -25,7 +25,7 @@ fn main() {
     let mut cartridge =
         read("***REMOVED***roms\\Tetris.gb")
             .unwrap();
-    let mut cpu_test = read("***REMOVED***test roms\\cpu_instrs\\individual\\06-ld r,r.gb").unwrap();
+    let cpu_test = read("***REMOVED***test roms\\cpu_instrs\\individual\\06-ld r,r.gb").unwrap();
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(bootrom_file)), &cartridge);
     let mut emulator = Emulator::new(Option::None, &cpu_test);

@@ -12,8 +12,6 @@ pub const CYCLES_PER_FRAME: u32 = 70221;
 
 pub type MMU<T> = Rc<RefCell<T>>;
 
-
-
 pub struct Emulator {
     cpu: CPU<Memory>,
     mmu: MMU<Memory>,

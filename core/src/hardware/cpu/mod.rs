@@ -9,6 +9,7 @@ use crate::hardware::cpu::execute::{InstructionAddress, JumpModifier, WrapperEnu
 use crate::hardware::cpu::instructions::*;
 use crate::hardware::cpu::traits::{SetU16, SetU8, ToU16, ToU8};
 use crate::hardware::memory::Memory;
+use crate::hardware::memory::*;
 use crate::hardware::registers::Reg8::A;
 use crate::hardware::registers::{Flags, Reg16, Reg8, Registers};
 use bitflags::_core::cell::RefCell;
@@ -16,7 +17,6 @@ use log::*;
 use std::fmt::*;
 use std::io::Read;
 use std::rc::Rc;
-use crate::hardware::memory::*;
 
 #[cfg(test)]
 mod tests;
@@ -29,11 +29,11 @@ mod traits;
 
 #[derive(Debug)]
 pub struct CPU<M: MemoryMapper> {
+    pub cycles_performed: u128,
     opcode: u8,
     registers: Registers,
     mmu: MMU<M>,
     halted: bool,
-    pub cycles_performed: u128,
 }
 
 impl<M: MemoryMapper> CPU<M> {
@@ -336,7 +336,9 @@ impl<M: MemoryMapper> CPU<M> {
     where
         Self: ToU8<T>,
     {
-        let value = self.read_u8_value(target).wrapping_add(self.registers.cf() as u8);
+        let value = self
+            .read_u8_value(target)
+            .wrapping_add(self.registers.cf() as u8);
         let (new_value, overflowed) = self.registers.a.overflowing_add(value);
         self.registers.set_zf(new_value == 0);
         self.registers.set_n(false);
@@ -373,7 +375,9 @@ impl<M: MemoryMapper> CPU<M> {
     where
         Self: ToU8<T>,
     {
-        let value = self.read_u8_value(target).wrapping_add(self.registers.cf() as u8);
+        let value = self
+            .read_u8_value(target)
+            .wrapping_add(self.registers.cf() as u8);
         let (new_value, overflowed) = self.registers.a.overflowing_sub(value);
         self.registers.set_zf(new_value == 0);
         self.registers.set_n(true);

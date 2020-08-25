@@ -46,6 +46,8 @@ pub const HRAM_END: u16 = 0xFFFE;
 pub const INTERRUPTS_REGISTER_START: u16 = 0xFFFF;
 pub const INTERRUPTS_REGISTER_END: u16 = 0xFFFF;
 
+/// Simple memory interface for reading and writing bytes, as well as determining the
+/// state of the BootRom.
 pub trait MemoryMapper: Debug {
     fn read_byte(&self, address: u16) -> u8;
     fn write_byte(&mut self, address: u16, value: u8);
@@ -121,12 +123,4 @@ impl Debug for Memory {
             self.memory, self.cartridge
         )
     }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::hardware::memory::Memory;
-
-    #[test]
-    fn test_read() {}
 }

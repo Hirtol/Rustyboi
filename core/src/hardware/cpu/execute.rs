@@ -1,6 +1,6 @@
 use crate::hardware::cpu::CPU;
-use crate::hardware::registers::Reg8;
 use crate::hardware::memory::MemoryMapper;
+use crate::hardware::registers::Reg8;
 
 impl<M: MemoryMapper> CPU<M> {
     pub fn execute(&mut self, opcode: u8) {
