@@ -8,7 +8,7 @@ use simplelog::{CombinedLogger, Config, TermLogger, TerminalMode, WriteLogger};
 use std::convert::TryInto;
 use std::fs::read;
 use std::thread::sleep;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 fn main() {
     CombinedLogger::init(vec![
@@ -30,11 +30,15 @@ fn main() {
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(bootrom_file)), &cartridge);
     let mut emulator = Emulator::new(Option::None, &cpu_test);
     let mut count: u128 = 0;
+
+    let start_time = Instant::now();
+
     loop {
         emulator.emulate_cycle();
         count += 1;
-        if count % 1_000_000 == 0 {
-            warn!("REACHED VALUE: {}", count);
+        if count % 100_000_000 == 0 {
+            warn!("REACHED VALUE: {} AFTER: {:?}", count, start_time.elapsed());
+            break;
         }
         //sleep(Duration::from_millis(10));
     }

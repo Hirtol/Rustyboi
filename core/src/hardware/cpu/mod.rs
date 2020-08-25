@@ -1,3 +1,9 @@
+//! The CPU is the main executor of any ROM's code, and will also keep
+//! track of the cycles the CPU has performed so far.
+//!
+//! A DMG runs at `4.194304 MHz` with a Vsync of `59.73 Hz`, so that would be
+//! `4194304 / 59.73 ~= 70221 cycles/frame`
+
 use crate::emulator::*;
 use crate::hardware::cpu::execute::{InstructionAddress, JumpModifier, WrapperEnum};
 use crate::hardware::cpu::instructions::*;
@@ -27,7 +33,7 @@ pub struct CPU<M: MemoryMapper> {
     registers: Registers,
     mmu: MMU<M>,
     halted: bool,
-    cycles_performed: u128,
+    pub cycles_performed: u128,
 }
 
 impl<M: MemoryMapper> CPU<M> {
@@ -130,6 +136,8 @@ impl<M: MemoryMapper> CPU<M> {
         let new_value = self.read_u16_value(target).wrapping_add(1);
 
         self.set_u16_value(target, new_value);
+        // Special increment as this function doesn't do any direct memory access.
+        self.add_cycles();
     }
 
     /// `rotate A left; 7th bit to Carry flag`
@@ -143,7 +151,7 @@ impl<M: MemoryMapper> CPU<M> {
     /// `HL = HL+rr     ;rr may be BC,DE,HL,SP`
     ///
     /// Flags: `-0hc`
-    fn add_16bit(&mut self, target: Reg16) {
+    fn add16(&mut self, target: Reg16) {
         let old_value = self.read_u16_value(target);
         let (result, overflowed) = old_value.overflowing_add(self.registers.hl());
         self.registers.set_n(false);
@@ -152,6 +160,8 @@ impl<M: MemoryMapper> CPU<M> {
             .set_h((old_value & 0x0FFF) + (self.registers.hl() & 0x0FFF) > 0x0FFF);
 
         self.registers.set_hl(result);
+        // Special increment as this function doesn't do any direct memory access.
+        self.add_cycles();
     }
 
     /// `r=r-1` OR `(HL)=(HL)-1`
@@ -180,6 +190,8 @@ impl<M: MemoryMapper> CPU<M> {
         let new_value = self.read_u16_value(target).wrapping_sub(1);
 
         self.set_u16_value(target, new_value);
+        // Special increment as this function doesn't do any direct memory access.
+        self.add_cycles();
     }
 
     /// `Rotate A right. Old bit 0 to Carry flag.`
@@ -212,13 +224,12 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `----`
     fn relative_jump(&mut self, condition: JumpModifier) {
+        let offset = self.get_instr_u8() as i8;
         if self.matches_jmp_condition(condition) {
-            let offset = self.get_instr_u8() as i8;
             // No idea why this works, but wrapping_sub/add depending on negative/positive value
             // always caused an addition even when casting to u16.
             self.registers.pc = self.registers.pc.wrapping_add(offset as u16);
-        } else {
-            self.registers.pc = self.registers.pc.wrapping_add(1);
+            self.add_cycles();
         }
     }
 
@@ -440,9 +451,11 @@ impl<M: MemoryMapper> CPU<M> {
     /// Return from subroutine.
     /// This is basically a POP PC (if such an instruction existed).
     fn ret(&mut self, target: JumpModifier) {
+        self.add_cycles();
         if self.matches_jmp_condition(target) {
             self.registers.pc = self.read_short_cycle(self.registers.sp);
             self.registers.sp = self.registers.sp.wrapping_add(2);
+            self.add_cycles();
         }
     }
 
@@ -456,26 +469,19 @@ impl<M: MemoryMapper> CPU<M> {
     }
 
     /// `jump to nn, PC=nn` OR `jump to HL, PC=HL` OR `conditional jump if nz,z,nc,c`
-    /// Sets the `PC` to the relevant value based on the JumpCondition
-    ///
-    /// # Arguments
-    ///
-    /// * `condition` - The `JumpCondition` to be evaluated for the jump.
+    /// Sets the `PC` to the relevant value based on the JumpCondition.
     fn jump(&mut self, condition: JumpModifier) {
-        //TODO: Timing.
+        let value = self.get_instr_u16();
+
         if self.matches_jmp_condition(condition) {
-            let target_address: u16 = if let JumpModifier::HL = condition {
-                //TODO: Consider moving to seperate function to clean up enum.
+            self.registers.pc = if let JumpModifier::HL = condition {
+                //TODO: Consider moving to separate function to clean up enum.
                 self.registers.hl()
             } else {
-                self.get_instr_u16()
+                value
             };
 
-            self.registers.pc = target_address;
-        } else {
-            // 3 byte wide instruction, we by default increment 1.
-            // Therefore we still need to increment by 2.
-            self.registers.pc = self.registers.pc.wrapping_add(2);
+            self.add_cycles();
         }
     }
 
@@ -497,12 +503,10 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `----`
     fn call(&mut self, target: JumpModifier) {
+        let address = self.get_instr_u16();
         if self.matches_jmp_condition(target) {
-            let address = self.get_instr_u16();
             self.push_helper(self.registers.pc);
             self.registers.pc = address;
-        } else {
-            self.registers.pc = self.registers.pc.wrapping_add(2);
         }
     }
 
@@ -518,6 +522,7 @@ impl<M: MemoryMapper> CPU<M> {
     fn push_helper(&mut self, value: u16) {
         self.registers.sp = self.registers.sp.wrapping_sub(2);
         self.write_short_cycle(self.registers.sp, value);
+        self.add_cycles();
     }
 
     /// Call address `vec`.
@@ -553,6 +558,7 @@ impl<M: MemoryMapper> CPU<M> {
     fn add_sp(&mut self) {
         let value = self.get_instr_u8() as i8;
         let (new_value, overflowed) = self.registers.sp.overflowing_add(value as u16);
+
         self.registers.set_zf(false);
         self.registers.set_n(false);
         //TODO: Check if this half flag is correct (doc says bit 3, but this should be a 16 bit?!)
@@ -561,6 +567,9 @@ impl<M: MemoryMapper> CPU<M> {
         self.registers.set_cf(overflowed);
 
         self.registers.sp = new_value;
+
+        self.add_cycles();
+        self.add_cycles();
     }
 
     /// `DI`
@@ -576,15 +585,27 @@ impl<M: MemoryMapper> CPU<M> {
     /// Load the value of `SP + i8` into the register `HL`.
     ///
     /// Flags: `00HC`
-    fn load_sp(&mut self) {
+    fn load_sp_i(&mut self) {
         let value = self.get_instr_u8() as i8;
         let (new_value, overflowed) = self.registers.sp.overflowing_add(value as u16);
+
         self.registers.set_hl(new_value);
         self.registers.set_zf(false);
         self.registers.set_n(false);
         self.registers
             .set_h((self.registers.sp & 0xF) + (value as u16 & 0xF) > 0xF);
         self.registers.set_cf(overflowed);
+
+        self.add_cycles();
+    }
+
+    /// `LD SP, HL`
+    /// Load the value of `HL` into `SP`
+    ///
+    /// Flags: `----`
+    fn load_sp(&mut self) {
+        self.registers.sp = self.registers.hl();
+        self.add_cycles();
     }
 
     /// `EI`

@@ -103,7 +103,6 @@ impl<M: MemoryMapper> CPU<M> {
         self.set_u8_value(target, new_value);
     }
 
-    #[inline]
     fn set_rotate_flags(&mut self, new_value: u8, cf_check: u8) {
         self.registers.set_zf(new_value == 0);
         self.registers.set_n(false);

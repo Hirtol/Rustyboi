@@ -8,6 +8,7 @@ use crate::hardware::registers::{Flags, Reg16::*, Reg8::*, Registers};
 use bitflags::_core::cell::RefCell;
 use std::rc::Rc;
 use crate::io::bootrom::BootRom;
+use crate::hardware::cpu::tests::{initial_cpu, read_short, set_short};
 
 #[test]
 fn test_load_16bit() {
@@ -144,14 +145,14 @@ fn test_add_16bit() {
 
     cpu.registers.set_bc(0x0FFF);
 
-    cpu.add_16bit(BC);
+    cpu.add16(BC);
 
     assert_eq!(cpu.registers.hl(), 0x0FFF);
     assert!(!cpu.registers.f.contains(Flags::H));
 
     cpu.registers.set_de(0x001);
 
-    cpu.add_16bit(DE);
+    cpu.add16(DE);
 
     assert_eq!(cpu.registers.hl(), 0x1000);
     assert!(cpu.registers.f.contains(Flags::H));
@@ -534,7 +535,7 @@ fn test_load_sp() {
     cpu.registers.sp = 50;
     cpu.set_instruction((-30 as i8) as u8);
 
-    cpu.load_sp();
+    cpu.load_sp_i();
 
     assert_eq!(cpu.registers.hl(), 20);
     assert_eq!(cpu.registers.sp, 50);
@@ -705,49 +706,4 @@ fn test_res() {
     cpu.res(7, B);
 
     assert_eq!(cpu.registers.b, 0b0010_1001);
-}
-
-fn initial_cpu() -> CPU<TestMemory> {
-    let mmu  = Rc::new(RefCell::new(TestMemory{mem: vec![0; 0x10000]}));
-    let mut cpu = CPU::new(&mmu);
-    cpu.registers = Registers::new();
-    cpu
-}
-
-pub fn read_short<T: MemoryMapper>(cpu: &CPU<T>, address: u16) -> u16 {
-    let least_s_byte = cpu.mmu.borrow().read_byte(address) as u16;
-    let most_s_byte = cpu.mmu.borrow().read_byte(address.wrapping_add(1)) as u16;
-
-    (most_s_byte << 8) | least_s_byte
-}
-
-pub fn set_short<T: MemoryMapper>(cpu: &mut CPU<T>, address: u16, value: u16) {
-    cpu.mmu.borrow_mut().write_byte(address, (value & 0xFF) as u8); // Least significant byte first.
-    cpu.mmu.borrow_mut().write_byte(address.wrapping_add(1), ((value & 0xFF00) >> 8) as u8);
-}
-
-impl<T: MemoryMapper> CPU<T> {
-    fn set_instruction(&mut self, code: u8) {
-        self.mmu.borrow_mut().write_byte(0, code);
-    }
-}
-
-#[derive(Debug)]
-struct TestMemory {
-    mem: Vec<u8>,
-}
-
-impl MemoryMapper for TestMemory {
-
-    fn read_byte(&self, address: u16) -> u8 {
-        self.mem[address as usize]
-    }
-
-    fn write_byte(&mut self, address: u16, value: u8) {
-        self.mem[address as usize] = value
-    }
-
-    fn boot_rom_finished(&self) -> bool {
-        false
-    }
 }

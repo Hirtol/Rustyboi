@@ -8,7 +8,11 @@ use bitflags::_core::cell::RefCell;
 use log::*;
 use std::rc::Rc;
 
-pub type MMU<T: MemoryMapper> = Rc<RefCell<T>>;
+pub const CYCLES_PER_FRAME: u32 = 70221;
+
+pub type MMU<T> = Rc<RefCell<T>>;
+
+
 
 pub struct Emulator {
     cpu: CPU<Memory>,
@@ -24,6 +28,10 @@ impl Emulator {
             mmu,
             ppu: PPU {},
         }
+    }
+
+    pub fn cycles_performed(&self) -> u128 {
+        self.cpu.cycles_performed
     }
 
     pub fn emulate_cycle(&mut self) {

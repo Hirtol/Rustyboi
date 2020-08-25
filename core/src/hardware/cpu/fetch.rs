@@ -6,6 +6,12 @@ use crate::hardware::cpu::CPU;
 use crate::hardware::memory::MemoryMapper;
 
 impl<M: MemoryMapper> CPU<M> {
+
+    /// Add 4 cycles to the internal counter
+    pub fn add_cycles(&mut self) {
+        self.cycles_performed += 4;
+    }
+
     /// Fetches the next instruction.
     /// Modifies the `opcode` value, as well as advances the `PC` as necessary
     ///
@@ -45,14 +51,13 @@ impl<M: MemoryMapper> CPU<M> {
 
     /// Read a byte from the `MMU` and increment the cycle counter by 4.
     pub fn read_byte_cycle(&mut self, address: u16) -> u8 {
-        // Every memory fetch costs 4 cycles (could divide by 4 as well)
-        self.cycles_performed += 4;
+        self.add_cycles();
         self.mmu.borrow().read_byte(address)
     }
 
     /// Set a byte in the `MMU` and increment the cycle counter by 4.
     pub fn write_byte_cycle(&mut self, address: u16, value: u8) {
-        self.cycles_performed += 4;
+        self.add_cycles();
         self.mmu.borrow_mut().write_byte(address, value);
     }
 
