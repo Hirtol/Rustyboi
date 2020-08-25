@@ -1,4 +1,4 @@
-
+core/target/
 
 # Created by https://www.toptal.com/developers/gitignore/api/rust,intellij
 # Edit at https://www.toptal.com/developers/gitignore?templates=rust,intellij
@@ -114,3 +114,5 @@ Cargo.lock
 
 # End of https://www.toptal.com/developers/gitignore/api/rust,intellij
 /Roms/hexdump.exe
+/core/target/
+/core/target/

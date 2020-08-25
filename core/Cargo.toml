@@ -12,4 +12,8 @@ anyhow = "1.0.32"
 bitflags = "1.2.1"
 
 [dev-dependencies]
+criterion = "0.3.3"
 
+[[bench]]
+name = "test_benchmark"
+harness = false

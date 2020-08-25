@@ -568,7 +568,7 @@ impl CPU {
     /// Flags: `----`
     fn di(&mut self) {
         //TODO: Implement interrupts.
-        unimplemented!("DI NOT YET IMPLEMENTED");
+        //unimplemented!("DI NOT YET IMPLEMENTED");
     }
 
     /// `LD HL,SP+i8`
@@ -579,7 +579,6 @@ impl CPU {
         let value = self.get_instr_u8() as i8;
         let (new_value, overflowed) = self.registers.sp.overflowing_add(value as u16);
         self.registers.set_hl(new_value);
-
         self.registers.set_zf(false);
         self.registers.set_n(false);
         self.registers

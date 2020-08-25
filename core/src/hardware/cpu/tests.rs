@@ -35,10 +35,11 @@ fn test_load_16bit() {
 
     cpu.registers.pc = 0;
     cpu.mmu.borrow_mut().set_byte(0, 0x8);
-
+    cpu.cycles_performed = 0;
     cpu.step_cycle();
 
     assert_eq!(read_short(&cpu, 0x0105), 0x500);
+    assert_eq!(cpu.cycles_performed, 20);
     assert_eq!(cpu.registers.pc, 3);
 }
 
