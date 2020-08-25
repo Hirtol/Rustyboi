@@ -3,8 +3,9 @@
 
 use crate::hardware::cpu::instructions::Instruction;
 use crate::hardware::cpu::CPU;
+use crate::hardware::memory::MemoryMapper;
 
-impl CPU {
+impl<M: MemoryMapper> CPU<M> {
     /// Fetches the next instruction.
     /// Modifies the `opcode` value, as well as advances the `PC` as necessary
     ///
@@ -52,7 +53,7 @@ impl CPU {
     /// Set a byte in the `MMU` and increment the cycle counter by 4.
     pub fn write_byte_cycle(&mut self, address: u16, value: u8) {
         self.cycles_performed += 4;
-        self.mmu.borrow_mut().set_byte(address, value);
+        self.mmu.borrow_mut().write_byte(address, value);
     }
 
     /// Read a `short` in the `MMU` and increment the cycle counter by 8.

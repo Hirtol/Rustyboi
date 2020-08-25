@@ -1,6 +1,7 @@
 use crate::hardware::cpu::execute::{InstructionAddress, WrapperEnum};
 use crate::hardware::cpu::CPU;
 use crate::hardware::registers::{Reg16, Reg8};
+use crate::hardware::memory::MemoryMapper;
 
 /// This trait should be used where we might pass either a direct
 /// registry address, or a combined registry which points to a memory address.
@@ -24,7 +25,7 @@ pub trait SetU16<T: Copy> {
     fn set_u16_value(&mut self, target: T, value: u16);
 }
 
-impl ToU8<Reg8> for CPU {
+impl<T: MemoryMapper> ToU8<Reg8> for CPU<T> {
     fn read_u8_value(&mut self, target: Reg8) -> u8 {
         use Reg8::*;
 
@@ -40,7 +41,7 @@ impl ToU8<Reg8> for CPU {
     }
 }
 
-impl SetU8<Reg8> for CPU {
+impl<T: MemoryMapper> SetU8<Reg8> for CPU<T> {
     fn set_u8_value(&mut self, target: Reg8, value: u8) {
         use Reg8::*;
 
@@ -56,7 +57,7 @@ impl SetU8<Reg8> for CPU {
     }
 }
 
-impl ToU8<InstructionAddress> for CPU {
+impl<T: MemoryMapper> ToU8<InstructionAddress> for CPU<T> {
     fn read_u8_value(&mut self, target: InstructionAddress) -> u8 {
         use crate::hardware::memory::IO_START;
         use InstructionAddress::*;
@@ -92,7 +93,7 @@ impl ToU8<InstructionAddress> for CPU {
     }
 }
 
-impl SetU8<InstructionAddress> for CPU {
+impl<T: MemoryMapper> SetU8<InstructionAddress> for CPU<T> {
     fn set_u8_value(&mut self, target: InstructionAddress, value: u8) {
         use crate::hardware::memory::IO_START;
         use InstructionAddress::*;
@@ -126,7 +127,7 @@ impl SetU8<InstructionAddress> for CPU {
     }
 }
 
-impl ToU8<WrapperEnum> for CPU {
+impl<T: MemoryMapper> ToU8<WrapperEnum> for CPU<T> {
     fn read_u8_value(&mut self, target: WrapperEnum) -> u8 {
         match target {
             WrapperEnum::Reg8(result) => self.read_u8_value(result),
@@ -135,7 +136,7 @@ impl ToU8<WrapperEnum> for CPU {
     }
 }
 
-impl SetU8<WrapperEnum> for CPU {
+impl<T: MemoryMapper> SetU8<WrapperEnum> for CPU<T> {
     fn set_u8_value(&mut self, target: WrapperEnum, value: u8) {
         match target {
             WrapperEnum::Reg8(result) => self.set_u8_value(result, value),
@@ -144,13 +145,13 @@ impl SetU8<WrapperEnum> for CPU {
     }
 }
 
-impl ToU8<u8> for CPU {
+impl<T: MemoryMapper> ToU8<u8> for CPU<T> {
     fn read_u8_value(&mut self, target: u8) -> u8 {
         target
     }
 }
 
-impl ToU16<Reg16> for CPU {
+impl<T: MemoryMapper> ToU16<Reg16> for CPU<T> {
     fn read_u16_value(&mut self, target: Reg16) -> u16 {
         use Reg16::*;
 
@@ -164,7 +165,7 @@ impl ToU16<Reg16> for CPU {
     }
 }
 
-impl SetU16<Reg16> for CPU {
+impl<T: MemoryMapper> SetU16<Reg16> for CPU<T> {
     fn set_u16_value(&mut self, target: Reg16, value: u16) {
         use Reg16::*;
 
@@ -178,7 +179,7 @@ impl SetU16<Reg16> for CPU {
     }
 }
 
-impl ToU16<InstructionAddress> for CPU {
+impl<T: MemoryMapper> ToU16<InstructionAddress> for CPU<T> {
     fn read_u16_value(&mut self, target: InstructionAddress) -> u16 {
         use crate::hardware::memory::IO_START;
         use InstructionAddress::*;
@@ -197,7 +198,7 @@ impl ToU16<InstructionAddress> for CPU {
     }
 }
 
-impl SetU16<InstructionAddress> for CPU {
+impl<T: MemoryMapper> SetU16<InstructionAddress> for CPU<T> {
     fn set_u16_value(&mut self, target: InstructionAddress, value: u16) {
         use crate::hardware::memory::IO_START;
         use InstructionAddress::*;

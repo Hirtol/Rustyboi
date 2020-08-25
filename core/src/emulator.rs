@@ -1,6 +1,6 @@
 use crate::hardware::cartridge::Cartridge;
 use crate::hardware::cpu::CPU;
-use crate::hardware::memory::Memory;
+use crate::hardware::memory::{Memory, MemoryMapper};
 use crate::hardware::ppu::PPU;
 use crate::hardware::HardwareOwner;
 use crate::io::bootrom::*;
@@ -8,11 +8,11 @@ use bitflags::_core::cell::RefCell;
 use log::*;
 use std::rc::Rc;
 
-pub type MMU = Rc<RefCell<Memory>>;
+pub type MMU<T: MemoryMapper> = Rc<RefCell<T>>;
 
 pub struct Emulator {
-    cpu: CPU,
-    mmu: MMU,
+    cpu: CPU<Memory>,
+    mmu: MMU<Memory>,
     ppu: PPU,
 }
 

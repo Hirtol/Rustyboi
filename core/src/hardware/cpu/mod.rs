@@ -10,6 +10,7 @@ use log::*;
 use std::fmt::*;
 use std::io::Read;
 use std::rc::Rc;
+use crate::hardware::memory::*;
 
 #[cfg(test)]
 mod tests;
@@ -21,16 +22,16 @@ mod instructions;
 mod traits;
 
 #[derive(Debug)]
-pub struct CPU {
+pub struct CPU<M: MemoryMapper> {
     opcode: u8,
     registers: Registers,
-    mmu: MMU,
+    mmu: MMU<M>,
     halted: bool,
     cycles_performed: u128,
 }
 
-impl CPU {
-    pub fn new(mmu: &MMU) -> Self {
+impl<M: MemoryMapper> CPU<M> {
+    pub fn new(mmu: &MMU<M>) -> Self {
         let mut result = CPU {
             opcode: 0,
             registers: Registers::new(),
@@ -39,7 +40,7 @@ impl CPU {
             cycles_performed: 0,
         };
 
-        if mmu.borrow().boot_rom.is_finished {
+        if mmu.borrow().boot_rom_finished() {
             result.registers.pc = 0x100;
             // Set the registers to the state they would
             // have if we used the bootrom, missing MEM values
