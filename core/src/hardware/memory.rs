@@ -91,7 +91,6 @@ impl Memory {
     }
 
     pub fn set_byte(&mut self, address: u16, value: u8) {
-        //TODO: Add bound checks to ensure we're not accessing protected memory.
         let usize_address = address as usize;
 
         // Temporary for BLARG's tests without visual aid, this writes to the Serial port
@@ -100,15 +99,13 @@ impl Memory {
         }
 
         match address {
-            0x0000..=ROM_BANK_NN_END => self.cartridge.write(address),
+            ROM_BANK_00_START..=ROM_BANK_NN_END => self.cartridge.write(address),
             0xFF50 if !self.boot_rom.is_finished => {
                 self.boot_rom.is_finished = true;
                 debug!("Finished executing BootRom!");
             }
             _ => self.memory[usize_address] = value,
         }
-
-        self.memory[address as usize] = value;
     }
 
     /// Simply returns 0 while also printing a warning to the logger.

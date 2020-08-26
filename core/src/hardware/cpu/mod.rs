@@ -31,9 +31,10 @@ mod traits;
 pub struct CPU<M: MemoryMapper> {
     pub cycles_performed: u128,
     opcode: u8,
+    halted: bool,
+    ime: bool,
     registers: Registers,
     mmu: MMU<M>,
-    halted: bool,
 }
 
 impl<M: MemoryMapper> CPU<M> {
@@ -44,6 +45,7 @@ impl<M: MemoryMapper> CPU<M> {
             mmu: mmu.clone(),
             halted: false,
             cycles_performed: 0,
+            ime: false,
         };
 
         if mmu.borrow().boot_rom_finished() {
@@ -205,7 +207,6 @@ impl<M: MemoryMapper> CPU<M> {
 
     /// low power standby mode (VERY low power)
     fn stop(&mut self) {
-        //TODO: Implement (Interrupts?)
         unimplemented!("STOP called, implement!");
     }
 
@@ -551,8 +552,10 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `----`
     fn reti(&mut self) {
-        //TODO: Once we have interrupts.
-        unimplemented!("RETI NOT YET IMPLEMENTED");
+        self.ime = true;
+        self.registers.pc = self.read_short_cycle(self.registers.sp);
+        self.registers.sp = self.registers.sp.wrapping_add(2);
+        self.add_cycles();
     }
 
     /// `ADD SP,e8`
@@ -581,8 +584,7 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `----`
     fn di(&mut self) {
-        //TODO: Implement interrupts.
-        //unimplemented!("DI NOT YET IMPLEMENTED");
+        self.ime = false;
     }
 
     /// `LD HL,SP+i8`
@@ -616,8 +618,7 @@ impl<M: MemoryMapper> CPU<M> {
     /// Enable Interrupts by setting the IME flag.
     /// The flag is only set after the instruction following EI.
     fn ei(&mut self) {
-        //TODO: Implement interrupts.
-        unimplemented!("RETI NOT YET IMPLEMENTED");
+        self.ime = true;
     }
 
     /*

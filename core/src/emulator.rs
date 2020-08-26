@@ -25,7 +25,7 @@ impl Emulator {
         Emulator {
             cpu: CPU::new(&mmu),
             mmu,
-            ppu: PPU {},
+            ppu: PPU { frame_buffer: [0; crate::hardware::ppu::FRAMEBUFFER_SIZE] },
         }
     }
 
