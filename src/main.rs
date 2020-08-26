@@ -2,8 +2,6 @@ use log::LevelFilter;
 use log::*;
 use rustyboi_core::emulator::Emulator;
 use rustyboi_core::hardware::cartridge::Cartridge;
-use rustyboi_core::hardware::cpu::*;
-use rustyboi_core::hardware::*;
 use simplelog::{CombinedLogger, Config, TermLogger, TerminalMode, WriteLogger};
 use std::convert::TryInto;
 use std::fs::read;

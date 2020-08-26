@@ -30,6 +30,8 @@ pub const WRAM_BANK_NN_END: u16 = 0xDFFF;
 //Mirror of C000~DDFF (ECHO RAM). Typically not used
 pub const ECHO_RAM_START: u16 = 0xE000;
 pub const ECHO_RAM_END: u16 = 0xFDFF;
+// The amount the ECHO_RAM_ADDRESS needs to have subtracted to get to the corresponding WRAM.
+pub const ECHO_RAM_OFFSET: u16 = 0x2000;
 // Sprite attribute table (OAM)
 pub const SPRITE_ATTRIBUTE_START: u16 = 0xFE00;
 pub const SPRITE_ATTRIBUTE_END: u16 = 0xFE9F;
@@ -74,7 +76,16 @@ impl Memory {
             0x0000..=0x00FF if !self.boot_rom.is_finished => self.boot_rom.read_byte(address),
             ROM_BANK_00_START..=ROM_BANK_00_END => self.cartridge.read_0000_3fff(address),
             ROM_BANK_NN_START..=ROM_BANK_NN_END => self.cartridge.read_4000_7fff(address),
-
+            VRAM_START..=VRAM_END => self.memory[address as usize],
+            EXTERNAL_RAM_START..=EXTERNAL_RAM_END => self.memory[address as usize],
+            WRAM_BANK_00_START..=WRAM_BANK_00_END => self.memory[address as usize],
+            WRAM_BANK_NN_START..=WRAM_BANK_NN_END => self.memory[address as usize],
+            ECHO_RAM_START..=ECHO_RAM_END => self.memory[(address - ECHO_RAM_OFFSET) as usize],
+            SPRITE_ATTRIBUTE_START..=SPRITE_ATTRIBUTE_END => self.memory[address as usize],
+            NOT_USABLE_START..=NOT_USABLE_END => self.non_usable_call(address),
+            IO_START..=IO_END => self.memory[address as usize],
+            HRAM_START..=HRAM_END => self.memory[address as usize],
+            INTERRUPTS_REGISTER_START..=INTERRUPTS_REGISTER_END => self.memory[address as usize],
             _ => self.memory[address as usize],
         }
     }
@@ -98,6 +109,12 @@ impl Memory {
         }
 
         self.memory[address as usize] = value;
+    }
+
+    /// Simply returns 0 while also printing a warning to the logger.
+    fn non_usable_call(&self, address: u16) -> u8 {
+        warn!("ROM Accessed non usable memory: {:4X}", address);
+        0
     }
 }
 

@@ -1,12 +1,13 @@
-use crate::hardware::cartridge::Cartridge;
-use crate::hardware::cpu::CPU;
-use crate::hardware::memory::{Memory, MemoryMapper};
-use crate::hardware::ppu::PPU;
-use crate::hardware::HardwareOwner;
-use crate::io::bootrom::*;
+use std::rc::Rc;
+
 use bitflags::_core::cell::RefCell;
 use log::*;
-use std::rc::Rc;
+
+use crate::hardware::cpu::CPU;
+use crate::hardware::HardwareOwner;
+use crate::hardware::memory::{Memory, MemoryMapper};
+use crate::hardware::ppu::PPU;
+use crate::io::bootrom::*;
 
 pub const CYCLES_PER_FRAME: u32 = 70221;
 
