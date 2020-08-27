@@ -2,7 +2,7 @@ use bitflags::_core::fmt::Formatter;
 use bitflags::*;
 use crate::io::interrupts::Interrupts::{VBLANK, LcdStat, TIMER, SERIAL, JOYPAD};
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
 pub enum Interrupts {
     VBLANK  = 0b0000_0001,
     LcdStat = 0b0000_0010,
@@ -30,5 +30,19 @@ bitflags! {
         const SERIAL = 0b0000_1000;
         /// Joypad
         const JOYPAD = 0b0001_0000;
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::Interrupts;
+    use super::Interrupts::*;
+
+    #[test]
+    fn test_interrupt_order() {
+        let ordered_array = [VBLANK, LcdStat, TIMER, SERIAL, JOYPAD];
+        for (i, interrupt) in Interrupts::iter().enumerate() {
+            assert_eq!(ordered_array[i], interrupt)
+        }
     }
 }
