@@ -16,7 +16,7 @@ fn basic_cycle_test() {
     cpu.step_cycle();
 
     assert_eq!(cpu.cycles_performed, 24);
-
+    // ADD HL,BC [8 cycles]
     set_short(&mut cpu, 0x4, 0x0009);
     cpu.step_cycle();
 

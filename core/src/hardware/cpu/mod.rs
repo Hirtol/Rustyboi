@@ -80,12 +80,17 @@ impl<M: MemoryMapper> CPU<M> {
 
         let is_prefix = self.read_next_instruction();
 
-        trace!(
-            "Executing opcode: {:04X} - prefixed: {} - name: {}",
-            self.opcode,
-            is_prefix,
-            get_assembly_from_opcode(self.opcode)
-        );
+        // trace!(
+        //     "Executing opcode: {:04X} - prefixed: {} - name: {}",
+        //     self.opcode,
+        //     is_prefix,
+        //     get_assembly_from_opcode(self.opcode)
+        // );
+
+        log::trace!("Executing opcode: {:04X} - registers: {}",
+             self.opcode,
+             self.registers,
+             );
 
         if is_prefix {
             self.execute_prefix(self.opcode);

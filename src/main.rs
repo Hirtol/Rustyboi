@@ -2,16 +2,17 @@ use log::LevelFilter;
 use log::*;
 use rustyboi_core::emulator::Emulator;
 use rustyboi_core::hardware::cartridge::Cartridge;
-use simplelog::{CombinedLogger, Config, TermLogger, TerminalMode, WriteLogger};
+use simplelog::{CombinedLogger, Config, TermLogger, TerminalMode, WriteLogger, ConfigBuilder};
 use std::convert::TryInto;
-use std::fs::read;
+use std::fs::{read, File};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
+use std::io::BufWriter;
 
 fn main() {
     CombinedLogger::init(vec![
         TermLogger::new(LevelFilter::Debug, Config::default(), TerminalMode::Mixed),
-        //WriteLogger::new(LevelFilter::Warn, Config::default(), File::create("my_rust_binary.log").unwrap()),
+        WriteLogger::new(LevelFilter::Trace, ConfigBuilder::new().set_location_level(LevelFilter::Off).set_time_level(LevelFilter::Off).set_target_level(LevelFilter::Off).build(), BufWriter::new(File::create("my_rust_binary.log").unwrap())),
     ])
     .unwrap();
 
@@ -23,7 +24,7 @@ fn main() {
     let mut cartridge =
         read("***REMOVED***roms\\Tetris.gb")
             .unwrap();
-    let cpu_test = read("***REMOVED***test roms\\cpu_instrs\\individual\\06-ld r,r.gb").unwrap();
+    let cpu_test = read("***REMOVED***test roms\\cpu_instrs\\individual\\03-op sp,hl.gb").unwrap();
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(bootrom_file)), &cartridge);
     let mut emulator = Emulator::new(Option::None, &cpu_test);
