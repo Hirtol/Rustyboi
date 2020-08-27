@@ -1,7 +1,9 @@
 use bitflags::_core::fmt::{Debug, Formatter};
 use core::fmt;
+/// 256 bytes total.
+pub const BOOTROM_SIZE: usize = 0x100;
 
-type BootRomData = [u8; 0x100];
+type BootRomData = [u8; BOOTROM_SIZE];
 
 pub struct BootRom {
     pub is_finished: bool,
@@ -17,7 +19,7 @@ impl BootRom {
             },
             None => Self {
                 is_finished: true,
-                data: [0; 0x100],
+                data: [0; BOOTROM_SIZE],
             },
         }
     }

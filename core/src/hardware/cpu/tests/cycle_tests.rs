@@ -1,5 +1,6 @@
 use crate::hardware::cpu::tests::{initial_cpu, read_short, set_short};
 use crate::hardware::memory::MemoryMapper;
+use crate::io::interrupts::Interrupts;
 
 #[test]
 fn basic_cycle_test() {
@@ -20,4 +21,14 @@ fn basic_cycle_test() {
     cpu.step_cycle();
 
     assert_eq!(cpu.cycles_performed, 32);
+}
+
+#[test]
+fn test_interrupt_cycles() {
+    let mut cpu = initial_cpu();
+
+    cpu.interrupts_routine(Interrupts::TIMER);
+
+    assert_eq!(cpu.cycles_performed, 20);
+    assert_eq!(cpu.registers.pc, 0x50);
 }

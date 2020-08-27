@@ -70,8 +70,9 @@ impl<M: MemoryMapper> CPU<M> {
         if self.halted {
             return;
         }
-        // For the EI instruction, kinda dirty atm. Think of a better architecture to
-        // accommodate delayed instructions (as DI will need it for GBC)
+        // For the EI instruction, kinda dirty atm.
+        // TODO:Think of a better architecture to accommodate delayed instructions
+        //  (as DI will need it for GBC)
         if self.delayed_ime {
             self.ime = true;
             self.delayed_ime = false;
@@ -97,15 +98,20 @@ impl<M: MemoryMapper> CPU<M> {
     /// This will reset the `ime` flag and jump to the proper interrupt address.
     pub fn interrupts_routine(&mut self, interrupt: Interrupts) {
         use Interrupts::*;
+        // Two wait cycles
+        self.add_cycles();
+        self.add_cycles();
+
         self.ime = false;
         self.push_helper(self.registers.pc);
+
         self.registers.pc = match interrupt {
             VBLANK  => 0x0040,
             LcdStat => 0x0048,
             TIMER   => 0x0050,
             SERIAL  => 0x0058,
             JOYPAD  => 0x0060,
-        }
+        };
     }
 
     /// Pass 4 ticks
