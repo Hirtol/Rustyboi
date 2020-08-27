@@ -3,6 +3,7 @@ use crate::io::bootrom::BootRom;
 use bitflags::_core::fmt::{Debug, Formatter};
 use log::*;
 use std::fmt;
+use crate::io::interrupts::InterruptFlags;
 
 pub const MEMORY_SIZE: usize = 0x10000;
 // 16 KB ROM bank, usually 00. From Cartridge, read-only
@@ -41,12 +42,13 @@ pub const NOT_USABLE_END: u16 = 0xFEFF;
 // I/O Registers
 pub const IO_START: u16 = 0xFF00;
 pub const IO_END: u16 = 0xFF7F;
+// The flag used to signal that an interrupt is pending.
+pub const INTERRUPTS_FLAG: u16 = 0xFF0F;
 // High Ram (HRAM)
 pub const HRAM_START: u16 = 0xFF80;
 pub const HRAM_END: u16 = 0xFFFE;
 // Interrupts Enable Register (IE)
-pub const INTERRUPTS_REGISTER_START: u16 = 0xFFFF;
-pub const INTERRUPTS_REGISTER_END: u16 = 0xFFFF;
+pub const INTERRUPTS_ENABLE: u16 = 0xFFFF;
 
 /// Simple memory interface for reading and writing bytes, as well as determining the
 /// state of the BootRom.
@@ -85,7 +87,7 @@ impl Memory {
             NOT_USABLE_START..=NOT_USABLE_END => self.non_usable_call(address),
             IO_START..=IO_END => self.memory[address as usize],
             HRAM_START..=HRAM_END => self.memory[address as usize],
-            INTERRUPTS_REGISTER_START..=INTERRUPTS_REGISTER_END => self.memory[address as usize],
+            INTERRUPTS_ENABLE => self.memory[address as usize],
             _ => self.memory[address as usize],
         }
     }

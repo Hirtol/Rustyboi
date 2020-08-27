@@ -46,7 +46,6 @@ fn vec_to_bootrom(vec: Vec<u8>) -> [u8; 256] {
     let mut result = [0_u8; 256];
 
     for (i, instr) in vec.iter().enumerate() {
-        debug!("Writing to bootrom byte: {:02X}", instr);
         result[i] = *instr;
     }
 

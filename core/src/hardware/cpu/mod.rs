@@ -12,6 +12,7 @@ use crate::hardware::memory::Memory;
 use crate::hardware::memory::*;
 use crate::hardware::registers::Reg8::A;
 use crate::hardware::registers::{Flags, Reg16, Reg8, Registers};
+use crate::io::interrupts::Interrupts;
 use bitflags::_core::cell::RefCell;
 use log::*;
 use std::fmt::*;
@@ -30,11 +31,12 @@ mod traits;
 #[derive(Debug)]
 pub struct CPU<M: MemoryMapper> {
     pub cycles_performed: u128,
+    pub ime: bool,
     opcode: u8,
-    halted: bool,
-    ime: bool,
     registers: Registers,
     mmu: MMU<M>,
+    halted: bool,
+    delayed_ime: bool,
 }
 
 impl<M: MemoryMapper> CPU<M> {
@@ -46,6 +48,7 @@ impl<M: MemoryMapper> CPU<M> {
             halted: false,
             cycles_performed: 0,
             ime: false,
+            delayed_ime: false,
         };
 
         if mmu.borrow().boot_rom_finished() {
@@ -67,6 +70,12 @@ impl<M: MemoryMapper> CPU<M> {
         if self.halted {
             return;
         }
+        // For the EI instruction, kinda dirty atm. Think of a better architecture to
+        // accommodate delayed instructions (as DI will need it for GBC)
+        if self.delayed_ime {
+            self.ime = true;
+            self.delayed_ime = false;
+        }
 
         let is_prefix = self.read_next_instruction();
 
@@ -81,6 +90,21 @@ impl<M: MemoryMapper> CPU<M> {
             self.execute_prefix(self.opcode);
         } else {
             self.execute(self.opcode);
+        }
+    }
+
+    /// The routine to be used whenever any kind of `interrupt` is called.
+    /// This will reset the `ime` flag and jump to the proper interrupt address.
+    pub fn interrupts_routine(&mut self, interrupt: Interrupts) {
+        use Interrupts::*;
+        self.ime = false;
+        self.push_helper(self.registers.pc);
+        self.registers.pc = match interrupt {
+            VBLANK  => 0x0040,
+            LcdStat => 0x0048,
+            TIMER   => 0x0050,
+            SERIAL  => 0x0058,
+            JOYPAD  => 0x0060,
         }
     }
 
@@ -585,6 +609,7 @@ impl<M: MemoryMapper> CPU<M> {
     /// Flags: `----`
     fn di(&mut self) {
         self.ime = false;
+        self.mmu.borrow_mut().write_byte(INTERRUPTS_ENABLE, 0x0);
     }
 
     /// `LD HL,SP+i8`
@@ -618,7 +643,9 @@ impl<M: MemoryMapper> CPU<M> {
     /// Enable Interrupts by setting the IME flag.
     /// The flag is only set after the instruction following EI.
     fn ei(&mut self) {
-        self.ime = true;
+        use crate::hardware::memory::*;
+        //TODO: Actually do this properly ._.
+        self.delayed_ime = true;
     }
 
     /*
