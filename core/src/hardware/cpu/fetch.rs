@@ -4,6 +4,7 @@
 use crate::hardware::cpu::instructions::Instruction;
 use crate::hardware::cpu::CPU;
 use crate::hardware::memory::MemoryMapper;
+use log::trace;
 
 impl<M: MemoryMapper> CPU<M> {
     /// Add 4 cycles to the internal counter
@@ -11,21 +12,15 @@ impl<M: MemoryMapper> CPU<M> {
         self.cycles_performed += 4;
     }
 
-    /// Fetches the next instruction.
-    /// Modifies the `opcode` value, as well as advances the `PC` as necessary
-    ///
-    /// # Returns
-    ///
-    /// * `true` if the instruction is a prefix instruction, `false` otherwise.
-    pub fn read_next_instruction(&mut self) -> bool {
+    /// Read the next opcode, advance the PC, and call the execute function for
+    /// a prefix opcode.
+    pub fn cb_prefix_call(&mut self) {
         self.opcode = self.get_instr_u8();
-
-        if self.opcode == 0xCB {
-            self.opcode = self.get_instr_u8();
-            true
-        } else {
-            false
-        }
+        trace!("Executing opcode: {:04X} - registers: {}",
+               self.opcode,
+               self.registers,
+        );
+        self.execute_prefix(self.opcode);
     }
 
     /// Based on the current `PC` will interpret the value at the location in memory as a `u8`

@@ -93,7 +93,7 @@ impl<M: MemoryMapper> CPU<M> {
             0xC8 => self.ret(JumpModifier::Zero),
             0xC9 => self.ret(JumpModifier::Always),
             0xCA => self.jump(JumpModifier::Zero),
-            0xCB => panic!("Regular executor function should not be passed the CB prefix!"),
+            0xCB => self.cb_prefix_call(),
             0xCC => self.call(JumpModifier::Zero),
             0xCD => self.call(JumpModifier::Always),
             0xCE => self.adc(InstructionAddress::DIRECT),
