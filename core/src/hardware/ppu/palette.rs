@@ -1,11 +1,11 @@
-use crate::io::palette::DmgColor::{WHITE, LightGrey, DarkGrey, BLACK};
+use crate::hardware::ppu::palette::DmgColor::{WHITE, LightGrey, DarkGrey, BLACK};
 
 #[derive(Debug, PartialOrd, PartialEq)]
 pub enum DmgColor {
-    WHITE     = 0x0,
-    LightGrey = 0x1,
-    DarkGrey  = 0x2,
-    BLACK     = 0x3,
+    WHITE     = 0x0, //155, 188, 15
+    LightGrey = 0x1, //139, 172, 15
+    DarkGrey  = 0x2, //48, 98, 48
+    BLACK     = 0x3, //15, 56, 15
     // Doesn't really have a direct value. It's instead used by default for bit 0-1 in Sprites.
     TRANSPARENT,
 }
@@ -56,8 +56,8 @@ impl From<u8> for DmgColor {
 
 #[cfg(test)]
 mod test {
-    use crate::io::palette::Palette;
-    use crate::io::palette::DmgColor::{BLACK, LightGrey, WHITE, DarkGrey};
+    use crate::hardware::ppu::palette::Palette;
+    use crate::hardware::ppu::palette::DmgColor::{BLACK, LightGrey, WHITE, DarkGrey};
 
     #[test]
     fn test_palette_interpretation() {

@@ -67,6 +67,8 @@ pub const OB_PALETTE_1: u16 = 0xFF49;
 /// [here]: https://gbdev.io/pandocs/#lcd-oam-dma-transfers
 pub const DMA_TRANSFER: u16 = 0xFF46;
 
+pub mod tiledata;
+pub mod palette;
 
 pub struct PPU {
     pub frame_buffer: [u8; FRAMEBUFFER_SIZE],
@@ -74,5 +76,7 @@ pub struct PPU {
 }
 
 impl PPU {
-
+    pub fn new(frame_buffer: [u8; 69120]) -> Self {
+        PPU { frame_buffer }
+    }
 }
