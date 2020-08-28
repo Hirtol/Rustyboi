@@ -48,6 +48,10 @@ impl Emulator {
         self.cpu.step_cycle();
     }
 
+    pub fn frame_buffer(&self) -> &[u8] {
+        &[0u8; crate::hardware::ppu::FRAMEBUFFER_SIZE]
+    }
+
     fn handle_interrupts(&mut self) {
         if !self.cpu.ime {
             return;
