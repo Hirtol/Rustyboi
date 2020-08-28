@@ -1,0 +1,14 @@
+[build]
+target-dir="C:\\Users\\Valentijn\\.cache\\cargo"
+
+# Pi 0/1
+[target.arm-unknown-linux-gnueabihf]
+linker = "arm-linux-gnueabihf-gcc"
+
+# Pi 2/3/4
+[target.armv7-unknown-linux-gnueabihf]
+linker = "C:\\Users\\Valentijn\\Desktop\\Rust\\Tools\\Raspberry Pi Cross Compilation\\bin\\arm-none-linux-gnueabihf-gcc.exe"
+
+# (Optional) Set default target for cargo build
+# target = "armv7-unknown-linux-gnueabihf"
+# rustflags = ["-C", "linker=arm-none-linux-gnueabihf-gcc"]

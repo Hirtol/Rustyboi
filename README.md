@@ -22,3 +22,4 @@ one would best refer to another fully working emulator, e.g [PyBoy](https://gith
 * https://rednex.github.io/rgbds/gbz80.7.html
 * http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf
 * https://github.com/Gekkio/mooneye-gb
+* https://gekkio.fi/files/gb-docs/gbctr.pdf
