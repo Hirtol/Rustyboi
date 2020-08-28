@@ -18,7 +18,6 @@ steps:
     - name: cache-target
       path: /drone/src/target
     commands:
-      - cargo build
       - cargo test -p rustyboi-core -p rustyboi --verbose
       
   - name: Discord

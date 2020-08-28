@@ -80,6 +80,29 @@ bitflags! {
     }
 }
 
+bitflags! {
+    /// FF41
+    /// A dot is the shortest period over which the PPU can output one pixel:
+    /// it is equivalent to 1 T-state on DMG or on CGB single-speed mode or 2 T-states on
+    /// CGB double-speed mode.
+    /// On each dot during mode 3, either the PPU outputs a pixel
+    /// or the fetcher is stalling the FIFOs.
+    #[derive(Default)]
+    pub struct AttributeFlags: u8 {
+        //TODO: Add CGB Flags to this.
+
+        /// (0=OBP0, 1=OBP1)
+        const PALETTE_NUMBER = 0b0001_0000;
+        /// (0=Normal, 1=Horizontally mirrored)
+        const X_FLIP = 0b0010_0000;
+        /// (0=Normal, 1=Vertically mirrored)
+        const Y_FLIP = 0b0100_0000;
+        /// (0=OBJ Above BG, 1=OBJ Behind BG color 1-3)
+        /// (Used for both BG and Window. BG color 0 is always behind OBJ)
+        const OBJ_TO_BG_PRIORITY = 0b1000_0000;
+    }
+}
+
 impl LcdStatus {
     pub fn mode_flag(&self) -> u8{
         self.bits & 0x3

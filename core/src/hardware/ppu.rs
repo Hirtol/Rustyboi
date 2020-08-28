@@ -67,6 +67,10 @@ pub const OB_PALETTE_1: u16 = 0xFF49;
 /// [here]: https://gbdev.io/pandocs/#lcd-oam-dma-transfers
 pub const DMA_TRANSFER: u16 = 0xFF46;
 
+// The SCY and SCX registers can be used to scroll the background,
+// allowing to select the origin of the visible 160x144 pixel area within the total 256x256 pixel background map.
+// Background wraps around the screen (i.e. when part of it goes off the screen, it appears on the opposite side.)
+
 pub mod tiledata;
 pub mod palette;
 
