@@ -32,15 +32,18 @@ bitflags! {
         /// "remnants" of the sprites intended for 8x8
         /// could "leak" into the 8x16 zone and cause artifacts.
         const SPRITE_SIZE  = 0b0000_0100;
+        /// LCDC.3
         /// This bit works similarly to `WINDOW_TILE_SELECT`: if the bit is reset,
         /// the BG uses tilemap `$9800`, otherwise tilemap `$9C00`.
         const BG_TILE_MAP_SELECT = 0b0000_1000;
+        /// LCDC.4
         /// This bit controls which addressing mode the BG and Window use to pick tiles.
         /// Sprites aren't affected by this, and will always use $8000 addressing mode.
         const BG_WINDOW_TILE_SELECT = 0b0001_0000;
         /// This bit controls whether the window shall be displayed or not.
         /// This bit is overridden on DMG by bit 0 (`BG_WINDOW_PRIORITY`) if that bit is reset.
         const WINDOW_DISPLAY = 0b0010_0000;
+        /// LCDC.6
         /// This bit controls which background map the Window uses for rendering.
         /// When it's reset (0), the `$9800` tilemap is used, otherwise it's the `$9C00` one.
         const WINDOW_TILE_SELECT = 0b0100_0000;
@@ -109,6 +112,9 @@ impl LcdStatus {
     }
 
     pub fn set_mode_flag(&mut self, value: u8) {
+        if value > 3 {
+            panic!("Values can't be greater than 3 on a mode flag, passed: {}", value);
+        }
         // This unsafely assumes value will never be > 3, so lets hope I don't break that ._.
         self.bits = self.bits | value;
     }

@@ -10,6 +10,7 @@ edition = "2018"
 log = "0.4.11"
 anyhow = "1.0.32"
 bitflags = "1.2.1"
+image = "0.23.8"
 
 [dev-dependencies]
 criterion = "0.3.3"

@@ -10,6 +10,16 @@ pub enum DmgColor {
     TRANSPARENT,
 }
 
+#[derive(Copy, Clone)]
+pub struct RGB(pub u8, pub u8, pub u8);
+
+pub struct DisplayColour {
+    pub white: RGB,
+    pub light_grey: RGB,
+    pub dark_grey: RGB,
+    pub black: RGB,
+}
+
 #[derive(Debug)]
 pub struct Palette {
     palette_byte: u8,
@@ -32,7 +42,28 @@ impl Palette {
     }
 
     pub fn color_3(&self) -> DmgColor {
-        DmgColor::from((self.palette_byte & 0xC0) >> 6)
+        DmgColor::from(self.palette_byte >> 6)
+    }
+
+    pub fn color(&self, color_value: u8) -> DmgColor {
+        match color_value {
+            0 => self.color_0(),
+            1 => self.color_1(),
+            2 => self.color_2(),
+            3 => self.color_3(),
+            _ => panic!("This should not be reached, color value: {}", color_value),
+        }
+    }
+}
+
+impl DisplayColour {
+    pub fn get_color(&self, dmg_color: DmgColor) -> RGB{
+        match dmg_color {
+            WHITE | DmgColor::TRANSPARENT => self.white,
+            LightGrey => self.light_grey,
+            DarkGrey => self.dark_grey,
+            BLACK => self.black,
+        }
     }
 }
 

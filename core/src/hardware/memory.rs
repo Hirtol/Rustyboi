@@ -50,18 +50,23 @@ pub const HRAM_END: u16 = 0xFFFE;
 /// Interrupts Enable Register (IE)
 pub const INTERRUPTS_ENABLE: u16 = 0xFFFF;
 
+pub mod vram;
+
 /// Simple memory interface for reading and writing bytes, as well as determining the
 /// state of the BootRom.
 pub trait MemoryMapper: Debug {
     fn read_byte(&self, address: u16) -> u8;
     fn write_byte(&mut self, address: u16, value: u8);
     fn boot_rom_finished(&self) -> bool;
+    fn cycles_performed(&self) -> u128;
+    fn add_cycles_performed(&mut self, cycles: u128);
 }
 
 pub struct Memory {
     memory: Vec<u8>,
     boot_rom: BootRom,
     cartridge: Cartridge,
+    cycles_performed: u128,
 }
 
 impl Memory {
@@ -70,6 +75,7 @@ impl Memory {
             memory: vec![0u8; MEMORY_SIZE],
             boot_rom: BootRom::new(boot_rom),
             cartridge: Cartridge::new(cartridge),
+            cycles_performed: 0,
         }
     }
 
@@ -118,6 +124,14 @@ impl Memory {
         }
     }
 
+    fn write_io_byte(&mut self, address: u16, value: u8) {
+        use crate::hardware::ppu::*;
+        match address as u8 {
+            0x46 => self.memory[address as usize] = value, //TODO: Implement DMA transfer
+            _ => self.memory[address as usize] = value,
+        }
+    }
+
     /// Simply returns 0 while also printing a warning to the logger.
     fn non_usable_call(&self, address: u16) -> u8 {
         warn!("ROM Accessed non usable memory: {:4X}", address);
@@ -136,6 +150,14 @@ impl MemoryMapper for Memory {
 
     fn boot_rom_finished(&self) -> bool {
         self.boot_rom.is_finished
+    }
+
+    fn cycles_performed(&self) -> u128 {
+        self.cycles_performed
+    }
+
+    fn add_cycles_performed(&mut self, cycles: u128) {
+        self.cycles_performed += cycles
     }
 }
 

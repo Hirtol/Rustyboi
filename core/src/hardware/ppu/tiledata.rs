@@ -10,7 +10,8 @@
 //! Sprites always use 8000 addressing,
 //! but the BG and Window can use either mode, controlled by LCDC bit 4 (`BG_WINDOW_TILE_SELECT`).
 
-use crate::io::register_flags::AttributeFlags;
+use crate::hardware::ppu::register_flags::AttributeFlags;
+use std::mem::size_of;
 
 // 128 tiles each.
 pub const TILE_BLOCK_0_START: u16 = 0x8000;
@@ -23,6 +24,9 @@ pub const TILE_BLOCK_2_START: u16 = 0x9000;
 pub const TILE_BLOCK_2_END: u16 = 0x97FF;
 
 pub const BACKGROUND_TILE_SIZE: usize = 32*32;
+
+pub const TILEMAP_9800: u16 = 0x9800;
+pub const TILEMAP_9C00: u16 = 0x9C00;
 
 /// 8x8 pixels of 2 bits p.p => 16 bytes
 /// Each Tile occupies 16 bytes, where each 2 bytes represent a line.
@@ -39,14 +43,14 @@ pub struct Tile {
 /// As one background tile has a size of 8x8 pixels,
 /// the BG maps may hold a picture of 256x256 pixels,
 /// and an area of 160x144 pixels of this picture can be displayed on the LCD screen.
-pub struct BackgroundTile {
+pub struct BackgroundTileMap {
     data: [u8; BACKGROUND_TILE_SIZE],
 }
 
 pub struct TileData {
-    tiles: [Tile; 384],
-    background_tile_0: BackgroundTile,
-    background_tile_1: BackgroundTile,
+    pub tiles: [Tile; 384],
+    pub background_tile_0: BackgroundTileMap,
+    pub background_tile_1: BackgroundTileMap,
 }
 
 pub struct SpriteAttribute {
