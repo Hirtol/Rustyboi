@@ -104,7 +104,6 @@ fn main() {
                     warn!("REACHED VALUE: {} AFTER: {:?}", count, start_time.elapsed());
                     break;
                 }
-                //sleep(Duration::from_millis(10));
             }
         }
 

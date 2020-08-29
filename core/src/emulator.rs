@@ -47,7 +47,15 @@ impl Emulator {
     pub fn emulate_cycle(&mut self) {
         self.handle_interrupts();
 
+        let previous_cycles = self.cpu.cycles_performed;
+
         self.cpu.step_cycle();
+
+        let ppu_to_run = self.cpu.cycles_performed - previous_cycles;
+        for i in 0..ppu_to_run {
+            self.ppu.true_cycle();
+        }
+
     }
 
     pub fn frame_buffer(&self) -> &[u8] {

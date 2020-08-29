@@ -1,9 +1,10 @@
 use crate::emulator::MMU;
-use crate::hardware::memory::{Memory, MemoryMapper};
+use crate::hardware::memory::{Memory, MemoryMapper, INTERRUPTS_FLAG};
 use crate::hardware::ppu::palette::{Palette, DmgColor, DisplayColour, RGB};
 use crate::hardware::ppu::register_flags::{LcdControl, LcdStatus};
 use std::collections::VecDeque;
 use crate::hardware::ppu::tiledata::{TILEMAP_9800, TILEMAP_9C00, TILE_BLOCK_0_START, TILE_BLOCK_1_START};
+use crate::io::interrupts::InterruptFlags;
 
 /// The DMG in fact has a 256x256 drawing area, whereupon a viewport of 160x144 is placed.
 pub const TRUE_RESOLUTION_WIDTH: usize = 256;
@@ -143,6 +144,15 @@ impl PPU {
     pub fn true_cycle(&mut self) {
         self.draw();
         let mut mmu = self.mmu.borrow_mut();
+
+        let mut lcd_control: LcdControl = LcdControl::from_bits_truncate(mmu.read_byte(LCD_CONTROL_REGISTER));
+        let mut lcd_status: LcdStatus = LcdStatus::from_bits_truncate(mmu.read_byte(LCD_STATUS_REGISTER));
+
+        let scx = mmu.read_byte(SCX_REGISTER);
+        let scy = mmu.read_byte(SCY_REGISTER);
+        let window_x = mmu.read_byte(WX_REGISTER); //- 7 ?;
+        let window_y = mmu.read_byte(WY_REGISTER);
+
         let delta_cycles = mmu.cycles_performed() - self.last_call_cycles;
         self.current_cycles = (self.current_cycles + 1) % 456;
 
@@ -150,11 +160,46 @@ impl PPU {
             self.current_y = (self.current_y + 1) % 154;
             mmu.write_byte(LY_REGISTER, self.current_y);
         }
+
+        lcd_status.set(LcdStatus::COINCIDENCE_INTERRUPT, false);
+
+        if self.current_y < 144 {
+            // HBlank
+            lcd_status.set_mode_flag(0x0);
+
+            if self.current_cycles == 4 {
+                lcd_status.set(LcdStatus::COINCIDENCE_FLAG, self.current_y == mmu.read_byte(LYC_REGISTER));
+            } else if self.current_cycles >= 80 && self.current_cycles <= 84 {
+                // OAM
+                lcd_status.set_mode_flag(0x2);
+            } else if self.current_cycles > 84 && self.current_cycles < 448 {
+                // Hblank
+                lcd_status.set_mode_flag(0x0)
+            }
+        }else if self.current_y == 144 {
+            lcd_status.set_mode_flag(0x0);
+
+            if self.current_cycles >= 4 {
+                if self.current_cycles == 4 {
+                    // Push the frame if we go for 2 buffers?
+                    lcd_status.set(LcdStatus::COINCIDENCE_FLAG, self.current_y == mmu.read_byte(LYC_REGISTER));
+                    InterruptFlags::from_bits_truncate(mmu.read_byte(INTERRUPTS_FLAG)).set(InterruptFlags::VBLANK, true);
+                }
+
+                lcd_status.set_mode_flag(0x1);
+            }
+        }else if self.current_y >= 144 && self.current_y < 153 {
+            lcd_status.set_mode_flag(0x1);
+            if self.current_cycles == 4 {
+                lcd_status.set(LcdStatus::COINCIDENCE_FLAG, self.current_y == mmu.read_byte(LYC_REGISTER));
+            }
+        }else if self.current_y == 153 {
+            // VBlank mode
+            lcd_status.set_mode_flag(0x1);
+        }
     }
 
     fn draw(&mut self) {
-
-
         let x = (self.current_x as usize + self.mmu.borrow().read_byte(SCX_REGISTER) as usize) % RESOLUTION_WIDTH;
         let y = (self.current_y as usize+ self.mmu.borrow().read_byte(SCY_REGISTER) as usize) % RESOLUTION_HEIGHT;
         self.set_rgb(self.colorisor.white, x as u8, y as u8);
@@ -167,6 +212,7 @@ impl PPU {
 
         if self.get_lcdc_register().contains(LcdControl::BG_WINDOW_PRIORITY) {
             //TODO: Change to proper window data range.
+            log::trace!("Calling draw bg");
             self.draw_bg_window(x as u8,y as u8, tile_map_used, if self.get_lcdc_register().contains(LcdControl::BG_WINDOW_TILE_SELECT) { TILE_BLOCK_0_START} else { TILE_BLOCK_1_START})
         }
     }
