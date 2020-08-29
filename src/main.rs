@@ -95,30 +95,23 @@ fn main() {
 
         // Temp loop for testing.
         // TODO: Implement actual cycling.
-        // if start_time.elapsed() < Duration::new(1, 0) {
-        //     loop {
-        //         emulator.emulate_cycle();
-        //         count += 1;
-        //         if count % 10_000_000 == 0 {
-        //             emulator.tilemap_image();
-        //             warn!("REACHED VALUE: {} AFTER: {:?}", count, start_time.elapsed());
-        //             break;
-        //         }
-        //         //sleep(Duration::from_millis(10));
-        //     }
-        // }
+        if start_time.elapsed() < Duration::new(1, 0) {
+            loop {
+                emulator.emulate_cycle();
+                count += 1;
+                if count % 100_000_000 == 0 {
+                    emulator.tilemap_image();
+                    warn!("REACHED VALUE: {} AFTER: {:?}", count, start_time.elapsed());
+                    break;
+                }
+                //sleep(Duration::from_millis(10));
+            }
+        }
 
         fill_texture_and_copy(&mut canvas, &mut screen_texture, emulator.frame_buffer());
 
         canvas.present();
 
-        // let frame_time = frame_start.elapsed();
-        // debug!("Frame time: {:?}", frame_time);
-        // if FRAME_DELAY > frame_time {
-        //     debug!("Going to wait: {:?}", FRAME_DELAY - frame_time);
-        //     std::thread::sleep(FRAME_DELAY - frame_time);
-        // }
-        debug!("TIME ELAPSED: {:?}", frame_start.elapsed());
         canvas.window_mut().set_title(format!("RustyBoi - {} FPS", 1.0/last_update_time.elapsed().as_secs_f64()).as_str());
         last_update_time = frame_start;
     }

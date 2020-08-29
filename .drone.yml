@@ -18,7 +18,8 @@ steps:
     - name: cache-target
       path: /drone/src/target
     commands:
-      - cargo test -p rustyboi-core -p rustyboi --verbose
+      - cargo test -p rustyboi-core  --verbose
+      # -p rustyboi
       
   - name: Discord
     image: hirtol/drone_discord_messenger:1.0
