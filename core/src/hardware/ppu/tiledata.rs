@@ -43,14 +43,14 @@ pub struct Tile {
 /// As one background tile has a size of 8x8 pixels,
 /// the BG maps may hold a picture of 256x256 pixels,
 /// and an area of 160x144 pixels of this picture can be displayed on the LCD screen.
-pub struct BackgroundTileMap {
+pub struct TileMap {
     data: [u8; BACKGROUND_TILE_SIZE],
 }
 
 pub struct TileData {
     pub tiles: [Tile; 384],
-    pub background_tile_0: BackgroundTileMap,
-    pub background_tile_1: BackgroundTileMap,
+    pub background_tile_0: TileMap,
+    pub background_tile_1: TileMap,
 }
 
 pub struct SpriteAttribute {
