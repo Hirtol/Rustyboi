@@ -107,13 +107,16 @@ bitflags! {
 }
 
 impl LcdStatus {
-    pub fn mode_flag(&self) -> u8{
+    pub fn mode_flag(&self) -> u8 {
         self.bits & 0x3
     }
 
     pub fn set_mode_flag(&mut self, value: u8) {
         if value > 3 {
-            panic!("Values can't be greater than 3 on a mode flag, passed: {}", value);
+            panic!(
+                "Values can't be greater than 3 on a mode flag, passed: {}",
+                value
+            );
         }
         // This unsafely assumes value will never be > 3, so lets hope I don't break that ._.
         self.bits = self.bits | value;

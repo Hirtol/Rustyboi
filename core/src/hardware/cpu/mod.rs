@@ -80,9 +80,10 @@ impl<M: MemoryMapper> CPU<M> {
 
         self.opcode = self.get_instr_u8();
 
-        trace!("Executing opcode: {:04X} - registers: {}",
-               self.opcode,
-               self.registers,
+        trace!(
+            "Executing opcode: {:04X} - registers: {}",
+            self.opcode,
+            self.registers,
         );
         // trace!(
         //     "Executing opcode: {:04X} - prefixed: {} - name: {}",
@@ -106,11 +107,11 @@ impl<M: MemoryMapper> CPU<M> {
         self.push_helper(self.registers.pc);
 
         self.registers.pc = match interrupt {
-            VBLANK  => 0x0040,
+            VBLANK => 0x0040,
             LcdStat => 0x0048,
-            TIMER   => 0x0050,
-            SERIAL  => 0x0058,
-            JOYPAD  => 0x0060,
+            TIMER => 0x0050,
+            SERIAL => 0x0058,
+            JOYPAD => 0x0060,
         };
     }
 

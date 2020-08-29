@@ -4,15 +4,15 @@ use bitflags::_core::cell::RefCell;
 use log::*;
 
 use crate::hardware::cpu::CPU;
-use crate::hardware::HardwareOwner;
-use crate::hardware::memory::{Memory, MemoryMapper};
-use crate::hardware::ppu::PPU;
 use crate::hardware::memory::*;
-use crate::io::bootrom::*;
-use crate::io::interrupts::{InterruptFlags, Interrupts};
-use crate::io::interrupts::Interrupts::VBLANK;
+use crate::hardware::memory::{Memory, MemoryMapper};
 use crate::hardware::ppu::palette::DisplayColour;
 use crate::hardware::ppu::tiledata::TileData;
+use crate::hardware::ppu::PPU;
+use crate::hardware::HardwareOwner;
+use crate::io::bootrom::*;
+use crate::io::interrupts::Interrupts::VBLANK;
+use crate::io::interrupts::{InterruptFlags, Interrupts};
 
 /// A DMG runs at `4.194304 MHz` with a Vsync of `59.7275 Hz`, so that would be
 /// `4194304 / 59.7275 = 70223 cycles/frame`
@@ -27,11 +27,15 @@ pub struct Emulator {
 }
 
 impl Emulator {
-    pub fn new(boot_rom: Option<[u8; 256]>, cartridge: &[u8], display_colors: DisplayColour) -> Self {
+    pub fn new(
+        boot_rom: Option<[u8; 256]>,
+        cartridge: &[u8],
+        display_colors: DisplayColour,
+    ) -> Self {
         let mmu = MMU::new(RefCell::new(Memory::new(boot_rom, cartridge)));
         Emulator {
             cpu: CPU::new(&mmu),
-            ppu: PPU::new(&mmu, display_colors),
+            ppu: PPU::new(display_colors),
             mmu,
         }
     }
@@ -47,15 +51,11 @@ impl Emulator {
     pub fn emulate_cycle(&mut self) {
         self.handle_interrupts();
 
-        let previous_cycles = self.cpu.cycles_performed;
-
         self.cpu.step_cycle();
 
-        let ppu_to_run = self.cpu.cycles_performed - previous_cycles;
-        for i in 0..ppu_to_run {
-            self.ppu.true_cycle();
-        }
-
+        // For PPU timing, maybe see how many cycles the cpu did, pass this to the PPU,
+        // and have the PPU run until it has done all those, OR reaches an interrupt.
+        // Need some way to remember the to be done cycles then though.
     }
 
     pub fn frame_buffer(&self) -> &[u8] {
@@ -64,12 +64,12 @@ impl Emulator {
 
     pub fn tilemap_image(&self) {
         //let tile_data: TileData = self.mmu.borrow().get_tile_data();
-        let back_x= 8;
+        let back_x = 8;
         let back_y = 1024;
 
         let mut imagebuf = image::ImageBuffer::new(back_x, back_y);
 
-        for (x,y, pixel) in imagebuf.enumerate_pixels_mut() {
+        for (x, y, pixel) in imagebuf.enumerate_pixels_mut() {
             let dx = 7 - (x % 8);
             let dy = 2 * (y % 8) as u16;
             // Pixel data is spread over 2 bytes
@@ -80,7 +80,10 @@ impl Emulator {
             let bit2 = (b & (1 << dx)) >> dx;
 
             let pixeldata = bit1 | (bit2 << 1);
-            let color = self.ppu.colorisor.get_color(self.ppu.get_bg_window_palette().color(pixeldata));
+            let color = self
+                .ppu
+                .colorisor
+                .get_color(self.ppu.bg_window_palette.color(pixeldata));
 
             *pixel = image::Rgb([color.0, color.1, color.2]);
         }
@@ -93,10 +96,12 @@ impl Emulator {
             return;
         }
 
-        let mut interrupt_flags: InterruptFlags = InterruptFlags::from_bits_truncate(self.mmu.borrow().read_byte(INTERRUPTS_FLAG));
-        let interrupt_enable: InterruptFlags = InterruptFlags::from_bits_truncate(self.mmu.borrow().read_byte(INTERRUPTS_ENABLE));
+        let mut interrupt_flags: InterruptFlags =
+            InterruptFlags::from_bits_truncate(self.mmu.borrow().read_byte(INTERRUPTS_FLAG));
+        let interrupt_enable: InterruptFlags =
+            InterruptFlags::from_bits_truncate(self.mmu.borrow().read_byte(INTERRUPTS_ENABLE));
 
-        if interrupt_flags.is_empty(){
+        if interrupt_flags.is_empty() {
             return;
         }
 
@@ -110,7 +115,9 @@ impl Emulator {
                 trace!("Firing {:?} interrupt", interrupt);
                 interrupt_flags.remove(repr_flag);
 
-                self.mmu.borrow_mut().write_byte(INTERRUPTS_FLAG, interrupt_flags.bits());
+                self.mmu
+                    .borrow_mut()
+                    .write_byte(INTERRUPTS_FLAG, interrupt_flags.bits());
                 self.cpu.interrupts_routine(interrupt);
             }
         }

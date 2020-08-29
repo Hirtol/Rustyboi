@@ -1,11 +1,11 @@
-use crate::hardware::ppu::palette::DmgColor::{WHITE, LightGrey, DarkGrey, BLACK};
+use crate::hardware::ppu::palette::DmgColor::{DarkGrey, LightGrey, BLACK, WHITE};
 
 #[derive(Debug, PartialOrd, PartialEq)]
 pub enum DmgColor {
-    WHITE     = 0x0, //155, 188, 15
+    WHITE = 0x0,     //155, 188, 15
     LightGrey = 0x1, //139, 172, 15
-    DarkGrey  = 0x2, //48, 98, 48
-    BLACK     = 0x3, //15, 56, 15
+    DarkGrey = 0x2,  //48, 98, 48
+    BLACK = 0x3,     //15, 56, 15
     // Doesn't really have a direct value. It's instead used by default for bit 0-1 in Sprites.
     TRANSPARENT,
 }
@@ -56,8 +56,16 @@ impl Palette {
     }
 }
 
+impl Default for Palette {
+    fn default() -> Self {
+        Palette {
+            palette_byte: 0b1110_0100,
+        }
+    }
+}
+
 impl DisplayColour {
-    pub fn get_color(&self, dmg_color: DmgColor) -> RGB{
+    pub fn get_color(&self, dmg_color: DmgColor) -> RGB {
         match dmg_color {
             WHITE | DmgColor::TRANSPARENT => self.white,
             LightGrey => self.light_grey,
@@ -69,7 +77,9 @@ impl DisplayColour {
 
 impl From<u8> for Palette {
     fn from(value: u8) -> Self {
-        Palette{palette_byte: value}
+        Palette {
+            palette_byte: value,
+        }
     }
 }
 
@@ -80,15 +90,18 @@ impl From<u8> for DmgColor {
             0x1 => LightGrey,
             0x2 => DarkGrey,
             0x3 => BLACK,
-            _ => panic!("From u8 for DMGCOLOR should not reach this value! {}", value)
+            _ => panic!(
+                "From u8 for DMGCOLOR should not reach this value! {}",
+                value
+            ),
         }
     }
 }
 
 #[cfg(test)]
 mod test {
+    use crate::hardware::ppu::palette::DmgColor::{DarkGrey, LightGrey, BLACK, WHITE};
     use crate::hardware::ppu::palette::Palette;
-    use crate::hardware::ppu::palette::DmgColor::{BLACK, LightGrey, WHITE, DarkGrey};
 
     #[test]
     fn test_palette_interpretation() {
@@ -98,5 +111,4 @@ mod test {
         assert_eq!(palette.color_2(), LightGrey);
         assert_eq!(palette.color_3(), BLACK);
     }
-
 }

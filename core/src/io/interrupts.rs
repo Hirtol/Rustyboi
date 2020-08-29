@@ -1,18 +1,18 @@
+use crate::io::interrupts::Interrupts::{LcdStat, JOYPAD, SERIAL, TIMER, VBLANK};
 use bitflags::_core::fmt::Formatter;
 use bitflags::*;
-use crate::io::interrupts::Interrupts::{VBLANK, LcdStat, TIMER, SERIAL, JOYPAD};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
 pub enum Interrupts {
-    VBLANK  = 0b0000_0001,
+    VBLANK = 0b0000_0001,
     LcdStat = 0b0000_0010,
-    TIMER   = 0b0000_0100,
-    SERIAL  = 0b0000_1000,
-    JOYPAD  = 0b0001_0000,
+    TIMER = 0b0000_0100,
+    SERIAL = 0b0000_1000,
+    JOYPAD = 0b0001_0000,
 }
 
 impl Interrupts {
-    pub fn iter() -> impl Iterator<Item=Interrupts> {
+    pub fn iter() -> impl Iterator<Item = Interrupts> {
         [VBLANK, LcdStat, TIMER, SERIAL, JOYPAD].iter().copied()
     }
 }

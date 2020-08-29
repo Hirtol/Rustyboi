@@ -23,15 +23,16 @@ pub const TILE_BLOCK_1_END: u16 = 0x8FFF;
 pub const TILE_BLOCK_2_START: u16 = 0x9000;
 pub const TILE_BLOCK_2_END: u16 = 0x97FF;
 
-pub const BACKGROUND_TILE_SIZE: usize = 32*32;
+pub const BACKGROUND_TILE_SIZE: usize = 32 * 32;
 
 pub const TILEMAP_9800: u16 = 0x9800;
 pub const TILEMAP_9C00: u16 = 0x9C00;
 
 /// 8x8 pixels of 2 bits p.p => 16 bytes
 /// Each Tile occupies 16 bytes, where each 2 bytes represent a line.
+#[derive(Default, Debug, Copy, Clone)]
 pub struct Tile {
-    data: [u8; 16]
+    data: [u8; 16],
 }
 
 /// Background Tile Map contains the numbers of tiles to be displayed.
@@ -53,6 +54,7 @@ pub struct TileData {
     pub background_tile_1: TileMap,
 }
 
+#[derive(Debug, Default, Copy, Clone)]
 pub struct SpriteAttribute {
     /// Specifies the sprites vertical position on the screen (minus 16).
     /// An off-screen value (for example, Y=0 or Y>=160) hides the sprite.
@@ -71,3 +73,10 @@ pub struct SpriteAttribute {
     attribute_flags: AttributeFlags,
 }
 
+impl TileMap {
+    pub fn new() -> Self {
+        TileMap {
+            data: [0; BACKGROUND_TILE_SIZE],
+        }
+    }
+}

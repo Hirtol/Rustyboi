@@ -2,40 +2,40 @@ use log::LevelFilter;
 use log::*;
 use rustyboi_core::emulator::Emulator;
 use rustyboi_core::hardware::cartridge::Cartridge;
-use simplelog::{CombinedLogger, Config, TermLogger, TerminalMode, WriteLogger, ConfigBuilder};
+use rustyboi_core::hardware::ppu::palette::{DisplayColour, RGB};
+use sdl2::keyboard::Keycode;
+use sdl2::pixels::Color;
+use sdl2::pixels::PixelFormatEnum::RGB24;
+use sdl2::render::{Texture, WindowCanvas};
+use simplelog::{CombinedLogger, Config, ConfigBuilder, TermLogger, TerminalMode, WriteLogger};
 use std::convert::TryInto;
 use std::fs::{read, File};
+use std::io::BufWriter;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
-use std::io::BufWriter;
-use rustyboi_core::hardware::ppu::palette::{DisplayColour, RGB};
-use sdl2::pixels::Color;
-use sdl2::render::{Texture, WindowCanvas};
-use sdl2::pixels::PixelFormatEnum::RGB24;
-use sdl2::keyboard::Keycode;
-
 
 const DISPLAY_COLOURS: DisplayColour = DisplayColour {
     white: RGB(155, 188, 15),
     light_grey: RGB(139, 172, 15),
     dark_grey: RGB(48, 98, 48),
-    black: RGB(15, 56, 15)
+    black: RGB(15, 56, 15),
 };
 
 const FPS: u64 = 60;
 const FRAME_DELAY: Duration = Duration::from_nanos(1_000_000_000u64 / FPS);
 
-
 fn main() {
     CombinedLogger::init(vec![
         TermLogger::new(LevelFilter::Debug, Config::default(), TerminalMode::Mixed),
         //WriteLogger::new(LevelFilter::Trace, ConfigBuilder::new().set_location_level(LevelFilter::Off).set_time_level(LevelFilter::Off).set_target_level(LevelFilter::Off).build(), BufWriter::new(File::create("my_rust_binary.log").unwrap())),
-    ]).unwrap();
+    ])
+    .unwrap();
 
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
-    let mut window = video_subsystem.window("RustyBoi", 800, 720)
+    let mut window = video_subsystem
+        .window("RustyBoi", 800, 720)
         .position_centered()
         .resizable()
         .allow_highdpi()
@@ -82,11 +82,14 @@ fn main() {
         for event in event_pump.poll_iter() {
             use sdl2::event::Event;
             match event {
-                Event::Quit {..} |
-                Event::KeyDown { keycode: Some(Keycode::Escape), ..} => {
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => {
                     break 'mainloop;
-                },
-                Event::DropFile {filename, ..} => {
+                }
+                Event::DropFile { filename, .. } => {
                     debug!("Dropped file: {}", filename);
                 }
                 _ => {}
@@ -111,13 +114,18 @@ fn main() {
 
         canvas.present();
 
-        canvas.window_mut().set_title(format!("RustyBoi - {} FPS", 1.0/last_update_time.elapsed().as_secs_f64()).as_str());
+        canvas.window_mut().set_title(
+            format!(
+                "RustyBoi - {} FPS",
+                1.0 / last_update_time.elapsed().as_secs_f64()
+            )
+            .as_str(),
+        );
         last_update_time = frame_start;
     }
-
 }
 
-fn setup_sdl(canvas: &mut WindowCanvas) -> Texture{
+fn setup_sdl(canvas: &mut WindowCanvas) -> Texture {
     canvas.set_draw_color(Color::RGB(0, 0, 0));
     canvas.clear();
 
@@ -132,7 +140,9 @@ fn setup_sdl(canvas: &mut WindowCanvas) -> Texture{
 
 /// This function assumes pixel_buffer size == texture buffer size, otherwise panic :D
 fn fill_texture_and_copy(canvas: &mut WindowCanvas, texture: &mut Texture, pixel_buffer: &[u8]) {
-    texture.with_lock(Option::None, |arr, pitch| arr.copy_from_slice(&pixel_buffer));
+    texture.with_lock(Option::None, |arr, pitch| {
+        arr.copy_from_slice(&pixel_buffer)
+    });
     canvas.copy(&texture, None, None);
 }
 

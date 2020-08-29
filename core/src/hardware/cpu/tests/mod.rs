@@ -31,9 +31,7 @@ impl MemoryMapper for TestMemory {
         0
     }
 
-    fn add_cycles_performed(&mut self, cycles: u128) {
-
-    }
+    fn add_cycles_performed(&mut self, cycles: u128) {}
 }
 
 impl<T: MemoryMapper> CPU<T> {

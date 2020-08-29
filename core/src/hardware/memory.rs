@@ -1,9 +1,9 @@
 use crate::hardware::cartridge::Cartridge;
 use crate::io::bootrom::BootRom;
+use crate::io::interrupts::InterruptFlags;
 use bitflags::_core::fmt::{Debug, Formatter};
 use log::*;
 use std::fmt;
-use crate::io::interrupts::InterruptFlags;
 
 pub const MEMORY_SIZE: usize = 0x10000;
 /// 16 KB ROM bank, usually 00. From Cartridge, read-only
@@ -118,7 +118,7 @@ impl Memory {
 
     /// Specific method for all calls to the IO registers.
     /// `address` will be cast to `u8` since all registers start with `0xFF`
-    fn read_io_byte(&self, address: u16) -> u8{
+    fn read_io_byte(&self, address: u16) -> u8 {
         match address as u8 {
             _ => self.memory[address as usize],
         }

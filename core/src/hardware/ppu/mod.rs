@@ -1,9 +1,13 @@
+use std::collections::VecDeque;
+
 use crate::emulator::MMU;
 use crate::hardware::memory::{Memory, MemoryMapper, INTERRUPTS_FLAG};
-use crate::hardware::ppu::palette::{Palette, DmgColor, DisplayColour, RGB};
+use crate::hardware::ppu::palette::{DisplayColour, DmgColor, Palette, RGB};
 use crate::hardware::ppu::register_flags::{LcdControl, LcdStatus};
-use std::collections::VecDeque;
-use crate::hardware::ppu::tiledata::{TILEMAP_9800, TILEMAP_9C00, TILE_BLOCK_0_START, TILE_BLOCK_1_START, TileMap, Tile, SpriteAttribute};
+use crate::hardware::ppu::tiledata::{
+    SpriteAttribute, Tile, TileMap, TILEMAP_9800, TILEMAP_9C00, TILE_BLOCK_0_START,
+    TILE_BLOCK_1_START,
+};
 use crate::io::interrupts::InterruptFlags;
 
 /// The DMG in fact has a 256x256 drawing area, whereupon a viewport of 160x144 is placed.
@@ -78,9 +82,9 @@ pub const DMA_TRANSFER: u16 = 0xFF46;
 // allowing to select the origin of the visible 160x144 pixel area within the total 256x256 pixel background map.
 // Background wraps around the screen (i.e. when part of it goes off the screen, it appears on the opposite side.)
 
-pub mod tiledata;
 pub mod palette;
 pub mod register_flags;
+pub mod tiledata;
 
 //TODO: Implement 10 sprite limit.
 //TODO: Implement sprite priority (x-based, in case of tie, then first sprite in mem; start: 0xFE00)
@@ -94,7 +98,6 @@ enum Mode {
 
 pub struct PPU {
     frame_buffer: [u8; FRAMEBUFFER_SIZE],
-    mmu: MMU<Memory>,
     pub colorisor: DisplayColour,
     // VRAM Data
     tiles: [Tile; 384],
@@ -105,9 +108,9 @@ pub struct PPU {
     lcd_control: LcdControl,
     lcd_status: LcdStatus,
 
-    bg_window_palette: Palette,
-    oam_palette_0: Palette,
-    oam_palette_1: Palette,
+    pub bg_window_palette: Palette,
+    pub oam_palette_0: Palette,
+    pub oam_palette_1: Palette,
 
     //fifo_bg: FIFO,
     //Sprite FIFO.
@@ -131,14 +134,26 @@ struct FIFOPixel {
     background_priority: bool,
 }
 
-
-
 impl PPU {
-    pub fn new(mmu: &MMU<Memory>, display_colors: DisplayColour) -> Self {
-        PPU { frame_buffer: [150; FRAMEBUFFER_SIZE], mmu: mmu.clone(), colorisor: display_colors, current_x: 0, current_y: 0, last_call_cycles: 0, current_cycles: 0 }
+    pub fn new(display_colors: DisplayColour) -> Self {
+        PPU {
+            frame_buffer: [150; FRAMEBUFFER_SIZE],
+            colorisor: display_colors,
+            tiles: [Tile::default(); 384],
+            bg_tile_map: TileMap::new(),
+            window_tile_map: TileMap::new(),
+            oam: [SpriteAttribute::default(); 40],
+            lcd_control: Default::default(),
+            lcd_status: Default::default(),
+            bg_window_palette: Palette::default(),
+            oam_palette_0: Palette::default(),
+            oam_palette_1: Palette::default(),
+            current_x: 0,
+            current_y: 0,
+            last_call_cycles: 0,
+            current_cycles: 0,
+        }
     }
-
-
 
     fn set_rgb(&mut self, rgb: RGB, x: u8, y: u8) {
         let address = (y as usize * RESOLUTION_HEIGHT as usize) + x as usize;
@@ -150,9 +165,6 @@ impl PPU {
     pub fn frame_buffer(&self) -> &[u8; FRAMEBUFFER_SIZE] {
         &self.frame_buffer
     }
-
-
-
 }
 
 // Old cruft.

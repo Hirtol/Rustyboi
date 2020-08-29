@@ -1,7 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use rustyboi_core::emulator::Emulator;
-use std::fs::read;
 use rustyboi_core::hardware::ppu::palette::{DisplayColour, RGB};
+use std::fs::read;
 
 fn emulator_benchmark(c: &mut Criterion) {
     let mut cpu_test = read("***REMOVED***test roms\\cpu_instrs\\individual\\06-ld r,r.gb").unwrap();
@@ -9,7 +9,7 @@ fn emulator_benchmark(c: &mut Criterion) {
         white: RGB(155, 188, 15),
         light_grey: RGB(139, 172, 15),
         dark_grey: RGB(48, 98, 48),
-        black: RGB(15, 56, 15)
+        black: RGB(15, 56, 15),
     };
 
     let mut emulator = Emulator::new(Option::None, &cpu_test, display_colors);
