@@ -110,7 +110,7 @@ fn main() {
             }
         }
 
-        fill_texture_and_copy(&mut canvas, &mut screen_texture, emulator.frame_buffer());
+        fill_texture_and_copy(&mut canvas, &mut screen_texture, &emulator.frame_buffer());
 
         canvas.present();
 

@@ -12,6 +12,7 @@
 
 use crate::hardware::ppu::register_flags::AttributeFlags;
 use std::mem::size_of;
+use std::ops::Index;
 
 // 128 tiles each.
 pub const TILE_BLOCK_0_START: u16 = 0x8000;
@@ -25,14 +26,16 @@ pub const TILE_BLOCK_2_END: u16 = 0x97FF;
 
 pub const BACKGROUND_TILE_SIZE: usize = 32 * 32;
 
-pub const TILEMAP_9800: u16 = 0x9800;
-pub const TILEMAP_9C00: u16 = 0x9C00;
+pub const TILEMAP_9800_START: u16 = 0x9800;
+pub const TILEMAP_9800_END: u16 = 0x9BFF;
+pub const TILEMAP_9C00_START: u16 = 0x9C00;
+pub const TILEMAP_9C00_END: u16 = 0x9FFF;
 
 /// 8x8 pixels of 2 bits p.p => 16 bytes
 /// Each Tile occupies 16 bytes, where each 2 bytes represent a line.
 #[derive(Default, Debug, Copy, Clone)]
 pub struct Tile {
-    data: [u8; 16],
+    pub data: [u8; 16],
 }
 
 /// Background Tile Map contains the numbers of tiles to be displayed.
@@ -45,7 +48,7 @@ pub struct Tile {
 /// the BG maps may hold a picture of 256x256 pixels,
 /// and an area of 160x144 pixels of this picture can be displayed on the LCD screen.
 pub struct TileMap {
-    data: [u8; BACKGROUND_TILE_SIZE],
+    pub data: [u8; BACKGROUND_TILE_SIZE],
 }
 
 pub struct TileData {
@@ -78,5 +81,13 @@ impl TileMap {
         TileMap {
             data: [0; BACKGROUND_TILE_SIZE],
         }
+    }
+}
+
+impl Index<usize> for Tile {
+    type Output = u8;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.data[index]
     }
 }

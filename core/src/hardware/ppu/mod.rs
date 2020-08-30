@@ -4,10 +4,7 @@ use crate::emulator::MMU;
 use crate::hardware::memory::{Memory, MemoryMapper, INTERRUPTS_FLAG};
 use crate::hardware::ppu::palette::{DisplayColour, DmgColor, Palette, RGB};
 use crate::hardware::ppu::register_flags::{LcdControl, LcdStatus};
-use crate::hardware::ppu::tiledata::{
-    SpriteAttribute, Tile, TileMap, TILEMAP_9800, TILEMAP_9C00, TILE_BLOCK_0_START,
-    TILE_BLOCK_1_START,
-};
+use crate::hardware::ppu::tiledata::*;
 use crate::io::interrupts::InterruptFlags;
 
 /// The DMG in fact has a 256x256 drawing area, whereupon a viewport of 160x144 is placed.
@@ -85,6 +82,7 @@ pub const DMA_TRANSFER: u16 = 0xFF46;
 pub mod palette;
 pub mod register_flags;
 pub mod tiledata;
+pub mod memory_binds;
 
 //TODO: Implement 10 sprite limit.
 //TODO: Implement sprite priority (x-based, in case of tie, then first sprite in mem; start: 0xFE00)
@@ -101,8 +99,8 @@ pub struct PPU {
     pub colorisor: DisplayColour,
     // VRAM Data
     tiles: [Tile; 384],
-    bg_tile_map: TileMap,
-    window_tile_map: TileMap,
+    tile_map_9800: TileMap,
+    tile_map_9c00: TileMap,
     oam: [SpriteAttribute; 40],
 
     lcd_control: LcdControl,
@@ -112,9 +110,9 @@ pub struct PPU {
     pub oam_palette_0: Palette,
     pub oam_palette_1: Palette,
 
-    //fifo_bg: FIFO,
+    fifo_bg: FIFO,
     //Sprite FIFO.
-    //fifo_oam: FIFO,
+    fifo_oam: FIFO,
     current_x: u8,
     current_y: u8,
     last_call_cycles: u128,
@@ -140,14 +138,16 @@ impl PPU {
             frame_buffer: [150; FRAMEBUFFER_SIZE],
             colorisor: display_colors,
             tiles: [Tile::default(); 384],
-            bg_tile_map: TileMap::new(),
-            window_tile_map: TileMap::new(),
+            tile_map_9800: TileMap::new(),
+            tile_map_9c00: TileMap::new(),
             oam: [SpriteAttribute::default(); 40],
             lcd_control: Default::default(),
             lcd_status: Default::default(),
             bg_window_palette: Palette::default(),
             oam_palette_0: Palette::default(),
             oam_palette_1: Palette::default(),
+            fifo_bg: FIFO {queue: VecDeque::with_capacity(16)},
+            fifo_oam: FIFO {queue: VecDeque::with_capacity(16)},
             current_x: 0,
             current_y: 0,
             last_call_cycles: 0,

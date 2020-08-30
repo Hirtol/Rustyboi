@@ -8,7 +8,7 @@ use crate::hardware::memory::*;
 use crate::hardware::memory::{Memory, MemoryMapper};
 use crate::hardware::ppu::palette::DisplayColour;
 use crate::hardware::ppu::tiledata::TileData;
-use crate::hardware::ppu::PPU;
+use crate::hardware::ppu::{PPU, FRAMEBUFFER_SIZE};
 use crate::hardware::HardwareOwner;
 use crate::io::bootrom::*;
 use crate::io::interrupts::Interrupts::VBLANK;
@@ -19,11 +19,12 @@ use crate::io::interrupts::{InterruptFlags, Interrupts};
 pub const CYCLES_PER_FRAME: u32 = 70221;
 
 pub type MMU<T> = Rc<RefCell<T>>;
+pub type EmulatorPPU = Rc<RefCell<PPU>>;
 
 pub struct Emulator {
     cpu: CPU<Memory>,
     mmu: MMU<Memory>,
-    ppu: PPU,
+    ppu: EmulatorPPU,
 }
 
 impl Emulator {
@@ -32,10 +33,11 @@ impl Emulator {
         cartridge: &[u8],
         display_colors: DisplayColour,
     ) -> Self {
-        let mmu = MMU::new(RefCell::new(Memory::new(boot_rom, cartridge)));
+        let ppu = Rc::new(RefCell::new(PPU::new(display_colors)));
+        let mmu = MMU::new(RefCell::new(Memory::new(boot_rom, cartridge, ppu.clone())));
         Emulator {
             cpu: CPU::new(&mmu),
-            ppu: PPU::new(display_colors),
+            ppu,
             mmu,
         }
     }
@@ -56,10 +58,11 @@ impl Emulator {
         // For PPU timing, maybe see how many cycles the cpu did, pass this to the PPU,
         // and have the PPU run until it has done all those, OR reaches an interrupt.
         // Need some way to remember the to be done cycles then though.
+        // EI checker? Run till EI is enabled sort of thing.
     }
 
-    pub fn frame_buffer(&self) -> &[u8] {
-        self.ppu.frame_buffer()
+    pub fn frame_buffer(&self) -> [u8; FRAMEBUFFER_SIZE] {
+        self.ppu.borrow().frame_buffer().clone()
     }
 
     pub fn tilemap_image(&self) {
@@ -82,8 +85,9 @@ impl Emulator {
             let pixeldata = bit1 | (bit2 << 1);
             let color = self
                 .ppu
+                .borrow()
                 .colorisor
-                .get_color(self.ppu.bg_window_palette.color(pixeldata));
+                .get_color(self.ppu.borrow().bg_window_palette.color(pixeldata));
 
             *pixel = image::Rgb([color.0, color.1, color.2]);
         }
