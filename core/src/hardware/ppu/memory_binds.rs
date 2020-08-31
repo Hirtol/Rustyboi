@@ -35,7 +35,6 @@ impl PPU{
 
 /// Get the internal PPU address for a tile from a normal u16 address.
 /// Returns in the format `(tile_addresss, byte_address)`
-#[inline]
 fn get_tile_address(address: u16) -> (usize, usize){
     let relative_address = address as usize - TILE_BLOCK_0_START as usize;
     (relative_address / 16, relative_address % 16)

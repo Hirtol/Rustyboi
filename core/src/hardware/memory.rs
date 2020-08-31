@@ -90,7 +90,7 @@ impl Memory {
             0x0000..=0x00FF if !self.boot_rom.is_finished => self.boot_rom.read_byte(address),
             ROM_BANK_00_START..=ROM_BANK_00_END => self.cartridge.read_0000_3fff(address),
             ROM_BANK_NN_START..=ROM_BANK_NN_END => self.cartridge.read_4000_7fff(address),
-            //VRAM
+            //VRAM, TODO: Address performance impact.
             TILE_BLOCK_0_START..=TILE_BLOCK_2_END => self.ppu.borrow().get_tile_byte(address),
             TILEMAP_9800_START..=TILEMAP_9C00_END => self.ppu.borrow().get_tilemap_byte(address),
             EXTERNAL_RAM_START..=EXTERNAL_RAM_END => self.memory[address as usize],
