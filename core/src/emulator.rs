@@ -24,7 +24,7 @@ pub type EmulatorPPU = Rc<RefCell<PPU>>;
 pub struct Emulator {
     cpu: CPU<Memory>,
     mmu: MMU<Memory>,
-    ppu: EmulatorPPU,
+    //ppu: EmulatorPPU,
 }
 
 impl Emulator {
@@ -33,11 +33,10 @@ impl Emulator {
         cartridge: &[u8],
         display_colors: DisplayColour,
     ) -> Self {
-        let ppu = Rc::new(RefCell::new(PPU::new(display_colors)));
-        let mmu = MMU::new(RefCell::new(Memory::new(boot_rom, cartridge, ppu.clone())));
+        let mmu = MMU::new(RefCell::new(Memory::new(boot_rom, cartridge, PPU::new(display_colors))));
         Emulator {
             cpu: CPU::new(&mmu),
-            ppu,
+
             mmu,
         }
     }
@@ -62,7 +61,7 @@ impl Emulator {
     }
 
     pub fn frame_buffer(&self) -> [u8; FRAMEBUFFER_SIZE] {
-        self.ppu.borrow().frame_buffer().clone()
+        self.mmu.borrow().ppu.frame_buffer().clone()
     }
 
     pub fn tilemap_image(&self) {
@@ -83,11 +82,11 @@ impl Emulator {
             let bit2 = (b & (1 << dx)) >> dx;
 
             let pixeldata = bit1 | (bit2 << 1);
-            let color = self
+            let color = self.mmu.borrow()
                 .ppu
-                .borrow()
+
                 .colorisor
-                .get_color(self.ppu.borrow().bg_window_palette.color(pixeldata));
+                .get_color(self.mmu.borrow().ppu.bg_window_palette.color(pixeldata));
 
             *pixel = image::Rgb([color.0, color.1, color.2]);
         }

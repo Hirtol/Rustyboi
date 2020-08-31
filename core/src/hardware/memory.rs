@@ -70,12 +70,12 @@ pub struct Memory {
     memory: Vec<u8>,
     boot_rom: BootRom,
     cartridge: Cartridge,
-    ppu: Rc<RefCell<PPU>>,
     cycles_performed: u128,
+    pub ppu: PPU,
 }
 
 impl Memory {
-    pub fn new(boot_rom: Option<[u8; 0x100]>, cartridge: &[u8], ppu: Rc<RefCell<PPU>>) -> Self {
+    pub fn new(boot_rom: Option<[u8; 0x100]>, cartridge: &[u8], ppu: PPU) -> Self {
         Memory {
             memory: vec![0u8; MEMORY_SIZE],
             boot_rom: BootRom::new(boot_rom),
@@ -91,8 +91,8 @@ impl Memory {
             ROM_BANK_00_START..=ROM_BANK_00_END => self.cartridge.read_0000_3fff(address),
             ROM_BANK_NN_START..=ROM_BANK_NN_END => self.cartridge.read_4000_7fff(address),
             //VRAM, TODO: Address performance impact.
-            TILE_BLOCK_0_START..=TILE_BLOCK_2_END => self.ppu.borrow().get_tile_byte(address),
-            TILEMAP_9800_START..=TILEMAP_9C00_END => self.ppu.borrow().get_tilemap_byte(address),
+            TILE_BLOCK_0_START..=TILE_BLOCK_2_END => self.ppu.get_tile_byte(address),
+            TILEMAP_9800_START..=TILEMAP_9C00_END => self.ppu.get_tilemap_byte(address),
             EXTERNAL_RAM_START..=EXTERNAL_RAM_END => self.memory[address as usize],
             WRAM_BANK_00_START..=WRAM_BANK_00_END => self.memory[address as usize],
             WRAM_BANK_NN_START..=WRAM_BANK_NN_END => self.memory[address as usize],
@@ -117,8 +117,8 @@ impl Memory {
         match address {
             ROM_BANK_00_START..=ROM_BANK_NN_END => self.cartridge.write(address),
             //VRAM
-            TILE_BLOCK_0_START..=TILE_BLOCK_2_END => self.ppu.borrow_mut().set_tile_byte(address, value),
-            TILEMAP_9800_START..=TILEMAP_9C00_END => self.ppu.borrow_mut().set_tilemap_byte(address, value),
+            TILE_BLOCK_0_START..=TILE_BLOCK_2_END => self.ppu.set_tile_byte(address, value),
+            TILEMAP_9800_START..=TILEMAP_9C00_END => self.ppu.set_tilemap_byte(address, value),
             0xFF50 if !self.boot_rom.is_finished => {
                 self.boot_rom.is_finished = true;
                 debug!("Finished executing BootRom!");
