@@ -131,6 +131,7 @@ pub struct PPU {
     window_x: u8,
     window_y: u8,
     current_cycles: u32,
+    vblank_cycles: u32,
     // Until the architecture rework this will essentially be a ghost IF register.
     pending_interrupts: InterruptFlags,
 }
@@ -138,7 +139,7 @@ pub struct PPU {
 impl PPU {
     pub fn new(display_colors: DisplayColour) -> Self {
         PPU {
-            frame_buffer: [150; FRAMEBUFFER_SIZE],
+            frame_buffer: [0; FRAMEBUFFER_SIZE],
             scanline_buffer: [DmgColor::WHITE; RESOLUTION_WIDTH],
             colorisor: display_colors,
             tiles: [Tile::default(); 384],
@@ -157,6 +158,7 @@ impl PPU {
             window_x: 0,
             window_y: 0,
             current_cycles: 0,
+            vblank_cycles: 0,
             pending_interrupts: Default::default()
         }
     }
@@ -211,8 +213,10 @@ impl PPU {
             if self.lcd_status.mode_flag() != VBlank {
                 self.lcd_status.set_mode_flag(VBlank);
 
-                self.current_y += 1;
+                self.current_y = self.current_y.wrapping_add(1);
                 self.ly_lyc_compare();
+                // A rather hacky way (also taken from GBE Plus) but it'll suffice for now.
+                self.vblank_cycles = self.current_cycles - 65664;
 
                 if self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT) {
                     self.pending_interrupts.insert(InterruptFlags::LCD);
@@ -220,13 +224,18 @@ impl PPU {
 
                 self.pending_interrupts.insert(InterruptFlags::VBLANK);
             }else {
-                if self.current_y == 154 {
-                    self.current_cycles -= CYCLES_PER_FRAME;
-                    self.current_y = 0;
-                    self.ly_lyc_compare();
-                }else {
-                    self.current_y += 1;
-                    self.ly_lyc_compare();
+                self.vblank_cycles += cpu_clock_increment;
+                if self.vblank_cycles >= 456 {
+                    self.vblank_cycles -= 456;
+
+                    if self.current_y == 154 {
+                        self.current_cycles -= CYCLES_PER_FRAME;
+                        self.current_y = 0;
+                        self.ly_lyc_compare();
+                    }else {
+                        self.current_y = self.current_y.wrapping_add(1);
+                        self.ly_lyc_compare();
+                    }
                 }
             }
         } else {
@@ -262,7 +271,7 @@ impl PPU {
             self.frame_buffer[current_address + i*3 + 2] = colour.2;
         }
 
-        self.current_y += 1;
+        self.current_y = self.current_y.wrapping_add(1);
     }
 
     fn draw_bg_scanline(&mut self) {

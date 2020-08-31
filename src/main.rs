@@ -60,6 +60,10 @@ fn main() {
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(bootrom_file)), &cartridge);
 
+    // test_fast(sdl_context, &mut canvas, &mut screen_texture, &cpu_test);
+    //
+    // return;
+
     let mut emulator = Emulator::new(Option::None, &cpu_test, DISPLAY_COLOURS);
     let mut count: u128 = 0;
 
@@ -162,7 +166,7 @@ fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_textu
             loop {
                 emulator.emulate_cycle();
                 count += 1;
-                if count % 10_000_000 == 0 {
+                if count % 100_000_000 == 0 {
                     emulator.tilemap_image();
                     warn!("REACHED VALUE: {} AFTER: {:?}", count, start_time.elapsed());
                     break;

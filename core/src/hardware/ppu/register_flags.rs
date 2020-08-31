@@ -131,11 +131,30 @@ impl LcdStatus {
     }
 
     pub fn set_mode_flag(&mut self, value: Mode) {
-        self.bits = self.bits | match value {
+        self.bits = ((self.bits >> 2) << 2) | match value {
             Mode::HBlank => 0,
             Mode::VBlank => 1,
             Mode::OamSearch => 2,
             Mode::LcdTransfer => 3,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::io::interrupts::Interrupts::LcdStat;
+    use crate::hardware::ppu::register_flags::LcdStatus;
+    use crate::hardware::ppu::Mode::{HBlank, OamSearch};
+
+    #[test]
+    fn status_tests() {
+        let mut test = LcdStatus::default();
+
+        assert_eq!(test.mode_flag(), HBlank);
+        test.set_mode_flag(OamSearch);
+        assert_eq!(test.mode_flag(), OamSearch);
+        assert_ne!(test.mode_flag(), HBlank);
+        test.set_mode_flag(HBlank);
+        assert_eq!(test.mode_flag(), HBlank);
     }
 }
