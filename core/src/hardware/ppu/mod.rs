@@ -94,8 +94,20 @@ enum Mode {
     LCD_TRANSFER,
 }
 
+// Notes:
+// OAM x and y coordinates are ALWAYS within viewport. E.g we can ignore SCX and SCY for those.
+//
+
+// Misc:
+// If the Window is enabled while drawing the screen (LY is between 0 and 143)
+// then if it is disabled by changing the Bit 5 in LCDC, the Game Boy "remembers"
+// what line it was last rendering from the Window.
+// If the Window, once disabled, is again enabled before VBlank,
+// it starts drawing the Window from the last line it "remembers".
+
 pub struct PPU {
     frame_buffer: [u8; FRAMEBUFFER_SIZE],
+    scanline_buffer: [DmgColor; RESOLUTION_WIDTH],
     pub colorisor: DisplayColour,
     // VRAM Data
     tiles: [Tile; 384],
@@ -110,13 +122,8 @@ pub struct PPU {
     pub oam_palette_0: Palette,
     pub oam_palette_1: Palette,
 
-    fifo_bg: FIFO,
-    //Sprite FIFO.
-    fifo_oam: FIFO,
-
     compare_line: u8,
 
-    current_x: u8,
     current_y: u8,
 
     scroll_x: u8,
@@ -129,23 +136,11 @@ pub struct PPU {
     current_cycles: u128,
 }
 
-pub struct FIFO {
-    queue: VecDeque<FIFOPixel>,
-}
-
-struct FIFOPixel {
-    //color: u8,
-    //palette: &'a Palette,
-    render_color: DmgColor,
-    /// Not necessarily necessary. Only if we want to implement x conflict maybe?
-    //priority: u8,
-    background_priority: bool,
-}
-
 impl PPU {
     pub fn new(display_colors: DisplayColour) -> Self {
         PPU {
             frame_buffer: [150; FRAMEBUFFER_SIZE],
+            scanline_buffer: [DmgColor::WHITE; RESOLUTION_WIDTH],
             colorisor: display_colors,
             tiles: [Tile::default(); 384],
             tile_map_9800: TileMap::new(),
@@ -156,10 +151,7 @@ impl PPU {
             bg_window_palette: Palette::default(),
             oam_palette_0: Palette::default(),
             oam_palette_1: Palette::default(),
-            fifo_bg: FIFO {queue: VecDeque::with_capacity(16)},
-            fifo_oam: FIFO {queue: VecDeque::with_capacity(16)},
             compare_line: 0,
-            current_x: 0,
             current_y: 0,
             scroll_x: 0,
             scroll_y: 0,
@@ -168,6 +160,51 @@ impl PPU {
             last_call_cycles: 0,
             current_cycles: 0,
         }
+    }
+
+    pub fn do_cycle(&mut self) {
+        //TODO: Timing ?
+        self.draw_scanline();
+    }
+
+    // Note: We'll handle interrupts outside the GPU, probably.
+    pub fn draw_scanline(&mut self) {
+        if self.lcd_control.contains(LcdControl::BG_WINDOW_PRIORITY) {
+            self.draw_bg_scanline();
+
+            if self.lcd_control.contains(LcdControl::WINDOW_DISPLAY) {
+                self.draw_window_scanline();
+            }
+        }
+
+        if self.lcd_control.contains(LcdControl::SPRITE_DISPLAY_ENABLE){
+            self.draw_sprite_scanline();
+        }
+        // TODO: Consider moving this to the consumer of the emulator instead of within
+        // Not really the business of the PPU to set the RGB representation.
+        let mut current_address: usize = (self.current_y as usize * 3 * RESOLUTION_WIDTH);
+
+        for (i, colour) in self.scanline_buffer.iter().enumerate() {
+            let colour = self.colorisor.get_color(colour);
+            current_address += i;
+            self.frame_buffer[current_address] = colour.0;
+            self.frame_buffer[current_address + 1] = colour.1;
+            self.frame_buffer[current_address + 2] = colour.2;
+        }
+
+        self.current_y += 1;
+    }
+
+    fn draw_bg_scanline(&mut self) {
+
+    }
+
+    fn draw_window_scanline(&mut self) {
+
+    }
+
+    fn draw_sprite_scanline(&mut self) {
+
     }
 
     fn set_rgb(&mut self, rgb: RGB, x: u8, y: u8) {
@@ -181,172 +218,3 @@ impl PPU {
         &self.frame_buffer
     }
 }
-
-// Old cruft.
-//pub fn cycle(&mut self) {
-//         use crate::hardware::ppu::tiledata::*;
-//         let mmu = self.mmu.borrow_mut();
-//
-//         let lcd_control: LcdControl = LcdControl::from_bits_truncate(mmu.read_byte(LCD_CONTROL_REGISTER));
-//         let lcd_status: LcdStatus = LcdStatus::from_bits_truncate(mmu.read_byte(LCD_STATUS_REGISTER));
-//
-//         let scx = mmu.read_byte(SCX_REGISTER);
-//         let scy = mmu.read_byte(SCY_REGISTER);
-//         let window_x = mmu.read_byte(WX_REGISTER); //- 7 ?;
-//         let window_y = mmu.read_byte(WY_REGISTER);
-//
-//
-//         let mut tile_map_used = TILEMAP_9800;
-//
-//         if (lcd_control.contains(LcdControl::BG_TILE_MAP_SELECT) && scx < window_x)
-//             || (lcd_control.contains(LcdControl::WINDOW_TILE_SELECT) && scx >= window_x){
-//             tile_map_used = TILEMAP_9C00;
-//         }
-//
-//         let fetcher_x = ((scx / 8));
-//
-//
-//     }
-//
-//     pub fn true_cycle(&mut self) {
-//         self.draw();
-//         let mut mmu = self.mmu.borrow_mut();
-//
-//         let mut lcd_control: LcdControl = LcdControl::from_bits_truncate(mmu.read_byte(LCD_CONTROL_REGISTER));
-//         let mut lcd_status: LcdStatus = LcdStatus::from_bits_truncate(mmu.read_byte(LCD_STATUS_REGISTER));
-//
-//         let scx = mmu.read_byte(SCX_REGISTER);
-//         let scy = mmu.read_byte(SCY_REGISTER);
-//         let window_x = mmu.read_byte(WX_REGISTER); //- 7 ?;
-//         let window_y = mmu.read_byte(WY_REGISTER);
-//
-//         let delta_cycles = mmu.cycles_performed() - self.last_call_cycles;
-//         self.current_cycles = (self.current_cycles + 1) % 456;
-//
-//         if self.current_cycles == 0 {
-//             self.current_y = (self.current_y + 1) % 154;
-//             mmu.write_byte(LY_REGISTER, self.current_y);
-//         }
-//
-//         lcd_status.set(LcdStatus::COINCIDENCE_INTERRUPT, false);
-//
-//         if self.current_y < 144 {
-//             // HBlank
-//             lcd_status.set_mode_flag(0x0);
-//
-//             if self.current_cycles == 4 {
-//                 lcd_status.set(LcdStatus::COINCIDENCE_FLAG, self.current_y == mmu.read_byte(LYC_REGISTER));
-//             } else if self.current_cycles >= 80 && self.current_cycles <= 84 {
-//                 // OAM
-//                 lcd_status.set_mode_flag(0x2);
-//             } else if self.current_cycles > 84 && self.current_cycles < 448 {
-//                 // Hblank
-//                 lcd_status.set_mode_flag(0x0)
-//             }
-//         }else if self.current_y == 144 {
-//             lcd_status.set_mode_flag(0x0);
-//
-//             if self.current_cycles >= 4 {
-//                 if self.current_cycles == 4 {
-//                     // Push the frame if we go for 2 buffers?
-//                     lcd_status.set(LcdStatus::COINCIDENCE_FLAG, self.current_y == mmu.read_byte(LYC_REGISTER));
-//                     InterruptFlags::from_bits_truncate(mmu.read_byte(INTERRUPTS_FLAG)).set(InterruptFlags::VBLANK, true);
-//                 }
-//
-//                 lcd_status.set_mode_flag(0x1);
-//             }
-//         }else if self.current_y >= 144 && self.current_y < 153 {
-//             lcd_status.set_mode_flag(0x1);
-//             if self.current_cycles == 4 {
-//                 lcd_status.set(LcdStatus::COINCIDENCE_FLAG, self.current_y == mmu.read_byte(LYC_REGISTER));
-//             }
-//         }else if self.current_y == 153 {
-//             // VBlank mode
-//             lcd_status.set_mode_flag(0x1);
-//         }
-//     }
-//
-//     fn draw(&mut self) {
-//         let x = (self.current_x as usize + self.mmu.borrow().read_byte(SCX_REGISTER) as usize) % RESOLUTION_WIDTH;
-//         let y = (self.current_y as usize+ self.mmu.borrow().read_byte(SCY_REGISTER) as usize) % RESOLUTION_HEIGHT;
-//         self.set_rgb(self.colorisor.white, x as u8, y as u8);
-//         let mut tile_map_used = TILEMAP_9800;
-//
-//         if (self.get_lcdc_register().contains(LcdControl::BG_TILE_MAP_SELECT) && self.mmu.borrow().read_byte(SCX_REGISTER) < self.mmu.borrow().read_byte(WX_REGISTER))
-//             || (self.get_lcdc_register().contains(LcdControl::WINDOW_TILE_SELECT) && self.mmu.borrow().read_byte(SCX_REGISTER) >= self.mmu.borrow().read_byte(WX_REGISTER)){
-//             tile_map_used = TILEMAP_9C00;
-//         }
-//
-//         if self.get_lcdc_register().contains(LcdControl::BG_WINDOW_PRIORITY) {
-//             //TODO: Change to proper window data range.
-//             log::trace!("Calling draw bg");
-//             self.draw_bg_window(x as u8,y as u8, tile_map_used, if self.get_lcdc_register().contains(LcdControl::BG_WINDOW_TILE_SELECT) { TILE_BLOCK_0_START} else { TILE_BLOCK_1_START})
-//         }
-//     }
-//
-//     fn draw_sprites(&self) {
-//         if !self.get_lcdc_register().contains(LcdControl::SPRITE_DISPLAY_ENABLE) {
-//             return;
-//         }
-//
-//
-//     }
-//
-//     fn draw_bg_window(&mut self, x: u8, y: u8, tilemap_offset: u16, bg_window_data_range: u16) {
-//         let address = self.get_tile_data_address(x,y,tilemap_offset,bg_window_data_range);
-//         let tile_data = self.get_tile_pixel_data(address, x, y);
-//
-//         let color = self.colorisor.get_color(self.get_bg_window_palette().color(tile_data));
-//         self.set_rgb(color, x, y);
-//     }
-//
-//     /// Returns the BG/window tilemap ID to be used in the tile blocks (0x8000..=0x9FFF)
-//     /// for the current x and y pixel.
-//     fn get_tile_map_id(&self, x: u8, y: u8, tilemap_offset: u16) -> u8 {
-//         let tile_x = (x/8) as u16;
-//         let tile_y = (y/8) as u16;
-//
-//         let tile_id_address = tilemap_offset + tile_x + (tile_y * 32);
-//
-//         if tile_id_address > (tilemap_offset + 0x3FF) {
-//             panic!("Game tried to reach outside of bounds: {}", tile_id_address);
-//         }
-//
-//         self.mmu.borrow().read_byte(tile_id_address)
-//     }
-//
-//     /// Get the memory address for the tile data at x,y
-//     fn get_tile_data_address(&self, x: u8, y: u8, tilemap_offset: u16, bg_window_data_range: u16) -> u16 {
-//         let tile_id = self.get_tile_map_id(x,y, tilemap_offset);
-//         let mut address = bg_window_data_range;
-//
-//         if self.get_lcdc_register().contains(LcdControl::BG_WINDOW_TILE_SELECT) {
-//             address = address.wrapping_add(tile_id as u16 * 16);
-//         } else {
-//             address = address.wrapping_add((tile_id as i8 * 16) as u16);
-//         }
-//
-//         address
-//     }
-//
-//     /// Returns the tile data for pixel x,y of tile at address addr
-//     pub fn get_tile_pixel_data(&self, address: u16, x: u8, y: u8) -> u8 {
-//         let dx = 7 - (x % 8);
-//         let dy = 2 * (y % 8) as u16;
-//         // Pixel data is spread over 2 bytes
-//         let a = self.mmu.borrow().read_byte(address + dy);
-//         let b = self.mmu.borrow().read_byte(address + dy + 1);
-//
-//         let bit1 = (a & (1 << dx)) >> dx;
-//         let bit2 = (b & (1 << dx)) >> dx;
-//
-//         bit1 | (bit2 << 1)
-//     }
-//
-//     fn get_lcdc_register(&self) -> LcdControl {
-//         LcdControl::from_bits_truncate(self.mmu.borrow().read_byte(LCD_CONTROL_REGISTER))
-//     }
-//
-//     pub fn get_bg_window_palette(&self) -> Palette {
-//         Palette::from(self.mmu.borrow().read_byte(BG_PALETTE))
-//     }

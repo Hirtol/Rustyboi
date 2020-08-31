@@ -1,6 +1,6 @@
 use crate::hardware::ppu::palette::DmgColor::{DarkGrey, LightGrey, BLACK, WHITE};
 
-#[derive(Debug, PartialOrd, PartialEq)]
+#[derive(Debug, PartialOrd, PartialEq, Copy, Clone)]
 pub enum DmgColor {
     WHITE = 0x0,     //155, 188, 15
     LightGrey = 0x1, //139, 172, 15
@@ -66,7 +66,7 @@ impl Default for Palette {
 }
 
 impl DisplayColour {
-    pub fn get_color(&self, dmg_color: DmgColor) -> RGB {
+    pub fn get_color(&self, dmg_color: &DmgColor) -> RGB {
         match dmg_color {
             WHITE | DmgColor::TRANSPARENT => self.white,
             LightGrey => self.light_grey,

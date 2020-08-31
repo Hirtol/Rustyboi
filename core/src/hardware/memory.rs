@@ -139,7 +139,7 @@ impl Memory {
             SCX_REGISTER => self.ppu.get_scx(),
             LY_REGISTER => self.ppu.get_ly(),
             LYC_REGISTER => self.ppu.get_lyc(),
-            DMA_TRANSFER => panic!("OH NO, DMA!"),
+            DMA_TRANSFER => panic!("OH NO, DMA!"), //TODO: Implement
             BG_PALETTE => self.ppu.get_bg_palette(),
             OB_PALETTE_0 => self.ppu.get_oam_palette_0(),
             OB_PALETTE_1 => self.ppu.get_oam_palette_1(),

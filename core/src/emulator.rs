@@ -86,7 +86,7 @@ impl Emulator {
                 .ppu
 
                 .colorisor
-                .get_color(self.mmu.borrow().ppu.bg_window_palette.color(pixeldata));
+                .get_color(&self.mmu.borrow().ppu.bg_window_palette.color(pixeldata));
 
             *pixel = image::Rgb([color.0, color.1, color.2]);
         }
