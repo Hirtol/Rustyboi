@@ -76,6 +76,13 @@ pub struct SpriteAttribute {
     attribute_flags: AttributeFlags,
 }
 
+impl Tile {
+    pub fn get_pixel_line(&self, mut line_y: u8) -> (u8, u8) {
+        let address = (line_y * 2) as usize;
+        (self.data[address], self.data[address + 1])
+    }
+}
+
 impl TileMap {
     pub fn new() -> Self {
         TileMap {

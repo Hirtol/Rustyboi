@@ -196,7 +196,39 @@ impl PPU {
     }
 
     fn draw_bg_scanline(&mut self) {
+        let scanline_to_be_rendered = self.current_y.wrapping_add(self.scroll_y);
+        // scanline_to_be_rendered can be in range 0-255, where each tile is 8 in length.
+        // As we'll want to use this variable to index on the TileMap (1 byte pointer to tile)
+        // We need to first divide by 8, to then multiply by 32 for our 1d representation array.
+        let tile_lower_bound = (scanline_to_be_rendered / 8) as u16 * 32;
+        let tile_higher_bound = tile_lower_bound as u16 + 32;
 
+        let tile_pixel_y = scanline_to_be_rendered % 8;
+        let mut pixel_counter = 0usize;
+        //TODO: Currently not resilient to end of line partial tile rendering.
+        for i in tile_lower_bound..tile_higher_bound {
+
+            let mut tile_relative_address = self.get_tile_address_bg(i);
+            if !self.lcd_control.contains(LcdControl::BG_WINDOW_TILE_SELECT) {
+                tile_relative_address = (tile_relative_address as i8) as u8;
+            }
+
+            let offset = if self.lcd_control.bg_window_tile_address() == TILE_BLOCK_0_START {0u8} else {128u8};
+            let tile_address: usize = offset.wrapping_add(tile_relative_address) as usize;
+
+            let tile: Tile = self.tiles[tile_address];
+
+            let (top_pixel_data, bottom_pixel_data) = tile.get_pixel_line(tile_pixel_y);
+
+            for j in 7..=0 {
+                // Probably need to check the logic here.
+                let mut current_pixel = (top_pixel_data & (0x1 << j)) >> j-1;
+                current_pixel |= (bottom_pixel_data & (0x1 << j)) >> j;
+
+                self.scanline_buffer[pixel_counter] = self.bg_window_palette.color(current_pixel);
+                pixel_counter += 1;
+            }
+        }
     }
 
     fn draw_window_scanline(&mut self) {
@@ -205,6 +237,14 @@ impl PPU {
 
     fn draw_sprite_scanline(&mut self) {
 
+    }
+
+    fn get_tile_address_bg(&self, address: u16) -> u8 {
+        if self.lcd_control.contains(LcdControl::BG_TILE_MAP_SELECT) {
+            self.tile_map_9800.data[address as usize]
+        } else {
+            self.tile_map_9c00.data[address as usize]
+        }
     }
 
     fn set_rgb(&mut self, rgb: RGB, x: u8, y: u8) {
@@ -217,4 +257,11 @@ impl PPU {
     pub fn frame_buffer(&self) -> &[u8; FRAMEBUFFER_SIZE] {
         &self.frame_buffer
     }
+}
+
+#[test]
+fn bo() {
+    let test: u8 = (-20i8) as u8;
+    let trues = 20u8;
+    println!("{}", trues.wrapping_add(test))
 }

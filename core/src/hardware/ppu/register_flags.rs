@@ -1,5 +1,6 @@
 use bitflags::_core::fmt::Formatter;
 use bitflags::*;
+use crate::hardware::ppu::tiledata::{TILE_BLOCK_0_START, TILE_BLOCK_1_START};
 
 // # PPU FLAGS #
 
@@ -37,6 +38,7 @@ bitflags! {
         /// the BG uses tilemap `$9800`, otherwise tilemap `$9C00`.
         const BG_TILE_MAP_SELECT = 0b0000_1000;
         /// LCDC.4
+        /// 0=8800-97FF, 1=8000-8FFF
         /// This bit controls which addressing mode the BG and Window use to pick tiles.
         /// Sprites aren't affected by this, and will always use $8000 addressing mode.
         const BG_WINDOW_TILE_SELECT = 0b0001_0000;
@@ -46,7 +48,7 @@ bitflags! {
         /// LCDC.6
         /// This bit controls which background map the Window uses for rendering.
         /// When it's reset (0), the `$9800` tilemap is used, otherwise it's the `$9C00` one.
-        const WINDOW_TILE_SELECT = 0b0100_0000;
+        const WINDOW_MAP_SELECT = 0b0100_0000;
         /// This bit controls whether the LCD is on and the PPU is active.
         /// Setting it to 0 turns both off, which grants immediate and full access to VRAM, OAM.
         const LCD_DISPLAY = 0b1000_0000;
@@ -103,6 +105,16 @@ bitflags! {
         /// (0=OBJ Above BG, 1=OBJ Behind BG color 1-3)
         /// (Used for both BG and Window. BG color 0 is always behind OBJ)
         const OBJ_TO_BG_PRIORITY = 0b1000_0000;
+    }
+}
+
+impl LcdControl {
+    pub fn bg_window_tile_address(&self) -> u16 {
+        if self.contains(LcdControl::BG_WINDOW_TILE_SELECT){
+            TILE_BLOCK_0_START
+        } else {
+            TILE_BLOCK_1_START
+        }
     }
 }
 
