@@ -60,9 +60,9 @@ fn main() {
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(bootrom_file)), &cartridge);
 
-    // test_fast(sdl_context, &mut canvas, &mut screen_texture, &cpu_test);
-    //
-    // return;
+    test_fast(sdl_context, &mut canvas, &mut screen_texture, &cpu_test);
+
+    return;
 
     let mut emulator = Emulator::new(Option::None, &cpu_test, DISPLAY_COLOURS);
     let mut count: u128 = 0;

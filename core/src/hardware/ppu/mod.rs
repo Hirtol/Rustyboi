@@ -133,7 +133,7 @@ pub struct PPU {
     current_cycles: u32,
     vblank_cycles: u32,
     // Until the architecture rework this will essentially be a ghost IF register.
-    pending_interrupts: InterruptFlags,
+    pub pending_interrupts: InterruptFlags,
 }
 
 impl PPU {

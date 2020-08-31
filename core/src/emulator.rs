@@ -105,6 +105,10 @@ impl Emulator {
 
         let mut interrupt_flags: InterruptFlags =
             InterruptFlags::from_bits_truncate(self.mmu.borrow().read_byte(INTERRUPTS_FLAG));
+        // Handle the interrupts queued from the PPU and clear them until we rework the architecture
+        interrupt_flags.insert(self.mmu.borrow().ppu.pending_interrupts);
+        self.mmu.borrow_mut().ppu.pending_interrupts = InterruptFlags::default();
+
         let interrupt_enable: InterruptFlags =
             InterruptFlags::from_bits_truncate(self.mmu.borrow().read_byte(INTERRUPTS_ENABLE));
 
