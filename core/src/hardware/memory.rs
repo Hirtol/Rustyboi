@@ -130,7 +130,22 @@ impl Memory {
     /// Specific method for all calls to the IO registers.
     /// `address` will be cast to `u8` since all registers start with `0xFF`
     fn read_io_byte(&self, address: u16) -> u8 {
-        match address as u8 {
+        use crate::hardware::ppu::*;
+        match address {
+
+            LCD_CONTROL_REGISTER => self.ppu.get_lcd_control(),
+            LCD_STATUS_REGISTER => self.ppu.get_lcd_status(),
+            SCY_REGISTER => self.ppu.get_scy(),
+            SCX_REGISTER => self.ppu.get_scx(),
+            LY_REGISTER => self.ppu.get_ly(),
+            LYC_REGISTER => self.ppu.get_lyc(),
+            DMA_TRANSFER => panic!("OH NO, DMA!"),
+            BG_PALETTE => self.ppu.get_bg_palette(),
+            OB_PALETTE_0 => self.ppu.get_oam_palette_0(),
+            OB_PALETTE_1 => self.ppu.get_oam_palette_1(),
+            WY_REGISTER => self.ppu.get_window_y(),
+            WX_REGISTER => self.ppu.get_window_x(),
+
             _ => self.memory[address as usize],
         }
     }

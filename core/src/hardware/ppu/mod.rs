@@ -113,8 +113,18 @@ pub struct PPU {
     fifo_bg: FIFO,
     //Sprite FIFO.
     fifo_oam: FIFO,
+
+    compare_line: u8,
+
     current_x: u8,
     current_y: u8,
+
+    scroll_x: u8,
+    scroll_y: u8,
+
+    window_x: u8,
+    window_y: u8,
+
     last_call_cycles: u128,
     current_cycles: u128,
 }
@@ -148,8 +158,13 @@ impl PPU {
             oam_palette_1: Palette::default(),
             fifo_bg: FIFO {queue: VecDeque::with_capacity(16)},
             fifo_oam: FIFO {queue: VecDeque::with_capacity(16)},
+            compare_line: 0,
             current_x: 0,
             current_y: 0,
+            scroll_x: 0,
+            scroll_y: 0,
+            window_x: 0,
+            window_y: 0,
             last_call_cycles: 0,
             current_cycles: 0,
         }

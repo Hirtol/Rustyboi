@@ -10,9 +10,10 @@ pub enum DmgColor {
     TRANSPARENT,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct RGB(pub u8, pub u8, pub u8);
 
+#[derive(Debug)]
 pub struct DisplayColour {
     pub white: RGB,
     pub light_grey: RGB,
@@ -20,7 +21,7 @@ pub struct DisplayColour {
     pub black: RGB,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub struct Palette {
     palette_byte: u8,
 }
@@ -80,6 +81,12 @@ impl From<u8> for Palette {
         Palette {
             palette_byte: value,
         }
+    }
+}
+
+impl Into<u8> for Palette {
+    fn into(self) -> u8 {
+        self.palette_byte
     }
 }
 

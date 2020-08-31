@@ -31,6 +31,52 @@ impl PPU{
         }
     }
 
+    pub fn get_lcd_control(&self) -> u8 {
+        self.lcd_control.bits()
+    }
+
+    pub fn get_lcd_status(&self) -> u8 {
+        self.lcd_status.bits()
+    }
+
+    pub fn get_scy(&self) -> u8 {
+        self.scroll_y
+    }
+
+    pub fn get_scx(&self) -> u8 {
+        self.scroll_x
+    }
+
+    pub fn get_ly(&self) -> u8 {
+        self.current_y
+    }
+
+    pub fn get_lyc(&self) -> u8 {
+        self.compare_line
+    }
+
+    pub fn get_bg_palette(&self) -> u8 {
+        self.bg_window_palette.into()
+    }
+
+    pub fn get_oam_palette_0(&self) -> u8 {
+        self.oam_palette_0.into()
+    }
+
+    pub fn get_oam_palette_1(&self) -> u8 {
+        self.oam_palette_1.into()
+    }
+
+    pub fn get_window_y(&self) -> u8 {
+        self.window_y
+    }
+
+    pub fn get_window_x(&self) -> u8 {
+        self.window_x
+    }
+
+
+
 }
 
 /// Get the internal PPU address for a tile from a normal u16 address.
