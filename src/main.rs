@@ -1,18 +1,20 @@
 use log::LevelFilter;
 use log::*;
-use rustyboi_core::emulator::Emulator;
+use rustyboi_core::emulator::{Emulator, CYCLES_PER_FRAME};
 use rustyboi_core::hardware::cartridge::Cartridge;
 use rustyboi_core::hardware::ppu::palette::{DisplayColour, RGB};
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::pixels::PixelFormatEnum::RGB24;
-use sdl2::render::{Texture, WindowCanvas};
+use sdl2::render::{Texture, WindowCanvas, Canvas};
 use simplelog::{CombinedLogger, Config, ConfigBuilder, TermLogger, TerminalMode, WriteLogger};
 use std::convert::TryInto;
 use std::fs::{read, File};
 use std::io::BufWriter;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
+use sdl2::Sdl;
+use sdl2::video::Window;
 
 const DISPLAY_COLOURS: DisplayColour = DisplayColour {
     white: RGB(155, 188, 15),
@@ -96,13 +98,71 @@ fn main() {
             }
         }
 
+        for i in 0..CYCLES_PER_FRAME {
+            emulator.emulate_cycle();
+        }
+
+        fill_texture_and_copy(&mut canvas, &mut screen_texture, &emulator.frame_buffer());
+
+        canvas.present();
+
+        canvas.window_mut().set_title(
+            format!(
+                "RustyBoi - {} FPS",
+                1.0 / last_update_time.elapsed().as_secs_f64()
+            )
+            .as_str(),
+        );
+        last_update_time = frame_start;
+    }
+}
+
+fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_texture: &mut Texture, cpu_test: &Vec<u8>) {
+    let mut emulator = Emulator::new(Option::None, &cpu_test, DISPLAY_COLOURS);
+    let mut count: u128 = 0;
+
+    let mut event_pump = sdl_context.event_pump().unwrap();
+
+    let start_time = Instant::now();
+
+    let mut last_update_time: Instant = Instant::now();
+    let mut delta_time: Duration = Duration::default();
+
+    'mainloop: loop {
+        let frame_start = Instant::now();
+
+        delta_time = frame_start.duration_since(last_update_time);
+
+        let to_sleep = FRAME_DELAY.checked_sub(delta_time);
+
+        if let Some(to_sleep) = to_sleep {
+            sleep(to_sleep);
+        }
+
+        for event in event_pump.poll_iter() {
+            use sdl2::event::Event;
+            match event {
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => {
+                    break 'mainloop;
+                }
+                Event::DropFile { filename, .. } => {
+                    debug!("Dropped file: {}", filename);
+                }
+                _ => {}
+            }
+        }
+
         // Temp loop for testing.
         // TODO: Implement actual cycling.
         if start_time.elapsed() < Duration::new(1, 0) {
             loop {
                 emulator.emulate_cycle();
                 count += 1;
-                if count % 100_000_000 == 0 {
+                if count % 10_000_000 == 0 {
                     emulator.tilemap_image();
                     warn!("REACHED VALUE: {} AFTER: {:?}", count, start_time.elapsed());
                     break;
@@ -119,7 +179,7 @@ fn main() {
                 "RustyBoi - {} FPS",
                 1.0 / last_update_time.elapsed().as_secs_f64()
             )
-            .as_str(),
+                .as_str(),
         );
         last_update_time = frame_start;
     }

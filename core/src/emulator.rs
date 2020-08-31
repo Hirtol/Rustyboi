@@ -15,8 +15,8 @@ use crate::io::interrupts::Interrupts::VBLANK;
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 
 /// A DMG runs at `4.194304 MHz` with a Vsync of `59.7275 Hz`, so that would be
-/// `4194304 / 59.7275 = 70223 cycles/frame`
-pub const CYCLES_PER_FRAME: u32 = 70221;
+/// `4194304 / 59.7275 = 70224 cycles/frame`
+pub const CYCLES_PER_FRAME: u32 = 70224;
 
 pub type MMU<T> = Rc<RefCell<T>>;
 pub type EmulatorPPU = Rc<RefCell<PPU>>;
@@ -52,9 +52,11 @@ impl Emulator {
     pub fn emulate_cycle(&mut self) {
         self.handle_interrupts();
 
+        let prior_cycles = self.cpu.cycles_performed;
+
         self.cpu.step_cycle();
 
-        self.mmu.borrow_mut().ppu.do_cycle();
+        self.mmu.borrow_mut().ppu.do_cycle((self.cpu.cycles_performed - prior_cycles) as u32);
 
         // For PPU timing, maybe see how many cycles the cpu did, pass this to the PPU,
         // and have the PPU run until it has done all those, OR reaches an interrupt.

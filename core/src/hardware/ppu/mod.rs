@@ -1,11 +1,12 @@
 use std::collections::VecDeque;
 
-use crate::emulator::MMU;
+use crate::emulator::{MMU, CYCLES_PER_FRAME};
 use crate::hardware::memory::{Memory, MemoryMapper, INTERRUPTS_FLAG};
 use crate::hardware::ppu::palette::{DisplayColour, DmgColor, Palette, RGB};
 use crate::hardware::ppu::register_flags::{LcdControl, LcdStatus};
 use crate::hardware::ppu::tiledata::*;
 use crate::io::interrupts::InterruptFlags;
+use crate::hardware::ppu::Mode::{VBlank, OamSearch, LcdTransfer, HBlank};
 
 /// The DMG in fact has a 256x256 drawing area, whereupon a viewport of 160x144 is placed.
 pub const TRUE_RESOLUTION_WIDTH: usize = 256;
@@ -87,11 +88,12 @@ pub mod memory_binds;
 //TODO: Implement 10 sprite limit.
 //TODO: Implement sprite priority (x-based, in case of tie, then first sprite in mem; start: 0xFE00)
 
-enum Mode {
-    H_BLANK,
-    V_BLANK,
-    OAM_SEARCH,
-    LCD_TRANSFER,
+#[derive(Debug, PartialOrd, PartialEq, Copy, Clone)]
+pub enum Mode {
+    HBlank,
+    VBlank,
+    OamSearch,
+    LcdTransfer,
 }
 
 // Notes:
@@ -123,17 +125,14 @@ pub struct PPU {
     pub oam_palette_1: Palette,
 
     compare_line: u8,
-
     current_y: u8,
-
     scroll_x: u8,
     scroll_y: u8,
-
     window_x: u8,
     window_y: u8,
-
-    last_call_cycles: u128,
-    current_cycles: u128,
+    current_cycles: u32,
+    // Until the architecture rework this will essentially be a ghost IF register.
+    pending_interrupts: InterruptFlags,
 }
 
 impl PPU {
@@ -157,20 +156,85 @@ impl PPU {
             scroll_y: 0,
             window_x: 0,
             window_y: 0,
-            last_call_cycles: 0,
             current_cycles: 0,
+            pending_interrupts: Default::default()
         }
     }
 
-    pub fn do_cycle(&mut self) {
+    pub fn do_cycle(&mut self, cpu_clock_increment: u32) {
         if !self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
             return;
         }
 
-        //TODO: Timing ?
-        self.draw_scanline();
+        self.current_cycles += cpu_clock_increment;
 
-        self.current_y %= 144;
+        // Everything but V-Blank, 144*456
+        if self.current_cycles < 65664 {
+            // Modulo scanline to determine which mode we're in currently.
+            let local_cycles = self.current_cycles % 456;
+
+            if local_cycles < 80 {
+                // Searching objects (Mode 2)
+                if self.lcd_status.mode_flag() != OamSearch {
+                    // After V-Blank we don't want to trigger the interrupt immediately.
+                    if self.lcd_status.mode_flag() != VBlank {
+                        self.ly_lyc_compare();
+                    }
+
+                    self.lcd_status.set_mode_flag(Mode::OamSearch);
+                    // OAM Interrupt
+                    if self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT) {
+                        self.pending_interrupts.insert(InterruptFlags::LCD);
+                    }
+                }
+
+            } else if local_cycles < 252 {
+                // Drawing (Mode 3)
+                if self.lcd_status.mode_flag() != LcdTransfer {
+                    self.lcd_status.set_mode_flag(LcdTransfer);
+                    // Draw our actual line once we enter Drawing mode.
+                    self.draw_scanline();
+                }
+            } else {
+                // H-Blank for the remainder of the line.
+                if self.lcd_status.mode_flag() != HBlank {
+                    self.lcd_status.set_mode_flag(HBlank);
+
+                    if self.lcd_status.contains(LcdStatus::MODE_0_H_INTERRUPT) {
+                        self.pending_interrupts.insert(InterruptFlags::LCD);
+                    }
+                }
+            }
+        }
+        else if self.current_cycles < CYCLES_PER_FRAME {
+            // V-Blank
+            if self.lcd_status.mode_flag() != VBlank {
+                self.lcd_status.set_mode_flag(VBlank);
+
+                self.current_y += 1;
+                self.ly_lyc_compare();
+
+                if self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT) {
+                    self.pending_interrupts.insert(InterruptFlags::LCD);
+                }
+
+                self.pending_interrupts.insert(InterruptFlags::VBLANK);
+            }else {
+                if self.current_y == 154 {
+                    self.current_cycles -= CYCLES_PER_FRAME;
+                    self.current_y = 0;
+                    self.ly_lyc_compare();
+                }else {
+                    self.current_y += 1;
+                    self.ly_lyc_compare();
+                }
+            }
+        } else {
+            // We have exceeded the 70224 cycles, reset.
+            self.current_cycles -= CYCLES_PER_FRAME;
+            self.current_y = 0;
+            self.ly_lyc_compare();
+        }
     }
 
     // Note: We'll handle interrupts outside the GPU, probably.
@@ -193,9 +257,9 @@ impl PPU {
         for (i, colour) in self.scanline_buffer.iter().enumerate() {
             let colour = self.colorisor.get_color(colour);
 
-            self.frame_buffer[current_address + i] = colour.0;
-            self.frame_buffer[current_address + i + 1] = colour.1;
-            self.frame_buffer[current_address + i + 2] = colour.2;
+            self.frame_buffer[current_address + i*3] = colour.0;
+            self.frame_buffer[current_address + i*3 + 1] = colour.1;
+            self.frame_buffer[current_address + i*3 + 2] = colour.2;
         }
 
         self.current_y += 1;
@@ -210,7 +274,7 @@ impl PPU {
         let tile_higher_bound = tile_lower_bound as u16 + 32;
 
         let tile_pixel_y = scanline_to_be_rendered % 8;
-        let mut pixel_counter = 0usize;
+        let mut pixel_counter = (0x100 - self.scroll_x as usize);
         //TODO: Currently not resilient to end of line partial tile rendering.
         for i in tile_lower_bound..tile_higher_bound {
 
@@ -250,6 +314,17 @@ impl PPU {
             self.tile_map_9800.data[address as usize]
         } else {
             self.tile_map_9c00.data[address as usize]
+        }
+    }
+
+    fn ly_lyc_compare(&mut self) {
+        // Shamelessly ripped from GBE-Plus, since I couldn't figure out from the docs
+        // what we were supposed to do with this interrupt.
+        if self.current_y == self.compare_line {
+            self.lcd_status.set(LcdStatus::COINCIDENCE_FLAG, true);
+            if self.lcd_status.contains(LcdStatus::COINCIDENCE_INTERRUPT) {
+                self.pending_interrupts.set(InterruptFlags::LCD, true);
+            }
         }
     }
 

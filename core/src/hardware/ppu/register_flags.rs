@@ -1,6 +1,7 @@
 use bitflags::_core::fmt::Formatter;
 use bitflags::*;
 use crate::hardware::ppu::tiledata::{TILE_BLOCK_0_START, TILE_BLOCK_1_START};
+use crate::hardware::ppu::Mode;
 
 // # PPU FLAGS #
 
@@ -119,18 +120,22 @@ impl LcdControl {
 }
 
 impl LcdStatus {
-    pub fn mode_flag(&self) -> u8 {
-        self.bits & 0x3
+    pub fn mode_flag(&self) -> Mode {
+        match self.bits & 0x3 {
+            0 => Mode::HBlank,
+            1 => Mode::VBlank,
+            2 => Mode::OamSearch,
+            3 => Mode::LcdTransfer,
+            _ => panic!("Invalid value entered for mode flag")
+        }
     }
 
-    pub fn set_mode_flag(&mut self, value: u8) {
-        if value > 3 {
-            panic!(
-                "Values can't be greater than 3 on a mode flag, passed: {}",
-                value
-            );
+    pub fn set_mode_flag(&mut self, value: Mode) {
+        self.bits = self.bits | match value {
+            Mode::HBlank => 0,
+            Mode::VBlank => 1,
+            Mode::OamSearch => 2,
+            Mode::LcdTransfer => 3,
         }
-        // This unsafely assumes value will never be > 3, so lets hope I don't break that ._.
-        self.bits = self.bits | value;
     }
 }
