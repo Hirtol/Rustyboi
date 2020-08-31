@@ -75,6 +75,50 @@ impl PPU{
         self.window_x
     }
 
+    pub fn set_lcd_control(&mut self, value: u8) {
+        self.lcd_control = LcdControl::from_bits_truncate(value);
+    }
+
+    pub fn set_lcd_status(&mut self, value: u8) {
+        self.lcd_status = LcdStatus::from_bits_truncate(value);
+    }
+
+    pub fn set_scy(&mut self, value: u8) {
+        self.scroll_y = value
+    }
+
+    pub fn set_scx(&mut self, value: u8) {
+        self.scroll_x = value
+    }
+
+    pub fn set_ly(&mut self, value: u8) {
+        self.current_y = value
+    }
+
+    pub fn set_lyc(&mut self, value: u8) {
+        self.compare_line = value
+    }
+
+    pub fn set_bg_palette(&mut self, value: u8) {
+        self.bg_window_palette = Palette::from(value)
+    }
+
+    pub fn set_oam_palette_0(&mut self, value: u8) {
+        self.oam_palette_0 = Palette::from(value)
+    }
+
+    pub fn set_oam_palette_1(&mut self, value: u8) {
+        self.oam_palette_1 = Palette::from(value)
+    }
+
+    pub fn set_window_y(&mut self, value: u8) {
+        self.window_y = value
+    }
+
+    pub fn set_window_x(&mut self, value: u8) {
+        self.window_x = value
+    }
+
 
 
 }

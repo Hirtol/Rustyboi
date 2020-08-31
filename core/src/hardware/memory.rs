@@ -132,7 +132,6 @@ impl Memory {
     fn read_io_byte(&self, address: u16) -> u8 {
         use crate::hardware::ppu::*;
         match address {
-
             LCD_CONTROL_REGISTER => self.ppu.get_lcd_control(),
             LCD_STATUS_REGISTER => self.ppu.get_lcd_status(),
             SCY_REGISTER => self.ppu.get_scy(),
@@ -152,8 +151,19 @@ impl Memory {
 
     fn write_io_byte(&mut self, address: u16, value: u8) {
         use crate::hardware::ppu::*;
-        match address as u8 {
-            0x46 => self.memory[address as usize] = value, //TODO: Implement DMA transfer
+        match address {
+            LCD_CONTROL_REGISTER => self.ppu.set_lcd_control(value),
+            LCD_STATUS_REGISTER => self.ppu.set_lcd_status(value),
+            SCY_REGISTER => self.ppu.set_scy(value),
+            SCX_REGISTER => self.ppu.set_scx(value),
+            LY_REGISTER => self.ppu.set_ly(value),
+            LYC_REGISTER => self.ppu.set_lyc(value),
+            DMA_TRANSFER => panic!("OH NO, DMA!"), //TODO: Implement
+            BG_PALETTE => self.ppu.set_bg_palette(value),
+            OB_PALETTE_0 => self.ppu.set_oam_palette_0(value),
+            OB_PALETTE_1 => self.ppu.set_oam_palette_1(value),
+            WY_REGISTER => self.ppu.set_window_y(value),
+            WX_REGISTER => self.ppu.set_window_x(value),
             _ => self.memory[address as usize] = value,
         }
     }

@@ -146,7 +146,7 @@ impl PPU {
             tile_map_9800: TileMap::new(),
             tile_map_9c00: TileMap::new(),
             oam: [SpriteAttribute::default(); 40],
-            lcd_control: Default::default(),
+            lcd_control: LcdControl::from_bits_truncate(0b1001_0011),
             lcd_status: Default::default(),
             bg_window_palette: Palette::default(),
             oam_palette_0: Palette::default(),
@@ -163,8 +163,14 @@ impl PPU {
     }
 
     pub fn do_cycle(&mut self) {
+        if !self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
+            return;
+        }
+
         //TODO: Timing ?
         self.draw_scanline();
+
+        self.current_y %= 144;
     }
 
     // Note: We'll handle interrupts outside the GPU, probably.
@@ -182,14 +188,14 @@ impl PPU {
         }
         // TODO: Consider moving this to the consumer of the emulator instead of within
         // Not really the business of the PPU to set the RGB representation.
-        let mut current_address: usize = (self.current_y as usize * 3 * RESOLUTION_WIDTH);
+        let current_address: usize = (self.current_y as usize * 3 * RESOLUTION_WIDTH);
 
         for (i, colour) in self.scanline_buffer.iter().enumerate() {
             let colour = self.colorisor.get_color(colour);
-            current_address += i;
-            self.frame_buffer[current_address] = colour.0;
-            self.frame_buffer[current_address + 1] = colour.1;
-            self.frame_buffer[current_address + 2] = colour.2;
+
+            self.frame_buffer[current_address + i] = colour.0;
+            self.frame_buffer[current_address + i + 1] = colour.1;
+            self.frame_buffer[current_address + i + 2] = colour.2;
         }
 
         self.current_y += 1;

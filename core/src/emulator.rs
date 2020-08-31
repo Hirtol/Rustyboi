@@ -54,6 +54,8 @@ impl Emulator {
 
         self.cpu.step_cycle();
 
+        self.mmu.borrow_mut().ppu.do_cycle();
+
         // For PPU timing, maybe see how many cycles the cpu did, pass this to the PPU,
         // and have the PPU run until it has done all those, OR reaches an interrupt.
         // Need some way to remember the to be done cycles then though.
