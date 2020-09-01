@@ -1,13 +1,13 @@
 use std::collections::VecDeque;
 
-use crate::emulator::{MMU, CYCLES_PER_FRAME};
-use crate::hardware::memory::{Memory, MemoryMapper, INTERRUPTS_FLAG};
+use crate::emulator::{CYCLES_PER_FRAME, MMU};
+use crate::hardware::memory::{INTERRUPTS_FLAG, Memory, MemoryMapper};
+use crate::hardware::ppu::Mode::{HBlank, LcdTransfer, OamSearch, VBlank};
 use crate::hardware::ppu::palette::{DisplayColour, DmgColor, Palette, RGB};
+use crate::hardware::ppu::palette::DmgColor::WHITE;
 use crate::hardware::ppu::register_flags::{LcdControl, LcdStatus};
 use crate::hardware::ppu::tiledata::*;
 use crate::io::interrupts::InterruptFlags;
-use crate::hardware::ppu::Mode::{VBlank, OamSearch, LcdTransfer, HBlank};
-use crate::hardware::ppu::palette::DmgColor::WHITE;
 
 /// The DMG in fact has a 256x256 drawing area, whereupon a viewport of 160x144 is placed.
 pub const TRUE_RESOLUTION_WIDTH: usize = 256;
@@ -163,7 +163,7 @@ impl PPU {
             window_y: 0,
             current_cycles: 0,
             vblank_cycles: 0,
-            pending_interrupts: Default::default()
+            pending_interrupts: Default::default(),
         }
     }
 
@@ -193,13 +193,19 @@ impl PPU {
                         self.pending_interrupts.insert(InterruptFlags::LCD);
                     }
                 }
-
             } else if local_cycles < 252 {
                 // Drawing (Mode 3)
                 if self.lcd_status.mode_flag() != LcdTransfer {
                     self.lcd_status.set_mode_flag(LcdTransfer);
-                    // Draw our actual line once we enter Drawing mode.
-                    self.draw_scanline();
+                    // Dirty fix, but when we currently run the system without bootrom
+                    // For some reason we end up behind one scanline with timing on the second
+                    // frame???
+                    if self.current_y < 144 {
+                        // Draw our actual line once we enter Drawing mode.
+                        self.draw_scanline();
+                    } else {
+                        log::warn!("Out of line scanline call: {} - {}", self.current_y, self.current_cycles);
+                    }
                 }
             } else {
                 // H-Blank for the remainder of the line.
@@ -211,8 +217,7 @@ impl PPU {
                     }
                 }
             }
-        }
-        else if self.current_cycles < CYCLES_PER_FRAME {
+        } else {
             // V-Blank
             if self.lcd_status.mode_flag() != VBlank {
                 self.lcd_status.set_mode_flag(VBlank);
@@ -227,7 +232,7 @@ impl PPU {
                 }
 
                 self.pending_interrupts.insert(InterruptFlags::VBLANK);
-            }else {
+            } else if self.current_cycles < CYCLES_PER_FRAME {
                 self.vblank_cycles += cpu_clock_increment;
                 if self.vblank_cycles >= 456 {
                     self.vblank_cycles -= 456;
@@ -236,21 +241,20 @@ impl PPU {
                         self.current_cycles -= CYCLES_PER_FRAME;
                         self.current_y = 0;
                         self.ly_lyc_compare();
-                    }else {
+                    } else {
                         self.current_y = self.current_y.wrapping_add(1);
                         self.ly_lyc_compare();
                     }
                 }
+            } else {
+                // We have exceeded the 70224 cycles, reset.
+                self.current_cycles -= CYCLES_PER_FRAME;
+                self.current_y = 0;
+                self.ly_lyc_compare();
             }
-        } else {
-            // We have exceeded the 70224 cycles, reset.
-            self.current_cycles -= CYCLES_PER_FRAME;
-            self.current_y = 0;
-            self.ly_lyc_compare();
         }
     }
 
-    // Note: We'll handle interrupts outside the GPU, probably.
     pub fn draw_scanline(&mut self) {
         if self.lcd_control.contains(LcdControl::BG_WINDOW_PRIORITY) {
             self.draw_bg_scanline();
@@ -260,7 +264,7 @@ impl PPU {
             }
         }
 
-        if self.lcd_control.contains(LcdControl::SPRITE_DISPLAY_ENABLE){
+        if self.lcd_control.contains(LcdControl::SPRITE_DISPLAY_ENABLE) {
             self.draw_sprite_scanline();
         }
         // TODO: Consider moving this to the consumer of the emulator instead of within
@@ -270,48 +274,44 @@ impl PPU {
         for (i, colour) in self.scanline_buffer.iter().enumerate() {
             let colour = self.colorisor.get_color(colour);
 
-            self.frame_buffer[current_address + i*3] = colour.0;
-            self.frame_buffer[current_address + i*3 + 1] = colour.1;
-            self.frame_buffer[current_address + i*3 + 2] = colour.2;
+            self.frame_buffer[current_address + i * 3] = colour.0;
+            self.frame_buffer[current_address + i * 3 + 1] = colour.1;
+            self.frame_buffer[current_address + i * 3 + 2] = colour.2;
         }
 
         self.current_y = self.current_y.wrapping_add(1);
     }
 
     fn draw_bg_scanline(&mut self) {
-        use itertools::Itertools;
         let scanline_to_be_rendered = self.current_y.wrapping_add(self.scroll_y);
         // scanline_to_be_rendered can be in range 0-255, where each tile is 8 in length.
         // As we'll want to use this variable to index on the TileMap (1 byte pointer to tile)
         // We need to first divide by 8, to then multiply by 32 for our 1d representation array.
-        let tile_lower_bound = (scanline_to_be_rendered / 8) as u16 * 32;
+        let tile_lower_bound = ((scanline_to_be_rendered / 8) as u16 * 32) + (self.scroll_x / 8) as u16;
         //TODO: May need to be 32? 20 makes more sense considering 20*8 = 160.
         let tile_higher_bound = tile_lower_bound as u16 + 20;
 
         let tile_pixel_y = scanline_to_be_rendered % 8;
-        let mut pixel_counter = 0;//(0x100 - self.scroll_x as usize);
-        let tile_maps = &self.tile_map_9800;
+        //TODO: Scroll x properly?
+        let mut pixel_counter = 0;//self.scroll_x as usize % 8;//(0x100 - self.scroll_x as usize);
 
-        //TODO: Currently not resilient to end of line partial tile rendering.
         for i in tile_lower_bound..tile_higher_bound {
-
-            let mut tile_relative_address = self.get_tile_address_bg(i);
+            let mut tile_relative_address = self.get_tile_address_bg(i) as usize;
             if !self.lcd_control.contains(LcdControl::BG_WINDOW_TILE_SELECT) {
-                tile_relative_address = (tile_relative_address as i8) as u8;
+                tile_relative_address = (tile_relative_address as i8) as usize;
             }
 
-            let offset = if self.lcd_control.bg_window_tile_address() == TILE_BLOCK_0_START {0u8} else {128u8};
-            let tile_address: usize = offset.wrapping_add(tile_relative_address) as usize;
+            let offset: usize = if self.lcd_control.bg_window_tile_address() == TILE_BLOCK_0_START { 0 } else { 256 };
+            let tile_address: usize = offset.wrapping_add(tile_relative_address);
 
             let tile: Tile = self.tiles[tile_address];
 
             let (top_pixel_data, bottom_pixel_data) = tile.get_pixel_line(tile_pixel_y);
 
-            for k in 0..=7 {
-                let j = 7-k;
-                // Probably need to check the logic here.
-                let mut current_pixel = (top_pixel_data & (0x1 << j)) >> j-1;
-                current_pixel |= (bottom_pixel_data & (0x1 << j)) >> j;
+            for j in (0..=7).rev() {
+                let bit1 = (top_pixel_data & (0x1 << j)) >> j;
+                let bit2 = (bottom_pixel_data & (0x1 << j)) >> j;
+                let current_pixel = bit1 | (bit2 << 1);
 
                 self.scanline_buffer[pixel_counter] = self.bg_window_palette.color(current_pixel);
 
@@ -320,16 +320,11 @@ impl PPU {
         }
     }
 
-    fn draw_window_scanline(&mut self) {
+    fn draw_window_scanline(&mut self) {}
 
-    }
-
-    fn draw_sprite_scanline(&mut self) {
-
-    }
+    fn draw_sprite_scanline(&mut self) {}
 
     fn get_tile_address_bg(&self, address: u16) -> u8 {
-        //TODO: This shouldn't need a negate?
         if !self.lcd_control.contains(LcdControl::BG_TILE_MAP_SELECT) {
             self.tile_map_9800.data[address as usize]
         } else {
@@ -343,7 +338,6 @@ impl PPU {
         if self.current_y == self.compare_line {
             self.lcd_status.set(LcdStatus::COINCIDENCE_FLAG, true);
             if self.lcd_status.contains(LcdStatus::COINCIDENCE_INTERRUPT) {
-                log::debug!("LYC Interrupt");
                 self.pending_interrupts.set(InterruptFlags::LCD, true);
             }
         }

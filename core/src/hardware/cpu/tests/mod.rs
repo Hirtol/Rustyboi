@@ -26,12 +26,6 @@ impl MemoryMapper for TestMemory {
     fn boot_rom_finished(&self) -> bool {
         false
     }
-
-    fn cycles_performed(&self) -> u128 {
-        0
-    }
-
-    fn add_cycles_performed(&mut self, cycles: u128) {}
 }
 
 impl<T: MemoryMapper> CPU<T> {

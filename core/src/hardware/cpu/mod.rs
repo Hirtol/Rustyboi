@@ -68,6 +68,7 @@ impl<M: MemoryMapper> CPU<M> {
     /// Fetches the next instruction and executes it as well.
     pub fn step_cycle(&mut self) {
         if self.halted {
+            self.add_cycles();
             return;
         }
         // For the EI instruction, kinda dirty atm.

@@ -62,15 +62,12 @@ pub trait MemoryMapper: Debug {
     fn read_byte(&self, address: u16) -> u8;
     fn write_byte(&mut self, address: u16, value: u8);
     fn boot_rom_finished(&self) -> bool;
-    fn cycles_performed(&self) -> u128;
-    fn add_cycles_performed(&mut self, cycles: u128);
 }
 
 pub struct Memory {
     memory: Vec<u8>,
     boot_rom: BootRom,
     cartridge: Cartridge,
-    cycles_performed: u128,
     pub ppu: PPU,
 }
 
@@ -81,7 +78,6 @@ impl Memory {
             boot_rom: BootRom::new(boot_rom),
             cartridge: Cartridge::new(cartridge),
             ppu,
-            cycles_performed: 0,
         }
     }
 
@@ -119,10 +115,7 @@ impl Memory {
             //VRAM
             TILE_BLOCK_0_START..=TILE_BLOCK_2_END => self.ppu.set_tile_byte(address, value),
             TILEMAP_9800_START..=TILEMAP_9C00_END => self.ppu.set_tilemap_byte(address, value),
-            0xFF50 if !self.boot_rom.is_finished => {
-                self.boot_rom.is_finished = true;
-                debug!("Finished executing BootRom!");
-            }
+            IO_START..=IO_END => self.write_io_byte(address, value),
             _ => self.memory[usize_address] = value,
         }
     }
@@ -158,12 +151,16 @@ impl Memory {
             SCX_REGISTER => self.ppu.set_scx(value),
             LY_REGISTER => self.ppu.set_ly(value),
             LYC_REGISTER => self.ppu.set_lyc(value),
-            DMA_TRANSFER => panic!("OH NO, DMA!"), //TODO: Implement
+            DMA_TRANSFER => log::debug!("OAM Transfer"),//panic!("OH NO, DMA!"), //TODO: Implement
             BG_PALETTE => self.ppu.set_bg_palette(value),
             OB_PALETTE_0 => self.ppu.set_oam_palette_0(value),
             OB_PALETTE_1 => self.ppu.set_oam_palette_1(value),
             WY_REGISTER => self.ppu.set_window_y(value),
             WX_REGISTER => self.ppu.set_window_x(value),
+            0xFF50 if !self.boot_rom.is_finished => {
+                self.boot_rom.is_finished = true;
+                debug!("Finished executing BootRom!");
+            },
             _ => self.memory[address as usize] = value,
         }
     }
@@ -186,14 +183,6 @@ impl MemoryMapper for Memory {
 
     fn boot_rom_finished(&self) -> bool {
         self.boot_rom.is_finished
-    }
-
-    fn cycles_performed(&self) -> u128 {
-        self.cycles_performed
-    }
-
-    fn add_cycles_performed(&mut self, cycles: u128) {
-        self.cycles_performed += cycles
     }
 }
 

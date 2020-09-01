@@ -57,16 +57,15 @@ fn main() {
         read("***REMOVED***roms\\Dr. Mario.gb")
             .unwrap();
     let cpu_test = read("***REMOVED***test roms\\cpu_instrs\\individual\\03-op sp,hl.gb").unwrap();
+    let cpu_test2 = read("***REMOVED***test roms\\mooneye\\tests\\acceptance\\di_timing-GS.gb").unwrap();
 
-    let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(bootrom_file)), &cartridge, DISPLAY_COLOURS);
+    //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(bootrom_file)), &cartridge, DISPLAY_COLOURS);
 
     // test_fast(sdl_context, &mut canvas, &mut screen_texture, &cpu_test);
     //
     // return;
 
-
-
-    //let mut emulator = Emulator::new(Option::None, &cpu_test, DISPLAY_COLOURS);
+    let mut emulator = Emulator::new(Option::None, &cpu_test2, DISPLAY_COLOURS);
 
     let mut cycles= 0;
 
