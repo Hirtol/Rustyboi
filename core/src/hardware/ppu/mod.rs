@@ -7,6 +7,7 @@ use crate::hardware::ppu::register_flags::{LcdControl, LcdStatus};
 use crate::hardware::ppu::tiledata::*;
 use crate::io::interrupts::InterruptFlags;
 use crate::hardware::ppu::Mode::{VBlank, OamSearch, LcdTransfer, HBlank};
+use crate::hardware::ppu::palette::DmgColor::WHITE;
 
 /// The DMG in fact has a 256x256 drawing area, whereupon a viewport of 160x144 is placed.
 pub const TRUE_RESOLUTION_WIDTH: usize = 256;
@@ -96,6 +97,9 @@ pub enum Mode {
     LcdTransfer,
 }
 
+//TODO: Check interrupts are working?
+// TODO: Fix BG rendering.
+
 // Notes:
 // OAM x and y coordinates are ALWAYS within viewport. E.g we can ignore SCX and SCY for those.
 //
@@ -164,11 +168,11 @@ impl PPU {
     }
 
     pub fn do_cycle(&mut self, cpu_clock_increment: u32) {
+        self.current_cycles += cpu_clock_increment;
+
         if !self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
             return;
         }
-
-        self.current_cycles += cpu_clock_increment;
 
         // Everything but V-Blank, 144*456
         if self.current_cycles < 65664 {
@@ -275,15 +279,19 @@ impl PPU {
     }
 
     fn draw_bg_scanline(&mut self) {
+        use itertools::Itertools;
         let scanline_to_be_rendered = self.current_y.wrapping_add(self.scroll_y);
         // scanline_to_be_rendered can be in range 0-255, where each tile is 8 in length.
         // As we'll want to use this variable to index on the TileMap (1 byte pointer to tile)
         // We need to first divide by 8, to then multiply by 32 for our 1d representation array.
         let tile_lower_bound = (scanline_to_be_rendered / 8) as u16 * 32;
-        let tile_higher_bound = tile_lower_bound as u16 + 32;
+        //TODO: May need to be 32? 20 makes more sense considering 20*8 = 160.
+        let tile_higher_bound = tile_lower_bound as u16 + 20;
 
         let tile_pixel_y = scanline_to_be_rendered % 8;
-        let mut pixel_counter = (0x100 - self.scroll_x as usize);
+        let mut pixel_counter = 0;//(0x100 - self.scroll_x as usize);
+        let tile_maps = &self.tile_map_9800;
+
         //TODO: Currently not resilient to end of line partial tile rendering.
         for i in tile_lower_bound..tile_higher_bound {
 
@@ -299,12 +307,14 @@ impl PPU {
 
             let (top_pixel_data, bottom_pixel_data) = tile.get_pixel_line(tile_pixel_y);
 
-            for j in 7..=0 {
+            for k in 0..=7 {
+                let j = 7-k;
                 // Probably need to check the logic here.
                 let mut current_pixel = (top_pixel_data & (0x1 << j)) >> j-1;
                 current_pixel |= (bottom_pixel_data & (0x1 << j)) >> j;
 
                 self.scanline_buffer[pixel_counter] = self.bg_window_palette.color(current_pixel);
+
                 pixel_counter += 1;
             }
         }
@@ -319,7 +329,8 @@ impl PPU {
     }
 
     fn get_tile_address_bg(&self, address: u16) -> u8 {
-        if self.lcd_control.contains(LcdControl::BG_TILE_MAP_SELECT) {
+        //TODO: This shouldn't need a negate?
+        if !self.lcd_control.contains(LcdControl::BG_TILE_MAP_SELECT) {
             self.tile_map_9800.data[address as usize]
         } else {
             self.tile_map_9c00.data[address as usize]
@@ -332,6 +343,7 @@ impl PPU {
         if self.current_y == self.compare_line {
             self.lcd_status.set(LcdStatus::COINCIDENCE_FLAG, true);
             if self.lcd_status.contains(LcdStatus::COINCIDENCE_INTERRUPT) {
+                log::debug!("LYC Interrupt");
                 self.pending_interrupts.set(InterruptFlags::LCD, true);
             }
         }

@@ -77,7 +77,7 @@ pub struct Memory {
 impl Memory {
     pub fn new(boot_rom: Option<[u8; 0x100]>, cartridge: &[u8], ppu: PPU) -> Self {
         Memory {
-            memory: vec![0u8; MEMORY_SIZE],
+            memory: vec![0xFFu8; MEMORY_SIZE],
             boot_rom: BootRom::new(boot_rom),
             cartridge: Cartridge::new(cartridge),
             ppu,

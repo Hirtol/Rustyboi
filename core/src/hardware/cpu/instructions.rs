@@ -109,7 +109,7 @@ pub fn get_assembly_from_opcode(opcode: u8) -> String {
         0xC8 => format!("ret {:?}", JumpModifier::Zero),
         0xC9 => format!("ret {:?}", JumpModifier::Always),
         0xCA => format!("jump {:?}", JumpModifier::Zero),
-        0xCB => panic!("Regular executor function should not be passed the CB prefix!"),
+        0xCB => format!("CB"),
         0xCC => format!("call {:?}", JumpModifier::Zero),
         0xCD => format!("call {:?}", JumpModifier::Always),
         0xCE => format!("adc {:?}", InstructionAddress::DIRECT),

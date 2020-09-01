@@ -13,6 +13,9 @@
 use crate::hardware::ppu::register_flags::AttributeFlags;
 use std::mem::size_of;
 use std::ops::Index;
+use std::fmt::Debug;
+use bitflags::_core::fmt::Formatter;
+use std::fmt;
 
 // 128 tiles each.
 pub const TILE_BLOCK_0_START: u16 = 0x8000;
@@ -88,6 +91,12 @@ impl TileMap {
         TileMap {
             data: [0; BACKGROUND_TILE_SIZE],
         }
+    }
+}
+
+impl Debug for TileMap {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        self.data[..].fmt(f)
     }
 }
 

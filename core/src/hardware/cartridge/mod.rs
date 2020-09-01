@@ -33,7 +33,8 @@ impl Cartridge {
     }
 
     pub fn write(&self, address: u16) {
-        unimplemented!("ROM is read only, to be used for bank switching")
+        log::debug!("Writing to ROM address: 0x{:04X}", address);
+        //unimplemented!("ROM is read only, to be used for bank switching")
     }
 }
 

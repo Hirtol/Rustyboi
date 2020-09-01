@@ -80,17 +80,17 @@ impl<M: MemoryMapper> CPU<M> {
 
         self.opcode = self.get_instr_u8();
 
+        // trace!(
+        //     "Executing opcode: {:04X} - registers: {}",
+        //     self.opcode,
+        //     self.registers,
+        // );
         trace!(
-            "Executing opcode: {:04X} - registers: {}",
+            "Executing opcode: {:04X} - registers: {} - name: {}",
             self.opcode,
             self.registers,
+            get_assembly_from_opcode(self.opcode)
         );
-        // trace!(
-        //     "Executing opcode: {:04X} - prefixed: {} - name: {}",
-        //     self.opcode,
-        //     is_prefix,
-        //     get_assembly_from_opcode(self.opcode)
-        // );
 
         self.execute(self.opcode);
     }
@@ -99,11 +99,13 @@ impl<M: MemoryMapper> CPU<M> {
     /// This will reset the `ime` flag and jump to the proper interrupt address.
     pub fn interrupts_routine(&mut self, interrupt: Interrupts) {
         use Interrupts::*;
+        debug!("Interrupt called! {:?}", interrupt);
         // Two wait cycles
         self.add_cycles();
         self.add_cycles();
 
         self.ime = false;
+        self.halted = false;
         self.push_helper(self.registers.pc);
 
         self.registers.pc = match interrupt {
@@ -130,16 +132,21 @@ impl<M: MemoryMapper> CPU<M> {
     {
         let source_value = self.read_u16_value(source);
 
+        trace!("Executing LD 0x{:04X}", source_value);
+
         self.set_u16_value(destination, source_value);
     }
 
     /// `ld` never sets any flags.
     fn load_8bit<T: Copy, U: Copy>(&mut self, destination: T, source: U)
     where
+        T: Debug,
         Self: SetU8<T>,
         Self: ToU8<U>,
     {
         let source_value = self.read_u8_value(source);
+
+        trace!("Executing LD {:?} 0x{:04X}", destination, source_value);
 
         self.set_u8_value(destination, source_value);
     }

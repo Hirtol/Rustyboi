@@ -54,18 +54,21 @@ fn main() {
     .unwrap();
 
     let mut cartridge =
-        read("***REMOVED***roms\\Tetris.gb")
+        read("***REMOVED***roms\\Dr. Mario.gb")
             .unwrap();
-    let cpu_test = read("***REMOVED***test roms\\cpu_instrs\\individual\\07-jr,jp,call,ret,rst.gb").unwrap();
+    let cpu_test = read("***REMOVED***test roms\\cpu_instrs\\individual\\03-op sp,hl.gb").unwrap();
 
-    //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(bootrom_file)), &cartridge);
+    let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(bootrom_file)), &cartridge, DISPLAY_COLOURS);
 
-    test_fast(sdl_context, &mut canvas, &mut screen_texture, &cpu_test);
+    // test_fast(sdl_context, &mut canvas, &mut screen_texture, &cpu_test);
+    //
+    // return;
 
-    return;
 
-    let mut emulator = Emulator::new(Option::None, &cpu_test, DISPLAY_COLOURS);
-    let mut count: u128 = 0;
+
+    //let mut emulator = Emulator::new(Option::None, &cpu_test, DISPLAY_COLOURS);
+
+    let mut cycles= 0;
 
     let mut event_pump = sdl_context.event_pump().unwrap();
 
@@ -79,11 +82,11 @@ fn main() {
 
         delta_time = frame_start.duration_since(last_update_time);
 
-        let to_sleep = FRAME_DELAY.checked_sub(delta_time);
-
-        if let Some(to_sleep) = to_sleep {
-            sleep(to_sleep);
-        }
+        // let to_sleep = FRAME_DELAY.checked_sub(delta_time);
+        //
+        // if let Some(to_sleep) = to_sleep {
+        //     sleep(to_sleep);
+        // }
 
         for event in event_pump.poll_iter() {
             use sdl2::event::Event;
@@ -102,9 +105,12 @@ fn main() {
             }
         }
 
-        for i in 0..CYCLES_PER_FRAME {
-            emulator.emulate_cycle();
+        // Emulate exactly one frame's worth.
+        while cycles < CYCLES_PER_FRAME {
+            cycles += emulator.emulate_cycle() as u32;
         }
+
+        cycles -= CYCLES_PER_FRAME;
 
         fill_texture_and_copy(&mut canvas, &mut screen_texture, &emulator.frame_buffer());
 
@@ -113,7 +119,7 @@ fn main() {
         canvas.window_mut().set_title(
             format!(
                 "RustyBoi - {} FPS",
-                1.0 / last_update_time.elapsed().as_secs_f64()
+                1.0 / last_update_time.elapsed().as_secs_f64()*2.0
             )
             .as_str(),
         );

@@ -49,19 +49,27 @@ impl Emulator {
     }
 
     /// Emulate one CPU cycle, and any other things that need to happen.
-    pub fn emulate_cycle(&mut self) {
+    ///
+    /// # Returns
+    ///
+    /// The delta in clock cycles due to the current emulation, to be used
+    /// for timing purposes by the consumer of the emulator.
+    pub fn emulate_cycle(&mut self) -> u128{
         self.handle_interrupts();
 
         let prior_cycles = self.cpu.cycles_performed;
 
         self.cpu.step_cycle();
 
-        self.mmu.borrow_mut().ppu.do_cycle((self.cpu.cycles_performed - prior_cycles) as u32);
+        let delta_cycles = self.cpu.cycles_performed - prior_cycles;
+
+        self.mmu.borrow_mut().ppu.do_cycle(delta_cycles as u32);
 
         // For PPU timing, maybe see how many cycles the cpu did, pass this to the PPU,
         // and have the PPU run until it has done all those, OR reaches an interrupt.
         // Need some way to remember the to be done cycles then though.
         // EI checker? Run till EI is enabled sort of thing.
+        delta_cycles
     }
 
     pub fn frame_buffer(&self) -> [u8; FRAMEBUFFER_SIZE] {
