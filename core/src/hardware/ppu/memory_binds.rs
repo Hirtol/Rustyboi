@@ -1,5 +1,7 @@
 use crate::hardware::ppu::PPU;
 use super::*;
+use crate::hardware::memory::OAM_ATTRIBUTE_START;
+use crate::hardware::ppu::register_flags::*;
 
 impl PPU{
 
@@ -28,6 +30,39 @@ impl PPU{
             TILEMAP_9800_START..=TILEMAP_9800_END => self.tile_map_9800.data[(address - TILEMAP_9800_START) as usize] = value,
             // 9C00, assuming no malicious calls
             _ => self.tile_map_9c00.data[(address - TILEMAP_9C00_START) as usize] = value,
+        }
+    }
+
+    pub fn get_oam_byte(&self, address: u16) -> u8{
+        let relative_address = (address - OAM_ATTRIBUTE_START) / 4;
+
+        self.oam[relative_address as usize].get_byte((address % 4) as u8)
+    }
+
+    pub fn set_oam_byte(&mut self, address: u16, value: u8){
+        let relative_address = (address - OAM_ATTRIBUTE_START) / 4;
+
+        self.oam[relative_address as usize].set_byte((address % 4) as u8, value);
+    }
+
+    /// More efficient batch operation for DMA transfer.
+    pub fn oam_dma_transfer(&mut self, values: &[u8]) {
+        if values.len() != 0xA0 {
+            panic!("DMA transfer used with an uneven amount of bytes.");
+        }
+
+        for i in 0..40 {
+            let multiplier = i * 4;
+            let current_sprite = SpriteAttribute {
+                y_pos: values[multiplier],
+                x_pos: values[multiplier + 1],
+                tile_number: values[multiplier + 2],
+                attribute_flags: AttributeFlags::from_bits_truncate(values[multiplier + 3])
+            };
+            self.oam[i] = current_sprite;
+        }
+        for i in 0..40 {
+            log::debug!("OAM SPRITE: {:2} - {:?}", i, self.oam[i]);
         }
     }
 

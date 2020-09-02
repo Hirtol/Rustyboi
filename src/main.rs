@@ -54,38 +54,27 @@ fn main() {
     .unwrap();
 
     let mut cartridge =
-        read("***REMOVED***roms\\Dr. Mario.gb")
+        read("***REMOVED***roms\\Tennis.gb")
             .unwrap();
     let cpu_test = read("***REMOVED***test roms\\cpu_instrs\\individual\\03-op sp,hl.gb").unwrap();
     let cpu_test2 = read("***REMOVED***test roms\\mooneye\\tests\\acceptance\\di_timing-GS.gb").unwrap();
 
-    //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(bootrom_file)), &cartridge, DISPLAY_COLOURS);
+    //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge, DISPLAY_COLOURS);
 
     // test_fast(sdl_context, &mut canvas, &mut screen_texture, &cpu_test);
     //
     // return;
 
-    let mut emulator = Emulator::new(Option::None, &cpu_test2, DISPLAY_COLOURS);
+    let mut emulator = Emulator::new(Option::None, &cartridge, DISPLAY_COLOURS);
 
     let mut cycles= 0;
 
     let mut event_pump = sdl_context.event_pump().unwrap();
 
-    let start_time = Instant::now();
-
     let mut last_update_time: Instant = Instant::now();
-    let mut delta_time: Duration = Duration::default();
 
     'mainloop: loop {
         let frame_start = Instant::now();
-
-        delta_time = frame_start.duration_since(last_update_time);
-
-        // let to_sleep = FRAME_DELAY.checked_sub(delta_time);
-        //
-        // if let Some(to_sleep) = to_sleep {
-        //     sleep(to_sleep);
-        // }
 
         for event in event_pump.poll_iter() {
             use sdl2::event::Event;
@@ -98,7 +87,13 @@ fn main() {
                     break 'mainloop;
                 }
                 Event::DropFile { filename, .. } => {
-                    debug!("Dropped file: {}", filename);
+                    if filename.ends_with(".gb") {
+                        debug!("Opening file: {}", filename);
+                        let new_cartridge = read(filename).expect("Could not open the provided file!");
+                        emulator = Emulator::new(Option::None, &new_cartridge, DISPLAY_COLOURS);
+                    } else {
+                        warn!("Attempted opening of file: {} which is not a GameBoy rom!", filename);
+                    }
                 }
                 _ => {}
             }
@@ -215,7 +210,7 @@ fn fill_texture_and_copy(canvas: &mut WindowCanvas, texture: &mut Texture, pixel
     canvas.copy(&texture, None, None);
 }
 
-fn vec_to_bootrom(vec: Vec<u8>) -> [u8; 256] {
+fn vec_to_bootrom(vec: &Vec<u8>) -> [u8; 256] {
     let mut result = [0_u8; 256];
 
     for (i, instr) in vec.iter().enumerate() {

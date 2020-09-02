@@ -38,8 +38,8 @@ pub const ECHO_RAM_END: u16 = 0xFDFF;
 /// The amount the ECHO_RAM_ADDRESS needs to have subtracted to get to the corresponding WRAM.
 pub const ECHO_RAM_OFFSET: u16 = 0x2000;
 /// Sprite attribute table (OAM)
-pub const SPRITE_ATTRIBUTE_START: u16 = 0xFE00;
-pub const SPRITE_ATTRIBUTE_END: u16 = 0xFE9F;
+pub const OAM_ATTRIBUTE_START: u16 = 0xFE00;
+pub const OAM_ATTRIBUTE_END: u16 = 0xFE9F;
 /// Not usable
 pub const NOT_USABLE_START: u16 = 0xFEA0;
 pub const NOT_USABLE_END: u16 = 0xFEFF;
@@ -53,6 +53,8 @@ pub const HRAM_START: u16 = 0xFF80;
 pub const HRAM_END: u16 = 0xFFFE;
 /// Interrupts Enable Register (IE)
 pub const INTERRUPTS_ENABLE: u16 = 0xFFFF;
+/// The value to return for an invalid read
+pub const INVALID_READ: u8 = 0xFF;
 
 pub mod vram;
 
@@ -93,7 +95,7 @@ impl Memory {
             WRAM_BANK_00_START..=WRAM_BANK_00_END => self.memory[address as usize],
             WRAM_BANK_NN_START..=WRAM_BANK_NN_END => self.memory[address as usize],
             ECHO_RAM_START..=ECHO_RAM_END => self.memory[(address - ECHO_RAM_OFFSET) as usize],
-            SPRITE_ATTRIBUTE_START..=SPRITE_ATTRIBUTE_END => self.memory[address as usize],
+            OAM_ATTRIBUTE_START..=OAM_ATTRIBUTE_END => self.ppu.get_oam_byte(address),
             NOT_USABLE_START..=NOT_USABLE_END => self.non_usable_call(address),
             IO_START..=IO_END => self.read_io_byte(address),
             HRAM_START..=HRAM_END => self.memory[address as usize],
@@ -115,6 +117,9 @@ impl Memory {
             //VRAM
             TILE_BLOCK_0_START..=TILE_BLOCK_2_END => self.ppu.set_tile_byte(address, value),
             TILEMAP_9800_START..=TILEMAP_9C00_END => self.ppu.set_tilemap_byte(address, value),
+
+            OAM_ATTRIBUTE_START..=OAM_ATTRIBUTE_END => self.ppu.set_oam_byte(address, value),
+
             IO_START..=IO_END => self.write_io_byte(address, value),
             _ => self.memory[usize_address] = value,
         }
@@ -151,7 +156,7 @@ impl Memory {
             SCX_REGISTER => self.ppu.set_scx(value),
             LY_REGISTER => self.ppu.set_ly(value),
             LYC_REGISTER => self.ppu.set_lyc(value),
-            DMA_TRANSFER => log::debug!("OAM Transfer"),//panic!("OH NO, DMA!"), //TODO: Implement
+            DMA_TRANSFER => self.dma_transfer(value),
             BG_PALETTE => self.ppu.set_bg_palette(value),
             OB_PALETTE_0 => self.ppu.set_oam_palette_0(value),
             OB_PALETTE_1 => self.ppu.set_oam_palette_1(value),
@@ -163,6 +168,12 @@ impl Memory {
             },
             _ => self.memory[address as usize] = value,
         }
+    }
+
+    fn dma_transfer(&mut self, value: u8) {
+        let address = (value as usize) << 8;
+        log::debug!("OAM Transfer starting from: 0x{:04X}", address);
+        self.ppu.oam_dma_transfer(&self.memory[address..(address+0xA0)]);
     }
 
     /// Simply returns 0 while also printing a warning to the logger.

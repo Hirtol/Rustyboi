@@ -13,6 +13,7 @@ simplelog = "0.8.0"
 clap = "2.33.2"
 rustyboi-core = {path = "core" }
 
+
 [dependencies.sdl2]
 version = "0.34.3"
 features = ["unsafe_textures"]

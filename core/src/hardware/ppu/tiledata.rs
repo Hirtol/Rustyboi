@@ -60,29 +60,67 @@ pub struct TileData {
     pub background_tile_1: TileMap,
 }
 
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Default, Copy, Clone)]
 pub struct SpriteAttribute {
     /// Specifies the sprites vertical position on the screen (minus 16).
     /// An off-screen value (for example, Y=0 or Y>=160) hides the sprite.
-    y_pos: u8,
+    pub y_pos: u8,
     /// Specifies the sprites horizontal position on the screen (minus 8).
     /// An off-screen value (X=0 or X>=168) hides the sprite,
     /// but the sprite still affects the priority ordering -
     /// a better way to hide a sprite is to set its Y-coordinate off-screen.
-    x_pos: u8,
+    pub x_pos: u8,
     /// Specifies the sprites Tile Number (00-FF).
     /// This (unsigned) value selects a tile from memory at 8000h-8FFFh.
     /// In CGB Mode this could be either in VRAM Bank 0 or 1, depending on Bit 3 of the following byte.
     /// In 8x16 mode, the lower bit of the tile number is ignored.
     /// IE: the upper 8x8 tile is "NN AND FEh", and the lower 8x8 tile is "NN OR 01h".
-    tile_number: u8,
-    attribute_flags: AttributeFlags,
+    pub tile_number: u8,
+    pub attribute_flags: AttributeFlags,
+}
+
+impl SpriteAttribute {
+    /// Get a byte in the range 0..=3 from this sprite attribute.
+    pub fn get_byte(&self, byte_num: u8) -> u8{
+        match byte_num {
+            0 => self.y_pos,
+            1 => self.x_pos,
+            2 => self.tile_number,
+            3 => self.attribute_flags.bits(),
+            _ => panic!("Out of range byte number specified!"),
+        }
+    }
+
+    /// Set a byte in the `byte_num` range 0..=3 to the specified `value`
+    pub fn set_byte(&mut self, byte_num: u8, value: u8) {
+        match byte_num {
+            0 => self.y_pos = value,
+            1 => self.x_pos = value,
+            2 => self.tile_number = value,
+            3 => self.attribute_flags = AttributeFlags::from_bits_truncate(value),
+            _ => panic!("Out of range byte number specified!"),
+        }
+    }
+}
+
+impl Debug for SpriteAttribute {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "Sprite [ y_pos: {} - x_pos: {} - tile_number: 0x{:02X} - flags: {:?} ]", self.y_pos, self.x_pos, self.tile_number, self.attribute_flags)
+    }
 }
 
 impl Tile {
     pub fn get_pixel_line(&self, mut line_y: u8) -> (u8, u8) {
         let address = (line_y * 2) as usize;
         (self.data[address], self.data[address + 1])
+    }
+}
+
+impl Index<usize> for Tile {
+    type Output = u8;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.data[index]
     }
 }
 
@@ -97,13 +135,5 @@ impl TileMap {
 impl Debug for TileMap {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         self.data[..].fmt(f)
-    }
-}
-
-impl Index<usize> for Tile {
-    type Output = u8;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.data[index]
     }
 }

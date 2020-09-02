@@ -8,6 +8,7 @@ use crate::hardware::ppu::palette::DmgColor::WHITE;
 use crate::hardware::ppu::register_flags::{LcdControl, LcdStatus};
 use crate::hardware::ppu::tiledata::*;
 use crate::io::interrupts::InterruptFlags;
+use num_integer::Integer;
 
 /// The DMG in fact has a 256x256 drawing area, whereupon a viewport of 160x144 is placed.
 pub const TRUE_RESOLUTION_WIDTH: usize = 256;
@@ -289,14 +290,17 @@ impl PPU {
         // We need to first divide by 8, to then multiply by 32 for our 1d representation array.
         let tile_lower_bound = ((scanline_to_be_rendered / 8) as u16 * 32) + (self.scroll_x / 8) as u16;
         //TODO: May need to be 32? 20 makes more sense considering 20*8 = 160.
-        let tile_higher_bound = tile_lower_bound as u16 + 20;
+        // Modulo would only be necessary for an extreme case like scroll_x = 250 and scanline = 255
+        let tile_higher_bound = (tile_lower_bound as u16 + 20) % BACKGROUND_TILE_SIZE as u16;
 
         let tile_pixel_y = scanline_to_be_rendered % 8;
         //TODO: Scroll x properly?
-        let mut pixel_counter = 0;//self.scroll_x as usize % 8;//(0x100 - self.scroll_x as usize);
+        let mut pixel_counter = 0;
+        let x_remainder = self.scroll_x % 8;
 
         for i in tile_lower_bound..tile_higher_bound {
             let mut tile_relative_address = self.get_tile_address_bg(i) as usize;
+
             if !self.lcd_control.contains(LcdControl::BG_WINDOW_TILE_SELECT) {
                 tile_relative_address = (tile_relative_address as i8) as usize;
             }
@@ -320,12 +324,70 @@ impl PPU {
         }
     }
 
-    fn draw_window_scanline(&mut self) {}
+    fn draw_window_scanline(&mut self) {
+        // If it's not on our current y or if the window x is out of scope, don't bother rendering.
+        if self.current_y < self.window_y || self.window_x >= 160 {
+            return;
+        }
+        if self.window_x % 8 != 0 {
+            log::warn!("Attempted window rendering not multiple of 8, implement!");
+            return;
+        }
+
+        log::debug!("Scanline window creating!");
+
+        // -7 is apparently necessary for some reason
+        let scanline_to_be_rendered = self.current_y;
+        let window_x = self.window_x.wrapping_sub(7);
+        // scanline_to_be_rendered can be in range 0-255, where each tile is 8 in length.
+        // As we'll want to use this variable to index on the TileMap (1 byte pointer to tile)
+        // We need to first divide by 8, to then multiply by 32 for our 1d representation array.
+        let tile_lower_bound = ((scanline_to_be_rendered / 8) as u16 * 32) + (window_x / 8) as u16;
+        // We need as many tiles as there are to the end of the current scanline, even if they're
+        // partial, therefore we need a ceiling divide.
+        let tile_higher_bound = (tile_lower_bound as u16 + (160 - window_x as u16).div_ceil(&8)) % BACKGROUND_TILE_SIZE as u16;
+
+        let tile_pixel_y = scanline_to_be_rendered % 8;
+        let mut pixel_counter = window_x as usize;
+
+        for i in tile_lower_bound..tile_higher_bound {
+            let mut tile_relative_address = self.get_tile_address_window(i) as usize;
+            if !self.lcd_control.contains(LcdControl::BG_WINDOW_TILE_SELECT) {
+                tile_relative_address = (tile_relative_address as i8) as usize;
+            }
+
+            let offset: usize = if self.lcd_control.bg_window_tile_address() == TILE_BLOCK_0_START { 0 } else { 256 };
+            let tile_address: usize = offset.wrapping_add(tile_relative_address);
+
+            let tile: Tile = self.tiles[tile_address];
+
+            let (top_pixel_data, bottom_pixel_data) = tile.get_pixel_line(tile_pixel_y);
+
+            for j in (0..=7).rev() {
+                let bit1 = (top_pixel_data & (0x1 << j)) >> j;
+                let bit2 = (bottom_pixel_data & (0x1 << j)) >> j;
+                let current_pixel = bit1 | (bit2 << 1);
+
+                self.scanline_buffer[pixel_counter] = self.bg_window_palette.color(current_pixel);
+
+                pixel_counter += 1;
+            }
+        }
+
+    }
 
     fn draw_sprite_scanline(&mut self) {}
 
     fn get_tile_address_bg(&self, address: u16) -> u8 {
         if !self.lcd_control.contains(LcdControl::BG_TILE_MAP_SELECT) {
+            self.tile_map_9800.data[address as usize]
+        } else {
+            self.tile_map_9c00.data[address as usize]
+        }
+    }
+
+    fn get_tile_address_window(&self, address: u16) -> u8 {
+        if !self.lcd_control.contains(LcdControl::WINDOW_MAP_SELECT) {
             self.tile_map_9800.data[address as usize]
         } else {
             self.tile_map_9c00.data[address as usize]
