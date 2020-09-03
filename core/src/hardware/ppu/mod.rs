@@ -379,32 +379,30 @@ impl PPU {
 
     fn draw_sprite_scanline(&mut self) {
         let tall_sprites = self.lcd_control.contains(LcdControl::SPRITE_SIZE);
-        let y_size = if tall_sprites { 16 } else { 8 };
+        let y_size: u8 = if tall_sprites { 16 } else { 8 };
 
         for sprite in self.oam.iter() {
-            //TODO: This won't work when x = 4 for example, and we'd have to render half the sprite
-            // Currently would just panic.
-            let screen_x_pos = sprite.x_pos-8;
-            let screen_y_pos = sprite.y_pos-16;
+            // We need to cast to i16 here, as otherwise we'd wrap around
+            // Which wouldn't necessarily break but be far more messy.
+            let screen_x_pos = sprite.x_pos as i16 - 8;
+            let screen_y_pos = sprite.y_pos as i16 - 16;
 
-            if !self.sprite_on_scanline(screen_y_pos, y_size){
+            if !sprite_on_scanline(self.current_y as i16, screen_y_pos, y_size as i16){
                 continue;
             }
 
+            let mut line = (self.current_y as i16 - screen_y_pos) as u8;
+
             let x_flip = sprite.attribute_flags.contains(AttributeFlags::X_FLIP);
             let y_flip = sprite.attribute_flags.contains(AttributeFlags::Y_FLIP);
-
-            let mut line = self.current_y - screen_y_pos;
 
             if y_flip {
                 line = y_size - (line+1);
             }
 
-            let tile = self.tiles[sprite.tile_number as usize];
+            let tile = if line < 8 { self.tiles[sprite.tile_number as usize] } else { self.tiles[(sprite.tile_number + 1) as usize] };
 
-            let (top_pixel_data, bottom_pixel_data) = tile.get_pixel_line(line);
-
-            let mut pixel_counter = screen_x_pos as usize;
+            let (top_pixel_data, bottom_pixel_data) = tile.get_pixel_line(line % 8);
 
             for j in 0..=7 {
                 let bit1 = (top_pixel_data & (0x1 << j)) >> j;
@@ -414,12 +412,11 @@ impl PPU {
                 let colour = self.get_sprite_palette(sprite.attribute_flags.contains(AttributeFlags::PALETTE_NUMBER)).color(current_pixel);
 
                 if colour == WHITE {
-                    pixel_counter += 1;
                     continue;
                 }
 
                 // If x is flipped then we want the pixels to go in order, otherwise it's the reverse.
-                let pixel : usize = if x_flip { (screen_x_pos + j) } else { (screen_x_pos + (7-j)) } as usize;
+                let pixel = if x_flip { (screen_x_pos + j) } else { (screen_x_pos + (7-j)) };
 
                 // sanity check
                 if (pixel<0) || (pixel>159)
@@ -427,13 +424,9 @@ impl PPU {
                     continue;
                 }
 
-                self.scanline_buffer[pixel] = colour;
+                self.scanline_buffer[pixel as usize] = colour;
             }
         }
-    }
-
-    fn sprite_on_scanline(&self, y_pos: u8, y_size: u8) -> bool {
-        (self.current_y >= y_pos) && (self.current_y < (y_pos+y_size))
     }
 
     fn get_sprite_palette(&self, palette_0: bool) -> Palette{
@@ -487,9 +480,17 @@ impl PPU {
     }
 }
 
+fn sprite_on_scanline(scanline_y: i16, y_pos: i16, y_size: i16) -> bool {
+    (scanline_y >= y_pos) && (scanline_y < (y_pos+y_size))
+}
+
 #[test]
 fn bo() {
     let test: u8 = (-20i8) as u8;
+
+    let test = 240;
+    assert_eq!(test as i16, 240);
+
     let trues = 20u8;
     println!("{}", trues.wrapping_add(test))
 }

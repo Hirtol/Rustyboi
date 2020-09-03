@@ -100,11 +100,11 @@ fn main() {
         }
 
         // Emulate exactly one frame's worth.
-        while cycles < CYCLES_PER_FRAME*35 {
+        while cycles < CYCLES_PER_FRAME {
             cycles += emulator.emulate_cycle() as u32;
         }
 
-        cycles -= CYCLES_PER_FRAME*35;
+        cycles -= CYCLES_PER_FRAME;
 
         fill_texture_and_copy(&mut canvas, &mut screen_texture, &emulator.frame_buffer());
 
