@@ -1,10 +1,9 @@
-use crate::hardware::ppu::PPU;
 use super::*;
 use crate::hardware::memory::OAM_ATTRIBUTE_START;
 use crate::hardware::ppu::register_flags::*;
+use crate::hardware::ppu::PPU;
 
-impl PPU{
-
+impl PPU {
     pub fn get_tile_byte(&self, address: u16) -> u8 {
         let (tile_address, byte_address) = get_tile_address(address);
 
@@ -19,7 +18,9 @@ impl PPU{
 
     pub fn get_tilemap_byte(&self, address: u16) -> u8 {
         match address {
-            TILEMAP_9800_START..=TILEMAP_9800_END => self.tile_map_9800.data[(address - TILEMAP_9800_START) as usize],
+            TILEMAP_9800_START..=TILEMAP_9800_END => {
+                self.tile_map_9800.data[(address - TILEMAP_9800_START) as usize]
+            }
             // 9C00, assuming no malicious calls
             _ => self.tile_map_9c00.data[(address - TILEMAP_9C00_START) as usize],
         }
@@ -27,19 +28,21 @@ impl PPU{
 
     pub fn set_tilemap_byte(&mut self, address: u16, value: u8) {
         match address {
-            TILEMAP_9800_START..=TILEMAP_9800_END => self.tile_map_9800.data[(address - TILEMAP_9800_START) as usize] = value,
+            TILEMAP_9800_START..=TILEMAP_9800_END => {
+                self.tile_map_9800.data[(address - TILEMAP_9800_START) as usize] = value
+            }
             // 9C00, assuming no malicious calls
             _ => self.tile_map_9c00.data[(address - TILEMAP_9C00_START) as usize] = value,
         }
     }
 
-    pub fn get_oam_byte(&self, address: u16) -> u8{
+    pub fn get_oam_byte(&self, address: u16) -> u8 {
         let relative_address = (address - OAM_ATTRIBUTE_START) / 4;
 
         self.oam[relative_address as usize].get_byte((address % 4) as u8)
     }
 
-    pub fn set_oam_byte(&mut self, address: u16, value: u8){
+    pub fn set_oam_byte(&mut self, address: u16, value: u8) {
         let relative_address = (address - OAM_ATTRIBUTE_START) / 4;
 
         self.oam[relative_address as usize].set_byte((address % 4) as u8, value);
@@ -58,7 +61,7 @@ impl PPU{
                 y_pos: values[multiplier],
                 x_pos: values[multiplier + 1],
                 tile_number: values[multiplier + 2],
-                attribute_flags: AttributeFlags::from_bits_truncate(values[multiplier + 3])
+                attribute_flags: AttributeFlags::from_bits_truncate(values[multiplier + 3]),
             };
             self.oam[i] = current_sprite;
         }
@@ -155,14 +158,11 @@ impl PPU{
     pub fn set_window_x(&mut self, value: u8) {
         self.window_x = value
     }
-
-
-
 }
 
 /// Get the internal PPU address for a tile from a normal u16 address.
 /// Returns in the format `(tile_addresss, byte_address)`
-fn get_tile_address(address: u16) -> (usize, usize){
+fn get_tile_address(address: u16) -> (usize, usize) {
     let relative_address = address as usize - TILE_BLOCK_0_START as usize;
     (relative_address / 16, relative_address % 16)
 }

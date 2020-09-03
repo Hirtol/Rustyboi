@@ -1,7 +1,7 @@
-use bitflags::_core::fmt::Formatter;
-use bitflags::*;
 use crate::hardware::ppu::tiledata::{TILE_BLOCK_0_START, TILE_BLOCK_1_START};
 use crate::hardware::ppu::Mode;
+use bitflags::_core::fmt::Formatter;
+use bitflags::*;
 
 // # PPU FLAGS #
 
@@ -111,7 +111,7 @@ bitflags! {
 
 impl LcdControl {
     pub fn bg_window_tile_address(&self) -> u16 {
-        if self.contains(LcdControl::BG_WINDOW_TILE_SELECT){
+        if self.contains(LcdControl::BG_WINDOW_TILE_SELECT) {
             TILE_BLOCK_0_START
         } else {
             TILE_BLOCK_1_START
@@ -126,25 +126,26 @@ impl LcdStatus {
             1 => Mode::VBlank,
             2 => Mode::OamSearch,
             3 => Mode::LcdTransfer,
-            _ => panic!("Invalid value entered for mode flag")
+            _ => panic!("Invalid value entered for mode flag"),
         }
     }
 
     pub fn set_mode_flag(&mut self, value: Mode) {
-        self.bits = ((self.bits >> 2) << 2) | match value {
-            Mode::HBlank => 0,
-            Mode::VBlank => 1,
-            Mode::OamSearch => 2,
-            Mode::LcdTransfer => 3,
-        }
+        self.bits = ((self.bits >> 2) << 2)
+            | match value {
+                Mode::HBlank => 0,
+                Mode::VBlank => 1,
+                Mode::OamSearch => 2,
+                Mode::LcdTransfer => 3,
+            }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::io::interrupts::Interrupts::LcdStat;
     use crate::hardware::ppu::register_flags::LcdStatus;
     use crate::hardware::ppu::Mode::{HBlank, OamSearch};
+    use crate::io::interrupts::Interrupts::LcdStat;
 
     #[test]
     fn status_tests() {

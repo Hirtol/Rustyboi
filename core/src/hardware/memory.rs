@@ -1,13 +1,15 @@
 use crate::hardware::cartridge::Cartridge;
+use crate::hardware::ppu::tiledata::{
+    TILEMAP_9800_START, TILEMAP_9C00_END, TILE_BLOCK_0_START, TILE_BLOCK_2_END,
+};
+use crate::hardware::ppu::PPU;
 use crate::io::bootrom::BootRom;
 use crate::io::interrupts::InterruptFlags;
+use bitflags::_core::cell::RefCell;
 use bitflags::_core::fmt::{Debug, Formatter};
 use log::*;
 use std::fmt;
-use bitflags::_core::cell::RefCell;
-use crate::hardware::ppu::PPU;
 use std::rc::Rc;
-use crate::hardware::ppu::tiledata::{TILE_BLOCK_2_END, TILE_BLOCK_0_START, TILEMAP_9800_START, TILEMAP_9C00_END};
 
 pub const MEMORY_SIZE: usize = 0x10000;
 /// 16 KB ROM bank, usually 00. From Cartridge, read-only
@@ -165,7 +167,7 @@ impl Memory {
             0xFF50 if !self.boot_rom.is_finished => {
                 self.boot_rom.is_finished = true;
                 debug!("Finished executing BootRom!");
-            },
+            }
             _ => self.memory[address as usize] = value,
         }
     }

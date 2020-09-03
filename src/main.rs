@@ -6,15 +6,15 @@ use rustyboi_core::hardware::ppu::palette::{DisplayColour, RGB};
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::pixels::PixelFormatEnum::RGB24;
-use sdl2::render::{Texture, WindowCanvas, Canvas};
+use sdl2::render::{Canvas, Texture, WindowCanvas};
+use sdl2::video::Window;
+use sdl2::Sdl;
 use simplelog::{CombinedLogger, Config, ConfigBuilder, TermLogger, TerminalMode, WriteLogger};
 use std::convert::TryInto;
 use std::fs::{read, File};
 use std::io::BufWriter;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
-use sdl2::Sdl;
-use sdl2::video::Window;
 
 const DISPLAY_COLOURS: DisplayColour = DisplayColour {
     white: RGB(155, 188, 15),
@@ -27,14 +27,14 @@ const GBC_UNR_DISPLAY_COLOURS: DisplayColour = DisplayColour {
     white: RGB(255, 255, 255),
     light_grey: RGB(123, 255, 49),
     dark_grey: RGB(0, 99, 197),
-    black: RGB(0, 0, 0)
+    black: RGB(0, 0, 0),
 };
 
 const DEFAULT_DISPLAY_COLOURS: DisplayColour = DisplayColour {
-    white: RGB(175,203,70),
-    light_grey: RGB(121,170,109),
-    dark_grey: RGB(34,111,95),
-    black: RGB(8,41,85)
+    white: RGB(175, 203, 70),
+    light_grey: RGB(121, 170, 109),
+    dark_grey: RGB(34, 111, 95),
+    black: RGB(8, 41, 85),
 };
 
 const FPS: u64 = 60;
@@ -81,7 +81,7 @@ fn main() {
 
     let mut emulator = Emulator::new(Option::None, &cartridge, DEFAULT_DISPLAY_COLOURS);
 
-    let mut cycles= 0;
+    let mut cycles = 0;
 
     let mut event_pump = sdl_context.event_pump().unwrap();
 
@@ -103,10 +103,15 @@ fn main() {
                 Event::DropFile { filename, .. } => {
                     if filename.ends_with(".gb") {
                         debug!("Opening file: {}", filename);
-                        let new_cartridge = read(filename).expect("Could not open the provided file!");
-                        emulator = Emulator::new(Option::None, &new_cartridge, DEFAULT_DISPLAY_COLOURS);
+                        let new_cartridge =
+                            read(filename).expect("Could not open the provided file!");
+                        emulator =
+                            Emulator::new(Option::None, &new_cartridge, DEFAULT_DISPLAY_COLOURS);
                     } else {
-                        warn!("Attempted opening of file: {} which is not a GameBoy rom!", filename);
+                        warn!(
+                            "Attempted opening of file: {} which is not a GameBoy rom!",
+                            filename
+                        );
                     }
                 }
                 _ => {}
@@ -127,7 +132,7 @@ fn main() {
         canvas.window_mut().set_title(
             format!(
                 "RustyBoi - {} FPS",
-                1.0 / last_update_time.elapsed().as_secs_f64()*2.0
+                1.0 / last_update_time.elapsed().as_secs_f64() * 2.0
             )
             .as_str(),
         );
@@ -135,7 +140,12 @@ fn main() {
     }
 }
 
-fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_texture: &mut Texture, cpu_test: &Vec<u8>) {
+fn test_fast(
+    sdl_context: Sdl,
+    mut canvas: &mut Canvas<Window>,
+    mut screen_texture: &mut Texture,
+    cpu_test: &Vec<u8>,
+) {
     let mut emulator = Emulator::new(Option::None, &cpu_test, DISPLAY_COLOURS);
     let mut count: u128 = 0;
 
@@ -197,7 +207,7 @@ fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_textu
                 "RustyBoi - {} FPS",
                 1.0 / last_update_time.elapsed().as_secs_f64()
             )
-                .as_str(),
+            .as_str(),
         );
         last_update_time = frame_start;
     }

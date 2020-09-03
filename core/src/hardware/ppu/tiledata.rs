@@ -11,11 +11,11 @@
 //! but the BG and Window can use either mode, controlled by LCDC bit 4 (`BG_WINDOW_TILE_SELECT`).
 
 use crate::hardware::ppu::register_flags::AttributeFlags;
-use std::mem::size_of;
-use std::ops::Index;
-use std::fmt::Debug;
 use bitflags::_core::fmt::Formatter;
 use std::fmt;
+use std::fmt::Debug;
+use std::mem::size_of;
+use std::ops::Index;
 
 // 128 tiles each.
 pub const TILE_BLOCK_0_START: u16 = 0x8000;
@@ -81,7 +81,7 @@ pub struct SpriteAttribute {
 
 impl SpriteAttribute {
     /// Get a byte in the range 0..=3 from this sprite attribute.
-    pub fn get_byte(&self, byte_num: u8) -> u8{
+    pub fn get_byte(&self, byte_num: u8) -> u8 {
         match byte_num {
             0 => self.y_pos,
             1 => self.x_pos,
@@ -105,7 +105,11 @@ impl SpriteAttribute {
 
 impl Debug for SpriteAttribute {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Sprite [ y_pos: {} - x_pos: {} - tile_number: 0x{:02X} - flags: {:?} ]", self.y_pos, self.x_pos, self.tile_number, self.attribute_flags)
+        write!(
+            f,
+            "Sprite [ y_pos: {} - x_pos: {} - tile_number: 0x{:02X} - flags: {:?} ]",
+            self.y_pos, self.x_pos, self.tile_number, self.attribute_flags
+        )
     }
 }
 

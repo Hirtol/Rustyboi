@@ -8,7 +8,7 @@ use crate::hardware::memory::*;
 use crate::hardware::memory::{Memory, MemoryMapper};
 use crate::hardware::ppu::palette::DisplayColour;
 use crate::hardware::ppu::tiledata::TileData;
-use crate::hardware::ppu::{PPU, FRAMEBUFFER_SIZE};
+use crate::hardware::ppu::{FRAMEBUFFER_SIZE, PPU};
 use crate::hardware::HardwareOwner;
 use crate::io::bootrom::*;
 use crate::io::interrupts::Interrupts::VBLANK;
@@ -33,7 +33,11 @@ impl Emulator {
         cartridge: &[u8],
         display_colors: DisplayColour,
     ) -> Self {
-        let mmu = MMU::new(RefCell::new(Memory::new(boot_rom, cartridge, PPU::new(display_colors))));
+        let mmu = MMU::new(RefCell::new(Memory::new(
+            boot_rom,
+            cartridge,
+            PPU::new(display_colors),
+        )));
         Emulator {
             cpu: CPU::new(&mmu),
 
@@ -54,7 +58,7 @@ impl Emulator {
     ///
     /// The delta in clock cycles due to the current emulation, to be used
     /// for timing purposes by the consumer of the emulator.
-    pub fn emulate_cycle(&mut self) -> u128{
+    pub fn emulate_cycle(&mut self) -> u128 {
         self.handle_interrupts();
 
         let prior_cycles = self.cpu.cycles_performed;
@@ -94,9 +98,10 @@ impl Emulator {
             let bit2 = (b & (1 << dx)) >> dx;
 
             let pixeldata = bit1 | (bit2 << 1);
-            let color = self.mmu.borrow()
+            let color = self
+                .mmu
+                .borrow()
                 .ppu
-
                 .colorisor
                 .get_color(&self.mmu.borrow().ppu.bg_window_palette.color(pixeldata));
 
