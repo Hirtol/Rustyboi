@@ -23,6 +23,20 @@ const DISPLAY_COLOURS: DisplayColour = DisplayColour {
     black: RGB(15, 56, 15),
 };
 
+const GBC_UNR_DISPLAY_COLOURS: DisplayColour = DisplayColour {
+    white: RGB(255, 255, 255),
+    light_grey: RGB(123, 255, 49),
+    dark_grey: RGB(0, 99, 197),
+    black: RGB(0, 0, 0)
+};
+
+const DEFAULT_DISPLAY_COLOURS: DisplayColour = DisplayColour {
+    white: RGB(175,203,70),
+    light_grey: RGB(121,170,109),
+    dark_grey: RGB(34,111,95),
+    black: RGB(8,41,85)
+};
+
 const FPS: u64 = 60;
 const FRAME_DELAY: Duration = Duration::from_nanos(1_000_000_000u64 / FPS);
 
@@ -59,13 +73,13 @@ fn main() {
     let cpu_test = read("***REMOVED***test roms\\cpu_instrs\\individual\\03-op sp,hl.gb").unwrap();
     let cpu_test2 = read("***REMOVED***test roms\\mooneye\\tests\\acceptance\\di_timing-GS.gb").unwrap();
 
-    //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge, DISPLAY_COLOURS);
+    //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge, DEFAULT_DISPLAY_COLOURS);
 
     // test_fast(sdl_context, &mut canvas, &mut screen_texture, &cpu_test);
     //
     // return;
 
-    let mut emulator = Emulator::new(Option::None, &cartridge, DISPLAY_COLOURS);
+    let mut emulator = Emulator::new(Option::None, &cartridge, DEFAULT_DISPLAY_COLOURS);
 
     let mut cycles= 0;
 
@@ -90,7 +104,7 @@ fn main() {
                     if filename.ends_with(".gb") {
                         debug!("Opening file: {}", filename);
                         let new_cartridge = read(filename).expect("Could not open the provided file!");
-                        emulator = Emulator::new(Option::None, &new_cartridge, DISPLAY_COLOURS);
+                        emulator = Emulator::new(Option::None, &new_cartridge, DEFAULT_DISPLAY_COLOURS);
                     } else {
                         warn!("Attempted opening of file: {} which is not a GameBoy rom!", filename);
                     }

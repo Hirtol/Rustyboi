@@ -383,7 +383,8 @@ impl PPU {
 
         for sprite in self.oam.iter() {
             // We need to cast to i16 here, as otherwise we'd wrap around
-            // Which wouldn't necessarily break but be far more messy.
+            // Tried a simple wrapping method, broke quite a bit.
+            // May try again another time as all this casting is ugly and probably expensive.
             let screen_x_pos = sprite.x_pos as i16 - 8;
             let screen_y_pos = sprite.y_pos as i16 - 16;
 
@@ -400,31 +401,32 @@ impl PPU {
                 line = y_size - (line+1);
             }
 
+            // This assumes the 16 long tiles are next to each other in memory, if not.. well..
             let tile = if line < 8 { self.tiles[sprite.tile_number as usize] } else { self.tiles[(sprite.tile_number + 1) as usize] };
 
             let (top_pixel_data, bottom_pixel_data) = tile.get_pixel_line(line % 8);
 
             for j in 0..=7 {
+                // If x is flipped then we want the pixels to go in order to the screen buffer,
+                // otherwise it's the reverse.
+                let pixel = if x_flip { (screen_x_pos + j) } else { (screen_x_pos + (7-j)) };
+
+                // Required for the times when sprites are on an x < 8 or y < 16,
+                // as parts of those sprites need to then not be rendered.
+                if (pixel<0) || (pixel>159)
+                {
+                    continue;
+                }
+
                 let bit1 = (top_pixel_data & (0x1 << j)) >> j;
                 let bit2 = (bottom_pixel_data & (0x1 << j)) >> j;
                 let current_pixel = bit1 | (bit2 << 1);
 
                 let colour = self.get_sprite_palette(sprite.attribute_flags.contains(AttributeFlags::PALETTE_NUMBER)).color(current_pixel);
 
-                if colour == WHITE {
-                    continue;
+                if colour != WHITE {
+                    self.scanline_buffer[pixel as usize] = colour;
                 }
-
-                // If x is flipped then we want the pixels to go in order, otherwise it's the reverse.
-                let pixel = if x_flip { (screen_x_pos + j) } else { (screen_x_pos + (7-j)) };
-
-                // sanity check
-                if (pixel<0) || (pixel>159)
-                {
-                    continue;
-                }
-
-                self.scanline_buffer[pixel as usize] = colour;
             }
         }
     }
