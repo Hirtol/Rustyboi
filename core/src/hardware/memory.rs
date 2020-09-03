@@ -10,6 +10,8 @@ use bitflags::_core::fmt::{Debug, Formatter};
 use log::*;
 use std::fmt;
 use std::rc::Rc;
+use crate::io::joypad::*;
+use crate::io::timer::*;
 
 pub const MEMORY_SIZE: usize = 0x10000;
 /// 16 KB ROM bank, usually 00. From Cartridge, read-only
@@ -58,8 +60,6 @@ pub const INTERRUPTS_ENABLE: u16 = 0xFFFF;
 /// The value to return for an invalid read
 pub const INVALID_READ: u8 = 0xFF;
 
-pub mod vram;
-
 /// Simple memory interface for reading and writing bytes, as well as determining the
 /// state of the BootRom.
 pub trait MemoryMapper: Debug {
@@ -73,6 +73,8 @@ pub struct Memory {
     boot_rom: BootRom,
     cartridge: Cartridge,
     pub ppu: PPU,
+    pub joypad_register: JoypadFlags,
+    pub timers: TimerRegisters,
 }
 
 impl Memory {
@@ -82,6 +84,8 @@ impl Memory {
             boot_rom: BootRom::new(boot_rom),
             cartridge: Cartridge::new(cartridge),
             ppu,
+            joypad_register: JoypadFlags::from_bits_truncate(0xFF),
+            timers: Default::default()
         }
     }
 
@@ -132,6 +136,11 @@ impl Memory {
     fn read_io_byte(&self, address: u16) -> u8 {
         use crate::hardware::ppu::*;
         match address {
+            JOYPAD_REGISTER => self.joypad_register.bits(),
+            DIVIDER_REGISTER => self.timers.divider_register,
+            TIMER_COUNTER => self.timers.timer_counter,
+            TIMER_MODULO => self.timers.timer_modulo,
+            TIMER_CONTROL => self.timers.timer_control.to_bits(),
             LCD_CONTROL_REGISTER => self.ppu.get_lcd_control(),
             LCD_STATUS_REGISTER => self.ppu.get_lcd_status(),
             SCY_REGISTER => self.ppu.get_scy(),
@@ -152,6 +161,11 @@ impl Memory {
     fn write_io_byte(&mut self, address: u16, value: u8) {
         use crate::hardware::ppu::*;
         match address {
+            JOYPAD_REGISTER => self.joypad_register = JoypadFlags::from_bits_truncate(value),
+            DIVIDER_REGISTER => self.timers.set_divider(),
+            TIMER_COUNTER => self.timers.timer_counter = value,
+            TIMER_MODULO => self.timers.timer_modulo = value,
+            TIMER_CONTROL => self.timers.timer_control = TimerControl::from(value),
             LCD_CONTROL_REGISTER => self.ppu.set_lcd_control(value),
             LCD_STATUS_REGISTER => self.ppu.set_lcd_status(value),
             SCY_REGISTER => self.ppu.set_scy(value),
@@ -174,7 +188,7 @@ impl Memory {
 
     fn dma_transfer(&mut self, value: u8) {
         let address = (value as usize) << 8;
-        log::debug!("OAM Transfer starting from: 0x{:04X}", address);
+        log::trace!("OAM Transfer starting from: 0x{:04X}", address);
         self.ppu.oam_dma_transfer(&self.gather_shadow_oam(address));
     }
 

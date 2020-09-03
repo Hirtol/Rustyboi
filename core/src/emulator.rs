@@ -13,18 +13,17 @@ use crate::hardware::HardwareOwner;
 use crate::io::bootrom::*;
 use crate::io::interrupts::Interrupts::VBLANK;
 use crate::io::interrupts::{InterruptFlags, Interrupts};
+use crate::io::joypad::*;
 
 /// A DMG runs at `4.194304 MHz` with a Vsync of `59.7275 Hz`, so that would be
 /// `4194304 / 59.7275 = 70224 cycles/frame`
 pub const CYCLES_PER_FRAME: u32 = 70224;
 
 pub type MMU<T> = Rc<RefCell<T>>;
-pub type EmulatorPPU = Rc<RefCell<PPU>>;
 
 pub struct Emulator {
     cpu: CPU<Memory>,
     mmu: MMU<Memory>,
-    //ppu: EmulatorPPU,
 }
 
 impl Emulator {
@@ -69,6 +68,8 @@ impl Emulator {
 
         self.mmu.borrow_mut().ppu.do_cycle(delta_cycles as u32);
 
+        self.mmu.borrow_mut().timers.tick_timers(delta_cycles);
+
         // For PPU timing, maybe see how many cycles the cpu did, pass this to the PPU,
         // and have the PPU run until it has done all those, OR reaches an interrupt.
         // Need some way to remember the to be done cycles then though.
@@ -111,13 +112,54 @@ impl Emulator {
         imagebuf.save("test.png").unwrap();
     }
 
+    pub fn handle_input(&mut self, input: InputKeys) {
+        let mut interrupts = self.get_interrupts();
+        interrupts.insert(InterruptFlags::JOYPAD);
+        self.mmu.borrow_mut().write_byte(INTERRUPTS_FLAG, interrupts.bits());
+        let mut inputs = &mut self.mmu.borrow_mut().joypad_register;
+        debug!("Setting Handle for input {:?}", input);
+        match input {
+            InputKeys::START(pressed) => {
+                inputs.set(JoypadFlags::BUTTON_KEYS, !pressed);
+                inputs.set(JoypadFlags::DOWN_START, !pressed);
+            },
+            InputKeys::SELECT(pressed) => {
+                inputs.set(JoypadFlags::BUTTON_KEYS, !pressed);
+                inputs.set(JoypadFlags::UP_SELECT, !pressed);
+            },
+            InputKeys::A(pressed) => {
+                inputs.set(JoypadFlags::BUTTON_KEYS, !pressed);
+                inputs.set(JoypadFlags::RIGHT_A, !pressed);
+            },
+            InputKeys::B(pressed) => {
+                inputs.set(JoypadFlags::BUTTON_KEYS, !pressed);
+                inputs.set(JoypadFlags::LEFT_B, !pressed);
+            },
+            InputKeys::UP(pressed) => {
+                inputs.set(JoypadFlags::DIRECTION_KEYS, !pressed);
+                inputs.set(JoypadFlags::UP_SELECT, !pressed);
+            },
+            InputKeys::DOWN(pressed) => {
+                inputs.set(JoypadFlags::DIRECTION_KEYS, !pressed);
+                inputs.set(JoypadFlags::DOWN_START, !pressed);
+            },
+            InputKeys::LEFT(pressed) => {
+                inputs.set(JoypadFlags::DIRECTION_KEYS, !pressed);
+                inputs.set(JoypadFlags::LEFT_B, !pressed);
+            },
+            InputKeys::RIGHT(pressed) => {
+                inputs.set(JoypadFlags::DIRECTION_KEYS, !pressed);
+                inputs.set(JoypadFlags::RIGHT_A, !pressed);
+            },
+        }
+    }
+
     fn handle_interrupts(&mut self) {
         if !self.cpu.ime {
             return;
         }
 
-        let mut interrupt_flags: InterruptFlags =
-            InterruptFlags::from_bits_truncate(self.mmu.borrow().read_byte(INTERRUPTS_FLAG));
+        let mut interrupt_flags: InterruptFlags = self.get_interrupts();
         // Handle the interrupts queued from the PPU and clear them until we rework the architecture
         interrupt_flags.insert(self.mmu.borrow().ppu.pending_interrupts);
         self.mmu.borrow_mut().ppu.pending_interrupts = InterruptFlags::default();
@@ -145,5 +187,9 @@ impl Emulator {
                 self.cpu.interrupts_routine(interrupt);
             }
         }
+    }
+
+    fn get_interrupts(&self) -> InterruptFlags {
+        InterruptFlags::from_bits_truncate(self.mmu.borrow().read_byte(INTERRUPTS_FLAG))
     }
 }

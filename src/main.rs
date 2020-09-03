@@ -15,6 +15,8 @@ use std::fs::{read, File};
 use std::io::BufWriter;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
+use rustyboi_core::io::joypad::InputKeys;
+use anyhow::Error;
 
 const DISPLAY_COLOURS: DisplayColour = DisplayColour {
     white: RGB(155, 188, 15),
@@ -93,13 +95,9 @@ fn main() {
         for event in event_pump.poll_iter() {
             use sdl2::event::Event;
             match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
-                    keycode: Some(Keycode::Escape),
-                    ..
-                } => {
+                Event::Quit { .. } | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'mainloop;
-                }
+                },
                 Event::DropFile { filename, .. } => {
                     if filename.ends_with(".gb") {
                         debug!("Opening file: {}", filename);
@@ -113,7 +111,17 @@ fn main() {
                             filename
                         );
                     }
-                }
+                },
+                Event::KeyDown {keycode: Some(key), ..} => {
+                    if let Some(input_key) = keycode_to_input(key, true) {
+                        emulator.handle_input(input_key);
+                    }
+                },
+                Event::KeyUp {keycode: Some(key), ..} => {
+                    if let Some(input_key) = keycode_to_input(key, false) {
+                        emulator.handle_input(input_key);
+                    }
+                },
                 _ => {}
             }
         }
@@ -137,6 +145,20 @@ fn main() {
             .as_str(),
         );
         last_update_time = frame_start;
+    }
+}
+
+fn keycode_to_input(key: Keycode, pressed: bool) -> Option<InputKeys> {
+    match key {
+        Keycode::Up => Some(InputKeys::UP(pressed)),
+        Keycode::Down => Some(InputKeys::DOWN(pressed)),
+        Keycode::Left => Some(InputKeys::LEFT(pressed)),
+        Keycode::Right => Some(InputKeys::RIGHT(pressed)),
+        Keycode::A => Some(InputKeys::A(pressed)),
+        Keycode::B => Some(InputKeys::B(pressed)),
+        Keycode::S => Some(InputKeys::SELECT(pressed)),
+        Keycode::T => Some(InputKeys::START(pressed)),
+        _ => None
     }
 }
 
