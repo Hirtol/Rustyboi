@@ -289,6 +289,7 @@ impl PPU {
 
     fn draw_bg_scanline(&mut self) {
         let scanline_to_be_rendered = self.current_y.wrapping_add(self.scroll_y);
+        let mut x_remainder = (self.scroll_x % 8) as i8;
         // scanline_to_be_rendered can be in range 0-255, where each tile is 8 in length.
         // As we'll want to use this variable to index on the TileMap (1 byte pointer to tile)
         // We need to first divide by 8, to then multiply by 32 for our 1d representation array.
@@ -296,12 +297,14 @@ impl PPU {
             ((scanline_to_be_rendered / 8) as u16 * 32) + (self.scroll_x / 8) as u16;
         //TODO: May need to be 32? 20 makes more sense considering 20*8 = 160.
         // Modulo would only be necessary for an extreme case like scroll_x = 250 and scanline = 255
-        let tile_higher_bound = (tile_lower_bound as u16 + 20) % BACKGROUND_TILE_SIZE as u16;
+        let mut tile_higher_bound = (tile_lower_bound as u16 + 20) % BACKGROUND_TILE_SIZE as u16;
 
-        let tile_pixel_y = scanline_to_be_rendered % 8;
-        //TODO: Scroll x properly?
+        if x_remainder != 0 {
+            tile_higher_bound += 1;
+        }
+
         let mut pixel_counter = 0;
-        let x_remainder = self.scroll_x % 8;
+        let tile_line_y = scanline_to_be_rendered % 8;
 
         for i in tile_lower_bound..tile_higher_bound {
             let mut tile_relative_address = self.get_tile_address_bg(i) as usize;
@@ -319,13 +322,9 @@ impl PPU {
 
             let tile: Tile = self.tiles[tile_address];
 
-            let (top_pixel_data, bottom_pixel_data) = tile.get_pixel_line(tile_pixel_y);
+            let (top_pixel_data, bottom_pixel_data) = tile.get_pixel_line(tile_line_y);
 
-            for j in (0..=7).rev() {
-                self.scanline_buffer[pixel_counter] = self.get_colour(j, top_pixel_data, bottom_pixel_data, self.bg_window_palette);
-
-                pixel_counter += 1;
-            }
+            self.bg_window_render_pixels(&mut pixel_counter, &mut x_remainder, top_pixel_data, bottom_pixel_data);
         }
     }
 
@@ -355,6 +354,7 @@ impl PPU {
 
         let tile_pixel_y = scanline_to_be_rendered % 8;
         let mut pixel_counter = window_x as usize;
+        let mut x_remainder = (window_x % 8) as i8;
 
         for i in tile_lower_bound..tile_higher_bound {
             let mut tile_relative_address = self.get_tile_address_window(i) as usize;
@@ -373,11 +373,7 @@ impl PPU {
 
             let (top_pixel_data, bottom_pixel_data) = tile.get_pixel_line(tile_pixel_y);
 
-            for j in (0..=7).rev() {
-                self.scanline_buffer[pixel_counter] = self.get_colour(j, top_pixel_data, bottom_pixel_data, self.bg_window_palette);
-
-                pixel_counter += 1;
-            }
+            self.bg_window_render_pixels(&mut pixel_counter, &mut x_remainder, top_pixel_data, bottom_pixel_data);
         }
     }
 
@@ -400,7 +396,7 @@ impl PPU {
 
             let x_flip = sprite.attribute_flags.contains(AttributeFlags::X_FLIP);
             let y_flip = sprite.attribute_flags.contains(AttributeFlags::Y_FLIP);
-            let background_sprite = sprite
+            let is_background_sprite = sprite
                 .attribute_flags
                 .contains(AttributeFlags::OBJ_TO_BG_PRIORITY);
 
@@ -432,12 +428,12 @@ impl PPU {
                 // is WHITE, otherwise the background takes precedence.
                 if (pixel < 0)
                     || (pixel > 159)
-                    || (background_sprite && self.scanline_buffer[pixel as usize] != WHITE)
+                    || (is_background_sprite && self.scanline_buffer[pixel as usize] != WHITE)
                 {
                     continue;
                 }
 
-                let colour = self.get_colour(j as u8, top_pixel_data, bottom_pixel_data, self.get_sprite_palette(sprite));
+                let colour = self.get_pixel_colour(j as u8, top_pixel_data, bottom_pixel_data, self.get_sprite_palette(sprite));
 
                 if colour != WHITE {
                     self.scanline_buffer[pixel as usize] = colour;
@@ -446,7 +442,20 @@ impl PPU {
         }
     }
 
-    fn get_colour(&self, bit_offset: u8, top_pixel_data: u8, bottom_pixel_data: u8, palette: Palette) -> DmgColor {
+    fn bg_window_render_pixels(&mut self, pixel_counter: &mut usize, x_remainder: &mut i8, top_pixel_data: u8, bottom_pixel_data: u8) {
+        for j in (0..=7).rev() {
+            if *x_remainder > 0 || *pixel_counter > 159 {
+                *x_remainder -= 1;
+                continue;
+            }
+
+            self.scanline_buffer[*pixel_counter] = self.get_pixel_colour(j, top_pixel_data, bottom_pixel_data, self.bg_window_palette);
+
+            *pixel_counter += 1;
+        }
+    }
+
+    fn get_pixel_colour(&self, bit_offset: u8, top_pixel_data: u8, bottom_pixel_data: u8, palette: Palette) -> DmgColor {
         let bit1 = (top_pixel_data & (0x1 << bit_offset)) >> bit_offset;
         let bit2 = (bottom_pixel_data & (0x1 << bit_offset)) >> bit_offset;
         let current_pixel = bit1 | (bit2 << 1);
@@ -460,10 +469,6 @@ impl PPU {
         } else {
             self.oam_palette_1
         }
-    }
-
-    fn get_sprite_tile(&self, sprite: &SpriteAttribute) -> &Tile {
-        &self.tiles[sprite.tile_number as usize]
     }
 
     fn get_tile_address_bg(&self, address: u16) -> u8 {
