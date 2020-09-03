@@ -8,6 +8,7 @@ use crate::hardware::ppu::palette::DmgColor::WHITE;
 use crate::hardware::ppu::register_flags::{LcdControl, LcdStatus};
 use crate::hardware::ppu::tiledata::*;
 use crate::io::interrupts::InterruptFlags;
+use crate::hardware::ppu::register_flags::*;
 use num_integer::Integer;
 
 /// The DMG in fact has a 256x256 drawing area, whereupon a viewport of 160x144 is placed.
@@ -377,7 +378,74 @@ impl PPU {
     }
 
     fn draw_sprite_scanline(&mut self) {
+        let tall_sprites = self.lcd_control.contains(LcdControl::SPRITE_SIZE);
+        let y_size = if tall_sprites { 16 } else { 8 };
 
+        for sprite in self.oam.iter() {
+            //TODO: This won't work when x = 4 for example, and we'd have to render half the sprite
+            // Currently would just panic.
+            let screen_x_pos = sprite.x_pos-8;
+            let screen_y_pos = sprite.y_pos-16;
+
+            if !self.sprite_on_scanline(screen_y_pos, y_size){
+                continue;
+            }
+
+            let x_flip = sprite.attribute_flags.contains(AttributeFlags::X_FLIP);
+            let y_flip = sprite.attribute_flags.contains(AttributeFlags::Y_FLIP);
+
+            let mut line = self.current_y - screen_y_pos;
+
+            if y_flip {
+                line = y_size - (line+1);
+            }
+
+            let tile = self.tiles[sprite.tile_number as usize];
+
+            let (top_pixel_data, bottom_pixel_data) = tile.get_pixel_line(line);
+
+            let mut pixel_counter = screen_x_pos as usize;
+
+            for j in 0..=7 {
+                let bit1 = (top_pixel_data & (0x1 << j)) >> j;
+                let bit2 = (bottom_pixel_data & (0x1 << j)) >> j;
+                let current_pixel = bit1 | (bit2 << 1);
+
+                let colour = self.get_sprite_palette(sprite.attribute_flags.contains(AttributeFlags::PALETTE_NUMBER)).color(current_pixel);
+
+                if colour == WHITE {
+                    pixel_counter += 1;
+                    continue;
+                }
+
+                // If x is flipped then we want the pixels to go in order, otherwise it's the reverse.
+                let pixel : usize = if x_flip { (screen_x_pos + j) } else { (screen_x_pos + (7-j)) } as usize;
+
+                // sanity check
+                if (pixel<0) || (pixel>159)
+                {
+                    continue;
+                }
+
+                self.scanline_buffer[pixel] = colour;
+            }
+        }
+    }
+
+    fn sprite_on_scanline(&self, y_pos: u8, y_size: u8) -> bool {
+        (self.current_y >= y_pos) && (self.current_y < (y_pos+y_size))
+    }
+
+    fn get_sprite_palette(&self, palette_0: bool) -> Palette{
+        if palette_0 {
+            self.oam_palette_0
+        } else {
+            self.oam_palette_1
+        }
+    }
+
+    fn get_sprite_tile(&self, sprite: &SpriteAttribute) -> &Tile {
+        &self.tiles[sprite.tile_number as usize]
     }
 
     fn get_tile_address_bg(&self, address: u16) -> u8 {

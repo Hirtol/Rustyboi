@@ -64,7 +64,7 @@ impl PPU{
         }
 
         for i in 0..40 {
-            log::debug!("OAM SPRITE: {:2} - {:?}", i, self.oam[i]);
+            log::trace!("OAM SPRITE: {:2} - {:?}", i, self.oam[i]);
         }
     }
 

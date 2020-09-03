@@ -176,14 +176,10 @@ impl Memory {
         self.ppu.oam_dma_transfer(&self.gather_shadow_oam(address));
     }
 
-    fn gather_shadow_oam(&self, start_address: usize) -> [u8; 0xA0] {
-        let mut result = [0; 0xA0];
-
-        for i in 0..0xA0 {
-            result[i] = self.read_byte((start_address + i) as u16);
-        }
-
-        result
+    fn gather_shadow_oam(&self, start_address: usize) -> Vec<u8> {
+        (0..0xA0)
+            .map(|i| self.read_byte((start_address + i) as u16))
+            .collect()
     }
 
     /// Simply returns 0 while also printing a warning to the logger.
