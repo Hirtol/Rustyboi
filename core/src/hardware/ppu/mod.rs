@@ -98,7 +98,7 @@ pub enum Mode {
     LcdTransfer,
 }
 
-//TODO: Check interrupts are working?
+// TODO: Check interrupts are working?
 // TODO: Fix BG rendering.
 
 // Notes:
@@ -352,7 +352,7 @@ impl PPU {
 
         for i in tile_lower_bound..tile_higher_bound {
             let mut tile_relative_address = self.get_tile_address_window(i) as usize;
-            if !self.lcd_control.contains(LcdControl::BG_WINDOW_TILE_SELECT) {
+            if self.lcd_control.bg_window_tile_address() == TILE_BLOCK_1_START {
                 tile_relative_address = (tile_relative_address as i8) as usize;
             }
 
@@ -376,7 +376,9 @@ impl PPU {
 
     }
 
-    fn draw_sprite_scanline(&mut self) {}
+    fn draw_sprite_scanline(&mut self) {
+
+    }
 
     fn get_tile_address_bg(&self, address: u16) -> u8 {
         if !self.lcd_control.contains(LcdControl::BG_TILE_MAP_SELECT) {

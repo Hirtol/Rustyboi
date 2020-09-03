@@ -173,7 +173,17 @@ impl Memory {
     fn dma_transfer(&mut self, value: u8) {
         let address = (value as usize) << 8;
         log::debug!("OAM Transfer starting from: 0x{:04X}", address);
-        self.ppu.oam_dma_transfer(&self.memory[address..(address+0xA0)]);
+        self.ppu.oam_dma_transfer(&self.gather_shadow_oam(address));
+    }
+
+    fn gather_shadow_oam(&self, start_address: usize) -> [u8; 0xA0] {
+        let mut result = [0; 0xA0];
+
+        for i in 0..0xA0 {
+            result[i] = self.read_byte((start_address + i) as u16);
+        }
+
+        result
     }
 
     /// Simply returns 0 while also printing a warning to the logger.

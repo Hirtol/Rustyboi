@@ -47,6 +47,7 @@ impl PPU{
 
     /// More efficient batch operation for DMA transfer.
     pub fn oam_dma_transfer(&mut self, values: &[u8]) {
+        //0xFE9F+1-0xFE00 = 0xA0 for OAM size
         if values.len() != 0xA0 {
             panic!("DMA transfer used with an uneven amount of bytes.");
         }
@@ -61,6 +62,7 @@ impl PPU{
             };
             self.oam[i] = current_sprite;
         }
+
         for i in 0..40 {
             log::debug!("OAM SPRITE: {:2} - {:?}", i, self.oam[i]);
         }
