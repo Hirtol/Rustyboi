@@ -165,6 +165,12 @@ impl PPU {
         }
     }
 
+    /// Run the PPU and potentially render a scanline/advance state depending
+    /// on the passed `cpu_clock_increment`
+    ///
+    /// # Returns
+    ///
+    /// Any interrupts that may have occurred during this `do_cycle`.
     pub fn do_cycle(&mut self, cpu_clock_increment: u32) -> Option<InterruptFlags>{
         self.current_cycles += cpu_clock_increment;
 

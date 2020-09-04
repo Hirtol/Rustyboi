@@ -45,7 +45,7 @@ const FRAME_DELAY: Duration = Duration::from_nanos(1_000_000_000u64 / FPS);
 fn main() {
     CombinedLogger::init(vec![
         TermLogger::new(LevelFilter::Debug, Config::default(), TerminalMode::Mixed),
-        //WriteLogger::new(LevelFilter::Trace, ConfigBuilder::new().set_location_level(LevelFilter::Off).set_time_level(LevelFilter::Off).set_target_level(LevelFilter::Off).build(), BufWriter::new(File::create("my_rust_binary.log").unwrap())),
+        //WriteLogger::new(LevelFilter::Debug, ConfigBuilder::new().set_location_level(LevelFilter::Off).set_time_level(LevelFilter::Off).set_target_level(LevelFilter::Off).build(), BufWriter::new(File::create("rustyboi.log").unwrap())),
     ])
     .unwrap();
 
@@ -70,18 +70,18 @@ fn main() {
     .unwrap();
 
     let mut cartridge =
-        read("***REMOVED***roms\\Tennis.gb")
+        read("***REMOVED***roms\\Dr. Mario.gb")
             .unwrap();
-    let cpu_test = read("***REMOVED***test roms\\cpu_instrs\\individual\\02-interrupts.gb").unwrap();
+    let cpu_test = read("***REMOVED***test roms\\cpu_instrs\\individual\\03-op sp,hl.gb").unwrap();
     let cpu_test2 = read("***REMOVED***test roms\\mooneye\\tests\\acceptance\\timer\\tim00.gb").unwrap();
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cpu_test, DEFAULT_DISPLAY_COLOURS);
 
-    test_fast(sdl_context, &mut canvas, &mut screen_texture, &cpu_test);
+    // test_fast(sdl_context, &mut canvas, &mut screen_texture, &cpu_test);
+    //
+    // return;
 
-    return;
-
-    let mut emulator = Emulator::new(Option::None, &cartridge, DEFAULT_DISPLAY_COLOURS);
+    let mut emulator = Emulator::new(Option::None, &cpu_test, DEFAULT_DISPLAY_COLOURS);
 
     let mut cycles = 0;
 
@@ -213,7 +213,6 @@ fn test_fast(
                 emulator.emulate_cycle();
                 count += 1;
                 if count % 100_000_000 == 0 {
-                    emulator.tilemap_image();
                     warn!("REACHED VALUE: {} AFTER: {:?}", count, start_time.elapsed());
                     break;
                 }

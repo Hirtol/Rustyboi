@@ -81,17 +81,17 @@ impl<M: MemoryMapper> CPU<M> {
 
         self.opcode = self.get_instr_u8();
 
-        // trace!(
-        //     "Executing opcode: {:04X} - registers: {}",
-        //     self.opcode,
-        //     self.registers,
-        // );
-        trace!(
-            "Executing opcode: {:04X} - registers: {} - name: {}",
+        info!(
+            "Executing opcode: {:04X} - registers: {}",
             self.opcode,
             self.registers,
-            get_assembly_from_opcode(self.opcode)
         );
+        // trace!(
+        //     "Executing opcode: {:04X} - registers: {} - name: {}",
+        //     self.opcode,
+        //     self.registers,
+        //     get_assembly_from_opcode(self.opcode)
+        // );
 
         self.execute(self.opcode);
     }
@@ -343,8 +343,6 @@ impl<M: MemoryMapper> CPU<M> {
 
     /// `halt until interrupt occurs (low power)`
     fn halt(&mut self) {
-        //TODO: Finish implementing this.
-        // Check: https://www.reddit.com/r/EmuDev/comments/5ie3k7/infinite_loop_trying_to_pass_blarggs_interrupt/
         self.halted = true;
     }
 
@@ -604,15 +602,13 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `00HC`
     fn add_sp(&mut self) {
-        let value = self.get_instr_u8() as i8;
-        let (new_value, overflowed) = self.registers.sp.overflowing_add(value as u16);
+        let value = self.get_instr_u8() as i8 as u16;
+        let new_value = self.registers.sp.wrapping_add(value);
 
         self.registers.set_zf(false);
         self.registers.set_n(false);
-        //TODO: Check if this half flag is correct (doc says bit 3, but this should be a 16 bit?!)
-        self.registers
-            .set_h((self.registers.sp & 0xF) + (value as u16 & 0xF) > 0xF);
-        self.registers.set_cf(overflowed);
+        self.registers.set_h((self.registers.sp & 0xF) + (value & 0xF) > 0xF);
+        self.registers.set_cf((self.registers.sp & 0xFF) + (value & 0xFF) > 0xFF);
 
         self.registers.sp = new_value;
 
@@ -634,15 +630,15 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `00HC`
     fn load_sp_i(&mut self) {
-        let value = self.get_instr_u8() as i8;
-        let (new_value, overflowed) = self.registers.sp.overflowing_add(value as u16);
+        let value = self.get_instr_u8() as i8 as u16;
+        let (new_value) = self.registers.sp.wrapping_add(value);
 
         self.registers.set_hl(new_value);
         self.registers.set_zf(false);
         self.registers.set_n(false);
-        self.registers
-            .set_h((self.registers.sp & 0xF) + (value as u16 & 0xF) > 0xF);
-        self.registers.set_cf(overflowed);
+        self.registers.set_h((self.registers.sp & 0xF) + (value & 0xF) > 0xF);
+        // Test if overflow on 7th bit.
+        self.registers.set_cf((self.registers.sp & 0xFF) + (value & 0xFF) > 0xFF);
 
         self.add_cycles();
     }
@@ -651,7 +647,7 @@ impl<M: MemoryMapper> CPU<M> {
     /// Load the value of `HL` into `SP`
     ///
     /// Flags: `----`
-    fn load_sp(&mut self) {
+    fn load_sp_hl(&mut self) {
         self.registers.sp = self.registers.hl();
         self.add_cycles();
     }

@@ -136,7 +136,7 @@ impl<M: MemoryMapper> CPU<M> {
             0xF6 => self.or(InstructionAddress::DIRECT),
             0xF7 => self.rst(0x30),
             0xF8 => self.load_sp_i(),
-            0xF9 => self.load_sp(),
+            0xF9 => self.load_sp_hl(),
             0xFA => self.load_8bit(A, InstructionAddress::DirectMem),
             0xFB => self.ei(),
             0xFC | 0xFD => self.unknown(),

@@ -50,6 +50,10 @@ impl Emulator {
         self.cpu.cycles_performed
     }
 
+    pub fn frame_buffer(&self) -> [u8; FRAMEBUFFER_SIZE] {
+        self.mmu.borrow().ppu.frame_buffer().clone()
+    }
+
     /// Emulate one CPU cycle, and any other things that need to happen.
     ///
     /// # Returns
@@ -75,41 +79,6 @@ impl Emulator {
         // Need some way to remember the to be done cycles then though.
         // EI checker? Run till EI is enabled sort of thing.
         delta_cycles
-    }
-
-    pub fn frame_buffer(&self) -> [u8; FRAMEBUFFER_SIZE] {
-        self.mmu.borrow().ppu.frame_buffer().clone()
-    }
-
-    pub fn tilemap_image(&self) {
-        //let tile_data: TileData = self.mmu.borrow().get_tile_data();
-        let back_x = 8;
-        let back_y = 1024;
-
-        let mut imagebuf = image::ImageBuffer::new(back_x, back_y);
-
-        for (x, y, pixel) in imagebuf.enumerate_pixels_mut() {
-            let dx = 7 - (x % 8);
-            let dy = 2 * (y % 8) as u16;
-            // Pixel data is spread over 2 bytes
-            let a = self.mmu.borrow().read_byte((0x8200 + y) as u16);
-            let b = self.mmu.borrow().read_byte((0x8200 + y + 1) as u16);
-            //warn!("READING BYTES: {:04x} {:04x}", 0x9000 + y, 0x9000 +y + 1);
-            let bit1 = (a & (1 << dx)) >> dx;
-            let bit2 = (b & (1 << dx)) >> dx;
-
-            let pixeldata = bit1 | (bit2 << 1);
-            let color = self
-                .mmu
-                .borrow()
-                .ppu
-                .colorisor
-                .get_color(&self.mmu.borrow().ppu.bg_window_palette.color(pixeldata));
-
-            *pixel = image::Rgb([color.0, color.1, color.2]);
-        }
-
-        imagebuf.save("test.png").unwrap();
     }
 
     /// Pass the provided `InputKey` to the emulator and ensure it's `pressed` state
@@ -209,3 +178,34 @@ impl Emulator {
         InterruptFlags::from_bits_truncate(self.mmu.borrow().read_byte(INTERRUPTS_FLAG))
     }
 }
+
+// pub fn tilemap_image(&self) {
+//     //let tile_data: TileData = self.mmu.borrow().get_tile_data();
+//     let back_x = 8;
+//     let back_y = 1024;
+//
+//     let mut imagebuf = image::ImageBuffer::new(back_x, back_y);
+//
+//     for (x, y, pixel) in imagebuf.enumerate_pixels_mut() {
+//         let dx = 7 - (x % 8);
+//         let dy = 2 * (y % 8) as u16;
+//         // Pixel data is spread over 2 bytes
+//         let a = self.mmu.borrow().read_byte((0x8200 + y) as u16);
+//         let b = self.mmu.borrow().read_byte((0x8200 + y + 1) as u16);
+//         //warn!("READING BYTES: {:04x} {:04x}", 0x9000 + y, 0x9000 +y + 1);
+//         let bit1 = (a & (1 << dx)) >> dx;
+//         let bit2 = (b & (1 << dx)) >> dx;
+//
+//         let pixeldata = bit1 | (bit2 << 1);
+//         let color = self
+//             .mmu
+//             .borrow()
+//             .ppu
+//             .colorisor
+//             .get_color(&self.mmu.borrow().ppu.bg_window_palette.color(pixeldata));
+//
+//         *pixel = image::Rgb([color.0, color.1, color.2]);
+//     }
+//
+//     imagebuf.save("test.png").unwrap();
+// }

@@ -16,7 +16,7 @@ impl<M: MemoryMapper> CPU<M> {
     /// a prefix opcode.
     pub fn cb_prefix_call(&mut self) {
         self.opcode = self.get_instr_u8();
-        trace!(
+        log::info!(
             "Executing opcode: {:04X} - registers: {}",
             self.opcode,
             self.registers,
