@@ -35,7 +35,7 @@ pub struct CPU<M: MemoryMapper> {
     opcode: u8,
     registers: Registers,
     mmu: MMU<M>,
-    halted: bool,
+    pub halted: bool,
     delayed_ime: bool,
 }
 
@@ -344,6 +344,7 @@ impl<M: MemoryMapper> CPU<M> {
     /// `halt until interrupt occurs (low power)`
     fn halt(&mut self) {
         //TODO: Finish implementing this.
+        // Check: https://www.reddit.com/r/EmuDev/comments/5ie3k7/infinite_loop_trying_to_pass_blarggs_interrupt/
         self.halted = true;
     }
 

@@ -137,8 +137,6 @@ pub struct PPU {
     window_y: u8,
     current_cycles: u32,
     vblank_cycles: u32,
-    // Until the architecture rework this will essentially be a ghost IF register.
-    pub pending_interrupts: InterruptFlags,
 }
 
 impl PPU {
@@ -164,16 +162,17 @@ impl PPU {
             window_y: 0,
             current_cycles: 0,
             vblank_cycles: 0,
-            pending_interrupts: Default::default(),
         }
     }
 
-    pub fn do_cycle(&mut self, cpu_clock_increment: u32) {
+    pub fn do_cycle(&mut self, cpu_clock_increment: u32) -> Option<InterruptFlags>{
         self.current_cycles += cpu_clock_increment;
 
         if !self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
-            return;
+            return None;
         }
+
+        let mut pending_interrupts = InterruptFlags::default();
 
         // Everything but V-Blank, 144*456
         if self.current_cycles < 65664 {
@@ -185,13 +184,13 @@ impl PPU {
                 if self.lcd_status.mode_flag() != OamSearch {
                     // After V-Blank we don't want to trigger the interrupt immediately.
                     if self.lcd_status.mode_flag() != VBlank {
-                        self.ly_lyc_compare();
+                        self.ly_lyc_compare(&mut pending_interrupts);
                     }
 
                     self.lcd_status.set_mode_flag(Mode::OamSearch);
                     // OAM Interrupt
                     if self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT) {
-                        self.pending_interrupts.insert(InterruptFlags::LCD);
+                        pending_interrupts.insert(InterruptFlags::LCD);
                     }
                 }
             } else if local_cycles < 252 {
@@ -218,7 +217,7 @@ impl PPU {
                     self.lcd_status.set_mode_flag(HBlank);
 
                     if self.lcd_status.contains(LcdStatus::MODE_0_H_INTERRUPT) {
-                        self.pending_interrupts.insert(InterruptFlags::LCD);
+                        pending_interrupts.insert(InterruptFlags::LCD);
                     }
                 }
             }
@@ -228,15 +227,15 @@ impl PPU {
                 self.lcd_status.set_mode_flag(VBlank);
 
                 self.current_y = self.current_y.wrapping_add(1);
-                self.ly_lyc_compare();
+                self.ly_lyc_compare(&mut pending_interrupts);
                 // A rather hacky way (also taken from GBE Plus) but it'll suffice for now.
                 self.vblank_cycles = self.current_cycles - 65664;
 
                 if self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT) {
-                    self.pending_interrupts.insert(InterruptFlags::LCD);
+                    pending_interrupts.insert(InterruptFlags::LCD);
                 }
 
-                self.pending_interrupts.insert(InterruptFlags::VBLANK);
+                pending_interrupts.insert(InterruptFlags::VBLANK);
             } else if self.current_cycles < CYCLES_PER_FRAME {
                 self.vblank_cycles += cpu_clock_increment;
                 if self.vblank_cycles >= 456 {
@@ -245,19 +244,21 @@ impl PPU {
                     if self.current_y == 154 {
                         self.current_cycles -= CYCLES_PER_FRAME;
                         self.current_y = 0;
-                        self.ly_lyc_compare();
+                        self.ly_lyc_compare(&mut pending_interrupts);
                     } else {
                         self.current_y = self.current_y.wrapping_add(1);
-                        self.ly_lyc_compare();
+                        self.ly_lyc_compare(&mut pending_interrupts);
                     }
                 }
             } else {
                 // We have exceeded the 70224 cycles, reset.
                 self.current_cycles -= CYCLES_PER_FRAME;
                 self.current_y = 0;
-                self.ly_lyc_compare();
+                self.ly_lyc_compare(&mut pending_interrupts);
             }
         }
+
+        if !pending_interrupts.is_empty() { Some(pending_interrupts) } else { None }
     }
 
     pub fn draw_scanline(&mut self) {
@@ -487,13 +488,13 @@ impl PPU {
         }
     }
 
-    fn ly_lyc_compare(&mut self) {
+    fn ly_lyc_compare(&mut self, pending_interrupts: &mut InterruptFlags) {
         // Shamelessly ripped from GBE-Plus, since I couldn't figure out from the docs
         // what we were supposed to do with this interrupt.
         if self.current_y == self.compare_line {
             self.lcd_status.set(LcdStatus::COINCIDENCE_FLAG, true);
             if self.lcd_status.contains(LcdStatus::COINCIDENCE_INTERRUPT) {
-                self.pending_interrupts.set(InterruptFlags::LCD, true);
+                pending_interrupts.set(InterruptFlags::LCD, true);
             }
         }
     }

@@ -4,7 +4,7 @@ use bitflags::*;
 pub const JOYPAD_REGISTER: u16 = 0xFF00;
 
 #[derive(Debug, Copy, Clone)]
-pub enum InputKeys {
+pub enum InputKey {
     START(bool),
     SELECT(bool),
     A(bool),

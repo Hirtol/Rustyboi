@@ -39,7 +39,6 @@ impl Emulator {
         )));
         Emulator {
             cpu: CPU::new(&mmu),
-
             mmu,
         }
     }
@@ -66,9 +65,10 @@ impl Emulator {
 
         let delta_cycles = self.cpu.cycles_performed - prior_cycles;
 
-        self.mmu.borrow_mut().ppu.do_cycle(delta_cycles as u32);
-
-        self.mmu.borrow_mut().timers.tick_timers(delta_cycles);
+        let mut interrupt = self.mmu.borrow_mut().ppu.do_cycle(delta_cycles as u32);
+        self.add_new_interrupts(interrupt);
+        interrupt = self.mmu.borrow_mut().timers.tick_timers(delta_cycles);
+        self.add_new_interrupts(interrupt);
 
         // For PPU timing, maybe see how many cycles the cpu did, pass this to the PPU,
         // and have the PPU run until it has done all those, OR reaches an interrupt.
@@ -112,45 +112,64 @@ impl Emulator {
         imagebuf.save("test.png").unwrap();
     }
 
-    pub fn handle_input(&mut self, input: InputKeys) {
-        let mut interrupts = self.get_interrupts();
-        interrupts.insert(InterruptFlags::JOYPAD);
-        self.mmu.borrow_mut().write_byte(INTERRUPTS_FLAG, interrupts.bits());
+    /// Pass the provided `InputKey` to the emulator and ensure it's `pressed` state
+    /// is represented for the current running `ROM`.
+    pub fn handle_input(&mut self, input: InputKey) {
+        self.add_new_interrupts(self.handle_external_input(input));
+    }
+
+    fn handle_external_input(&self, input: InputKey) -> Option<InterruptFlags> {
         let mut inputs = &mut self.mmu.borrow_mut().joypad_register;
+
         debug!("Setting Handle for input {:?}", input);
+
         match input {
-            InputKeys::START(pressed) => {
+            InputKey::START(pressed) => {
                 inputs.set(JoypadFlags::BUTTON_KEYS, !pressed);
                 inputs.set(JoypadFlags::DOWN_START, !pressed);
             },
-            InputKeys::SELECT(pressed) => {
+            InputKey::SELECT(pressed) => {
                 inputs.set(JoypadFlags::BUTTON_KEYS, !pressed);
                 inputs.set(JoypadFlags::UP_SELECT, !pressed);
             },
-            InputKeys::A(pressed) => {
+            InputKey::A(pressed) => {
                 inputs.set(JoypadFlags::BUTTON_KEYS, !pressed);
                 inputs.set(JoypadFlags::RIGHT_A, !pressed);
             },
-            InputKeys::B(pressed) => {
+            InputKey::B(pressed) => {
                 inputs.set(JoypadFlags::BUTTON_KEYS, !pressed);
                 inputs.set(JoypadFlags::LEFT_B, !pressed);
             },
-            InputKeys::UP(pressed) => {
+            InputKey::UP(pressed) => {
                 inputs.set(JoypadFlags::DIRECTION_KEYS, !pressed);
                 inputs.set(JoypadFlags::UP_SELECT, !pressed);
             },
-            InputKeys::DOWN(pressed) => {
+            InputKey::DOWN(pressed) => {
                 inputs.set(JoypadFlags::DIRECTION_KEYS, !pressed);
                 inputs.set(JoypadFlags::DOWN_START, !pressed);
             },
-            InputKeys::LEFT(pressed) => {
+            InputKey::LEFT(pressed) => {
                 inputs.set(JoypadFlags::DIRECTION_KEYS, !pressed);
                 inputs.set(JoypadFlags::LEFT_B, !pressed);
             },
-            InputKeys::RIGHT(pressed) => {
+            InputKey::RIGHT(pressed) => {
                 inputs.set(JoypadFlags::DIRECTION_KEYS, !pressed);
                 inputs.set(JoypadFlags::RIGHT_A, !pressed);
             },
+        }
+
+        Some(InterruptFlags::JOYPAD)
+    }
+
+    /// Add any inputs to the existing flag register, will as a side effect stop the CPU from
+    /// HALTing.
+    fn add_new_interrupts(&mut self, interrupt: Option<InterruptFlags>) {
+        if let Some(intr) = interrupt {
+           self.cpu.halted = false;
+
+            let mut interrupts = self.get_interrupts();
+            interrupts.insert(intr);
+            self.mmu.borrow_mut().write_byte(INTERRUPTS_FLAG, interrupts.bits())
         }
     }
 
@@ -160,9 +179,6 @@ impl Emulator {
         }
 
         let mut interrupt_flags: InterruptFlags = self.get_interrupts();
-        // Handle the interrupts queued from the PPU and clear them until we rework the architecture
-        interrupt_flags.insert(self.mmu.borrow().ppu.pending_interrupts);
-        self.mmu.borrow_mut().ppu.pending_interrupts = InterruptFlags::default();
 
         let interrupt_enable: InterruptFlags =
             InterruptFlags::from_bits_truncate(self.mmu.borrow().read_byte(INTERRUPTS_ENABLE));
@@ -178,7 +194,7 @@ impl Emulator {
             let repr_flag = InterruptFlags::from_bits_truncate(interrupt as u8);
 
             if interrupt_flags.contains(repr_flag) && interrupt_enable.contains(repr_flag) {
-                trace!("Firing {:?} interrupt", interrupt);
+                debug!("Firing {:?} interrupt", interrupt);
                 interrupt_flags.remove(repr_flag);
 
                 self.mmu

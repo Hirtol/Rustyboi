@@ -1,4 +1,4 @@
-use crate::io::interrupts::Interrupts;
+use crate::io::interrupts::{Interrupts, InterruptFlags};
 use crate::io::timer::InputClock::C1024;
 
 ///This register is incremented at rate of 16384Hz (~16779Hz on SGB).
@@ -40,9 +40,8 @@ pub struct TimerRegisters {
 }
 
 impl TimerRegisters {
-    pub fn tick_timers(&mut self, delta_cycles: u128) -> Option<Interrupts> {
+    pub fn tick_timers(&mut self, delta_cycles: u128) -> Option<InterruptFlags> {
         self.divider_cycle_counter += delta_cycles;
-        self.timer_cycle_counter += delta_cycles;
 
         // Divider register will increment at 16_384Hz
         // At 100% speed we should see 4194304 cycles per second.
@@ -54,7 +53,9 @@ impl TimerRegisters {
         }
 
         if self.timer_control.timer_enabled {
+            self.timer_cycle_counter += delta_cycles;
             let threshold;
+
             match self.timer_control.input_select {
                 InputClock::C16 => {
                     // Increment every 16 cycles
@@ -83,12 +84,12 @@ impl TimerRegisters {
         None
     }
 
-    fn tick_timer(&mut self) -> Option<Interrupts>{
+    fn tick_timer(&mut self) -> Option<InterruptFlags>{
         let (new_value, overflowed) = self.timer_counter.overflowing_add(1);
 
         if overflowed {
             self.timer_counter = self.timer_modulo;
-            Some(Interrupts::TIMER)
+            Some(InterruptFlags::TIMER)
         } else {
             self.timer_counter = new_value;
             None
@@ -98,9 +99,13 @@ impl TimerRegisters {
     /// Write to the divider register, this will always reset it to 0x00.
     pub fn set_divider(&mut self) {
         self.divider_register = 0;
+        // We reset this here, but it could very well be that I misunderstood MooneyeGB's test
+        // TODO: Verify with div_write.gb test
+        self.timer_counter = 0;
     }
 
     pub fn set_timer_control(&mut self, value: u8) {
+        log::debug!("Setting timer control!");
         self.timer_control = TimerControl::from(value);
     }
 }
