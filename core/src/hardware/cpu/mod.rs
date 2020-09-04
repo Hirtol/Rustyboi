@@ -375,15 +375,14 @@ impl<M: MemoryMapper> CPU<M> {
     where
         Self: ToU8<T>,
     {
-        let value = self
-            .read_u8_value(target)
-            .wrapping_add(self.registers.cf() as u8);
-        let (new_value, overflowed) = self.registers.a.overflowing_add(value);
+        let value = self.read_u8_value(target);
+        let carry_flag = self.registers.cf() as u8;
+        let new_value = self.registers.a.wrapping_add(value).wrapping_add(carry_flag);
         self.registers.set_zf(new_value == 0);
         self.registers.set_n(false);
-        self.registers.set_cf(overflowed);
-        self.registers
-            .set_h((self.registers.a & 0xF) + (value & 0xF) > 0xF);
+        self.registers.set_h((self.registers.a & 0xF) + (value & 0xF) + carry_flag > 0xF);
+        self.registers.set_cf((self.registers.a as u16) + (value as u16) + carry_flag as u16 > 0xFF);
+
 
         self.registers.a = new_value;
     }
@@ -414,16 +413,14 @@ impl<M: MemoryMapper> CPU<M> {
     where
         Self: ToU8<T>,
     {
-        let value = self
-            .read_u8_value(target)
-            .wrapping_add(self.registers.cf() as u8);
-        let (new_value, overflowed) = self.registers.a.overflowing_sub(value);
+        let value = self.read_u8_value(target);
+        let carry_flag = self.registers.cf() as u8;
+        let new_value = self.registers.a.wrapping_sub(value).wrapping_sub(carry_flag);
+
         self.registers.set_zf(new_value == 0);
         self.registers.set_n(true);
-        self.registers.set_cf(overflowed);
-        //TODO: Check if works
-        self.registers
-            .set_h(((self.registers.a & 0xF) < (value & 0xF)));
+        self.registers.set_h((self.registers.a & 0xF).wrapping_sub(value & 0xF).wrapping_sub(carry_flag) & (0x10) != 0);
+        self.registers.set_cf((value as u16 + carry_flag as u16) > self.registers.a as u16);
 
         self.registers.a = new_value;
     }

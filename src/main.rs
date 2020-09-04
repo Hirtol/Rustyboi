@@ -44,7 +44,7 @@ const FRAME_DELAY: Duration = Duration::from_nanos(1_000_000_000u64 / FPS);
 
 fn main() {
     CombinedLogger::init(vec![
-        TermLogger::new(LevelFilter::Debug, Config::default(), TerminalMode::Mixed),
+        TermLogger::new(LevelFilter::Warn, Config::default(), TerminalMode::Mixed),
         //WriteLogger::new(LevelFilter::Debug, ConfigBuilder::new().set_location_level(LevelFilter::Off).set_time_level(LevelFilter::Off).set_target_level(LevelFilter::Off).build(), BufWriter::new(File::create("rustyboi.log").unwrap())),
     ])
     .unwrap();
@@ -72,7 +72,7 @@ fn main() {
     let mut cartridge =
         read("***REMOVED***roms\\Dr. Mario.gb")
             .unwrap();
-    let cpu_test = read("***REMOVED***test roms\\cpu_instrs\\individual\\03-op sp,hl.gb").unwrap();
+    let cpu_test = read("***REMOVED***test roms\\cpu_instrs\\individual\\04-op r,imm.gb").unwrap();
     let cpu_test2 = read("***REMOVED***test roms\\mooneye\\tests\\acceptance\\timer\\tim00.gb").unwrap();
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cpu_test, DEFAULT_DISPLAY_COLOURS);
@@ -127,11 +127,11 @@ fn main() {
         }
 
         // Emulate exactly one frame's worth.
-        while cycles < CYCLES_PER_FRAME {
+        while cycles < CYCLES_PER_FRAME*5 {
             cycles += emulator.emulate_cycle() as u32;
         }
 
-        cycles -= CYCLES_PER_FRAME;
+        cycles -= CYCLES_PER_FRAME*5;
 
         fill_texture_and_copy(&mut canvas, &mut screen_texture, &emulator.frame_buffer());
 
