@@ -1,3 +1,5 @@
+//! This module is purely used for providing access to PPU memory resources
+//! to the MMU.
 use super::*;
 use crate::hardware::memory::OAM_ATTRIBUTE_START;
 use crate::hardware::ppu::register_flags::*;
@@ -64,10 +66,6 @@ impl PPU {
                 attribute_flags: AttributeFlags::from_bits_truncate(values[multiplier + 3]),
             };
             self.oam[i] = current_sprite;
-        }
-
-        for i in 0..40 {
-            log::trace!("OAM SPRITE: {:2} - {:?}", i, self.oam[i]);
         }
     }
 

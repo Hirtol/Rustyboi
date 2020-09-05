@@ -185,15 +185,8 @@ impl<T: MemoryMapper> ToU16<InstructionAddress> for CPU<T> {
         use InstructionAddress::*;
 
         match target {
-            BCI => unimplemented!(),
-            DEI => unimplemented!(),
-            HLI => unimplemented!(),
-            HLIP => unimplemented!(),
-            HLIN => unimplemented!(),
             DIRECT => self.get_instr_u16(),
-            DirectMem => unimplemented!(),
-            IoDirect => unimplemented!(),
-            IoC => unimplemented!(),
+            _ => unimplemented!(),
         }
     }
 }
@@ -204,24 +197,15 @@ impl<T: MemoryMapper> SetU16<InstructionAddress> for CPU<T> {
         use InstructionAddress::*;
 
         match target {
-            BCI => unimplemented!(),
-            DEI => unimplemented!(),
-            HLI => unimplemented!(),
-            HLIP => unimplemented!(),
-            HLIN => unimplemented!(),
             DIRECT => {
-                //TODO: Check if big endian/little endian
                 let address = self.get_instr_u16();
                 self.write_short_cycle(address, value);
-                // self.mmu.borrow().set_byte(address, (value & 0x0F) as u8);
-                // self.mmu.borrow().set_byte(address.wrapping_add(1), (value & 0xF0 >> 8) as u8);
             }
             DirectMem => {
                 let address = self.get_instr_u16();
                 self.write_short_cycle(address, value);
             }
-            IoDirect => unimplemented!(),
-            IoC => unimplemented!(),
+            _ => unimplemented!(),
         }
     }
 }

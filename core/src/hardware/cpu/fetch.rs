@@ -1,7 +1,6 @@
 //! Purely here to provide an extra implementation block so that the main mod.rs doesn't get
 //! too cluttered.
 
-use crate::hardware::cpu::instructions::Instruction;
 use crate::hardware::cpu::CPU;
 use crate::hardware::memory::MemoryMapper;
 use log::trace;
@@ -26,6 +25,7 @@ impl<M: MemoryMapper> CPU<M> {
 
     /// Based on the current `PC` will interpret the value at the location in memory as a `u8`
     /// value.
+    ///
     /// Advances the `PC` by 1.
     pub fn get_instr_u8(&mut self) -> u8 {
         let result = self.read_byte_cycle(self.registers.pc);
@@ -36,6 +36,7 @@ impl<M: MemoryMapper> CPU<M> {
 
     /// Based on the current `PC` will interpret the `current` and `current + 1` byte at those locations
     /// in memory as a `u16` value resolved as little endian (least significant byte first).
+    ///
     /// Advances the `PC` by 2.
     pub fn get_instr_u16(&mut self) -> u16 {
         let least_s_byte = self.get_instr_u8() as u16;

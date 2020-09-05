@@ -63,8 +63,6 @@ pub const OB_PALETTE_0: u16 = 0xFF48;
 ///
 /// Same as [OB_PALETTE_0](const.OB_PALETTE_0.html)
 pub const OB_PALETTE_1: u16 = 0xFF49;
-//TODO: Add CGB color palettes.
-
 /// DMA Transfer and Start Address (R/W).
 /// Writing to this register launches a DMA transfer from ROM or RAM to OAM memory (sprite attribute table).
 /// The written value specifies the transfer source address divided by 100h, ie. source & destination are:
@@ -78,17 +76,20 @@ pub const OB_PALETTE_1: u16 = 0xFF49;
 /// [here]: https://gbdev.io/pandocs/#lcd-oam-dma-transfers
 pub const DMA_TRANSFER: u16 = 0xFF46;
 
-// The SCY and SCX registers can be used to scroll the background,
-// allowing to select the origin of the visible 160x144 pixel area within the total 256x256 pixel background map.
-// Background wraps around the screen (i.e. when part of it goes off the screen, it appears on the opposite side.)
-
 pub mod memory_binds;
 pub mod palette;
 pub mod register_flags;
 pub mod tiledata;
 
-//TODO: Implement 10 sprite limit.
+//TODO: Implement 10 sprite per scanline limit.
 //TODO: Implement sprite priority (x-based, in case of tie, then first sprite in mem; start: 0xFE00)
+
+// Misc:
+// If the Window is enabled while drawing the screen (LY is between 0 and 143)
+// then if it is disabled by changing the Bit 5 in LCDC, the Game Boy "remembers"
+// what line it was last rendering from the Window.
+// If the Window, once disabled, is again enabled before VBlank,
+// it starts drawing the Window from the last line it "remembers".
 
 #[derive(Debug, PartialOrd, PartialEq, Copy, Clone)]
 pub enum Mode {
@@ -98,25 +99,11 @@ pub enum Mode {
     LcdTransfer,
 }
 
-// TODO: Check interrupts are working?
-// TODO: Fix BG rendering.
-
-// Notes:
-// OAM x and y coordinates are ALWAYS within viewport. E.g we can ignore SCX and SCY for those.
-//
-
-// Misc:
-// If the Window is enabled while drawing the screen (LY is between 0 and 143)
-// then if it is disabled by changing the Bit 5 in LCDC, the Game Boy "remembers"
-// what line it was last rendering from the Window.
-// If the Window, once disabled, is again enabled before VBlank,
-// it starts drawing the Window from the last line it "remembers".
-
 pub struct PPU {
     frame_buffer: [u8; FRAMEBUFFER_SIZE],
     scanline_buffer: [DmgColor; RESOLUTION_WIDTH],
-    pub colorisor: DisplayColour,
-    // VRAM Data
+    pub colorizer: DisplayColour,
+
     tiles: [Tile; 384],
     tile_map_9800: TileMap,
     tile_map_9c00: TileMap,
@@ -144,7 +131,7 @@ impl PPU {
         PPU {
             frame_buffer: [0; FRAMEBUFFER_SIZE],
             scanline_buffer: [DmgColor::WHITE; RESOLUTION_WIDTH],
-            colorisor: display_colors,
+            colorizer: display_colors,
             tiles: [Tile::default(); 384],
             tile_map_9800: TileMap::new(),
             tile_map_9c00: TileMap::new(),
@@ -205,7 +192,8 @@ impl PPU {
                     self.lcd_status.set_mode_flag(LcdTransfer);
                     // Dirty fix, but when we currently run the system without bootrom
                     // For some reason we end up behind one scanline with timing on the second
-                    // frame???
+                    // frame, whereas running the bootrom prevents this. Must not be setting certain
+                    // values properly when in the CPU initialisation without bootrom.
                     if self.current_y < 144 {
                         // Draw our actual line once we enter Drawing mode.
                         self.draw_scanline();
@@ -257,7 +245,7 @@ impl PPU {
                     }
                 }
             } else {
-                // We have exceeded the 70224 cycles, reset.
+                // We have exceeded the 70224 cycles, reset for the next frame.
                 self.current_cycles -= CYCLES_PER_FRAME;
                 self.current_y = 0;
                 self.ly_lyc_compare(&mut pending_interrupts);
@@ -267,7 +255,7 @@ impl PPU {
         if !pending_interrupts.is_empty() { Some(pending_interrupts) } else { None }
     }
 
-    pub fn draw_scanline(&mut self) {
+    fn draw_scanline(&mut self) {
         if self.lcd_control.contains(LcdControl::BG_WINDOW_PRIORITY) {
             self.draw_bg_scanline();
 
@@ -284,7 +272,7 @@ impl PPU {
         let current_address: usize = (self.current_y as usize * 3 * RESOLUTION_WIDTH);
 
         for (i, colour) in self.scanline_buffer.iter().enumerate() {
-            let colour = self.colorisor.get_color(colour);
+            let colour = self.colorizer.get_color(colour);
 
             self.frame_buffer[current_address + i * 3] = colour.0;
             self.frame_buffer[current_address + i * 3 + 1] = colour.1;
@@ -302,7 +290,6 @@ impl PPU {
         // We need to first divide by 8, to then multiply by 32 for our 1d representation array.
         let tile_lower_bound =
             ((scanline_to_be_rendered / 8) as u16 * 32) + (self.scroll_x / 8) as u16;
-        //TODO: May need to be 32? 20 makes more sense considering 20*8 = 160.
         // Modulo would only be necessary for an extreme case like scroll_x = 250 and scanline = 255
         let mut tile_higher_bound = (tile_lower_bound as u16 + 20) % BACKGROUND_TILE_SIZE as u16;
 
@@ -340,19 +327,13 @@ impl PPU {
         if self.current_y < self.window_y || self.window_x >= 160 {
             return;
         }
-        if self.window_x % 8 != 0 {
-            log::warn!("Attempted window rendering not multiple of 8, implement!");
-            return;
-        }
 
-        log::debug!("Scanline window creating!");
-
-        // -7 is apparently necessary for some reason
         let scanline_to_be_rendered = self.current_y;
+        // -7 is apparently necessary for some reason
         let window_x = self.window_x.wrapping_sub(7);
         // scanline_to_be_rendered can be in range 0-255, where each tile is 8 in length.
         // As we'll want to use this variable to index on the TileMap (1 byte pointer to tile)
-        // We need to first divide by 8, to then multiply by 32 for our 1d representation array.
+        // We need to first divide by 8, and then multiply by 32 for our 1d representation array.
         let tile_lower_bound = ((scanline_to_be_rendered / 8) as u16 * 32) + (window_x / 8) as u16;
         // We need as many tiles as there are to the end of the current scanline, even if they're
         // partial, therefore we need a ceiling divide.
@@ -395,7 +376,7 @@ impl PPU {
             let screen_x_pos = sprite.x_pos as i16 - 8;
             let screen_y_pos = sprite.y_pos as i16 - 16;
 
-            if !sprite_on_scanline(self.current_y as i16, screen_y_pos, y_size as i16) {
+            if !is_sprite_on_scanline(self.current_y as i16, screen_y_pos, y_size as i16) {
                 continue;
             }
 
@@ -411,7 +392,7 @@ impl PPU {
                 line = y_size - (line + 1);
             }
 
-            // This assumes the 16 long tiles are next to each other in memory, if not.. well..
+            // This assumes the 16 pixels long tiles are next to each other in memory, if not.. well..
             let tile = if line < 8 {
                 self.tiles[sprite.tile_number as usize]
             } else {
@@ -517,17 +498,6 @@ impl PPU {
     }
 }
 
-fn sprite_on_scanline(scanline_y: i16, y_pos: i16, y_size: i16) -> bool {
+fn is_sprite_on_scanline(scanline_y: i16, y_pos: i16, y_size: i16) -> bool {
     (scanline_y >= y_pos) && (scanline_y < (y_pos + y_size))
-}
-
-#[test]
-fn bo() {
-    let test: u8 = (-20i8) as u8;
-
-    let test = 240;
-    assert_eq!(test as i16, 240);
-
-    let trues = 20u8;
-    println!("{}", trues.wrapping_add(test))
 }

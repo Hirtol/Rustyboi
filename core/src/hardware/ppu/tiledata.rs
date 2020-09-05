@@ -17,7 +17,7 @@ use std::fmt::Debug;
 use std::mem::size_of;
 use std::ops::Index;
 
-// 128 tiles each.
+// 128 tiles each of 16 bytes each.
 pub const TILE_BLOCK_0_START: u16 = 0x8000;
 pub const TILE_BLOCK_0_END: u16 = 0x87FF;
 
@@ -54,12 +54,6 @@ pub struct TileMap {
     pub data: [u8; BACKGROUND_TILE_SIZE],
 }
 
-pub struct TileData {
-    pub tiles: [Tile; 384],
-    pub background_tile_0: TileMap,
-    pub background_tile_1: TileMap,
-}
-
 #[derive(Default, Copy, Clone)]
 pub struct SpriteAttribute {
     /// Specifies the sprites vertical position on the screen (minus 16).
@@ -80,7 +74,7 @@ pub struct SpriteAttribute {
 }
 
 impl SpriteAttribute {
-    /// Get a byte in the range 0..=3 from this sprite attribute.
+    /// Get a byte in the range `0..=3` from this sprite attribute.
     pub fn get_byte(&self, byte_num: u8) -> u8 {
         match byte_num {
             0 => self.y_pos,
@@ -91,7 +85,7 @@ impl SpriteAttribute {
         }
     }
 
-    /// Set a byte in the `byte_num` range 0..=3 to the specified `value`
+    /// Set a byte in the `byte_num` range `0..=3` to the specified `value`
     pub fn set_byte(&mut self, byte_num: u8, value: u8) {
         match byte_num {
             0 => self.y_pos = value,
@@ -117,14 +111,6 @@ impl Tile {
     pub fn get_pixel_line(&self, mut line_y: u8) -> (u8, u8) {
         let address = (line_y * 2) as usize;
         (self.data[address], self.data[address + 1])
-    }
-}
-
-impl Index<usize> for Tile {
-    type Output = u8;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.data[index]
     }
 }
 

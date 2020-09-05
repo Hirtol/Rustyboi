@@ -5,6 +5,7 @@ use crate::hardware::cpu::CPU;
 use crate::hardware::memory::MemoryMapper;
 
 impl<M: MemoryMapper> CPU<M> {
+
     /// Rotate the register `target` left
     /// C <- [7 <- 0] <- [7]
     ///

@@ -60,7 +60,7 @@ impl<M: MemoryMapper> CPU<M> {
             result.registers.set_de(0x00D8);
             result.registers.set_hl(0x014D);
             result.registers.sp = 0xFFFE;
-            // Initialise the DIV register to this value.
+            // Initialise the DIV register to the value it would have had we run the bootrom.
             result.mmu.borrow_mut().write_byte(0xFF04, 0xAB);
         }
 
@@ -134,8 +134,6 @@ impl<M: MemoryMapper> CPU<M> {
         Self: ToU16<U>,
     {
         let source_value = self.read_u16_value(source);
-
-        trace!("Executing LD 0x{:04X}", source_value);
 
         self.set_u16_value(destination, source_value);
     }
@@ -220,7 +218,6 @@ impl<M: MemoryMapper> CPU<M> {
 
         self.registers.set_zf(new_value == 0);
         self.registers.set_n(true);
-        //TODO: Check half carry flag for decrement
         self.registers.set_h(old_value & 0xF == 0);
 
         self.set_u8_value(target, new_value);
@@ -397,13 +394,11 @@ impl<M: MemoryMapper> CPU<M> {
         Self: ToU8<T>,
     {
         let value = self.read_u8_value(target);
-        let (new_value, overflowed) = self.registers.a.overflowing_sub(value);
+        let new_value = self.registers.a.wrapping_sub(value);
         self.registers.set_zf(new_value == 0);
         self.registers.set_n(true);
-        self.registers.set_cf(overflowed);
-        //TODO: Check if works
-        self.registers
-            .set_h(((self.registers.a & 0xF) < (value & 0xF)));
+        self.registers.set_h((self.registers.a & 0xF).wrapping_sub(value & 0xF) & (0x10) != 0);
+        self.registers.set_cf(value > self.registers.a);
 
         self.registers.a = new_value;
     }
@@ -480,15 +475,12 @@ impl<M: MemoryMapper> CPU<M> {
     where
         Self: ToU8<T>,
     {
-        //TODO: Check for working.
         let value = self.read_u8_value(target);
-        let (new_value, overflowed) = self.registers.a.overflowing_sub(value);
+        let new_value = self.registers.a.wrapping_sub(value);
         self.registers.set_zf(new_value == 0);
         self.registers.set_n(true);
-        self.registers.set_cf(overflowed);
-        //TODO: Check if works
-        self.registers
-            .set_h(((self.registers.a & 0xF) < (value & 0xF)));
+        self.registers.set_cf(value > self.registers.a);
+        self.registers.set_h((self.registers.a & 0xF).wrapping_sub(value & 0xF) & (0x10) != 0);
     }
 
     /// Return from subroutine.
@@ -655,8 +647,7 @@ impl<M: MemoryMapper> CPU<M> {
     /// Enable Interrupts by setting the IME flag.
     /// The flag is only set after the instruction following EI.
     fn ei(&mut self) {
-        use crate::hardware::memory::*;
-        //TODO: Actually do this properly ._.
+        //TODO: Actually do this properly
         self.delayed_ime = true;
     }
 
@@ -800,13 +791,7 @@ impl<M: MemoryMapper> CPU<M> {
     {
         let value = self.read_u8_value(target);
         let bitmask = 1 << bit;
-        // log::debug!(
-        //     "Executing BIT {}, {:?} with bitmask: {:08b} and H value {:08b}",
-        //     bit,
-        //     target,
-        //     bitmask,
-        //     value
-        // );
+
         self.registers.set_zf((value & bitmask) == 0);
         self.registers.set_n(false);
         self.registers.set_h(true)

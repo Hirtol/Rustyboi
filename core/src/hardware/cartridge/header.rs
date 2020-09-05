@@ -82,8 +82,7 @@ fn read_cgb_flag(rom: &[u8]) -> bool {
     let cgb_flag = rom[0x143];
 
     match cgb_flag {
-        0x80 => true,
-        0xC0 => true,
+        0x80 | 0xC0 => true,
         _ => false,
     }
 }

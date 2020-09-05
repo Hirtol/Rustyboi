@@ -3,6 +3,7 @@ use crate::hardware::memory::MemoryMapper;
 use crate::hardware::registers::Reg8;
 
 impl<M: MemoryMapper> CPU<M> {
+
     pub fn execute(&mut self, opcode: u8) {
         use crate::hardware::registers::Reg16::*;
         use crate::hardware::registers::Reg8::*;
@@ -177,6 +178,7 @@ pub enum InstructionAddress {
     IoC,
 }
 
+/// Only exists to make the instruction decoding a bit less of a hassle
 #[derive(Debug, Copy, Clone)]
 pub enum WrapperEnum {
     Reg8(Reg8),

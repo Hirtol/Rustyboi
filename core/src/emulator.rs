@@ -7,7 +7,6 @@ use crate::hardware::cpu::CPU;
 use crate::hardware::memory::*;
 use crate::hardware::memory::{Memory, MemoryMapper};
 use crate::hardware::ppu::palette::DisplayColour;
-use crate::hardware::ppu::tiledata::TileData;
 use crate::hardware::ppu::{FRAMEBUFFER_SIZE, PPU};
 use crate::hardware::HardwareOwner;
 use crate::io::bootrom::*;

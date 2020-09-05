@@ -2,12 +2,10 @@ use crate::hardware::ppu::palette::DmgColor::{DarkGrey, LightGrey, BLACK, WHITE}
 
 #[derive(Debug, PartialOrd, PartialEq, Copy, Clone)]
 pub enum DmgColor {
-    WHITE = 0x0,     //155, 188, 15
-    LightGrey = 0x1, //139, 172, 15
-    DarkGrey = 0x2,  //48, 98, 48
-    BLACK = 0x3,     //15, 56, 15
-    // Doesn't really have a direct value. It's instead used by default for bit 0-1 in Sprites.
-    TRANSPARENT,
+    WHITE = 0x0,
+    LightGrey = 0x1,
+    DarkGrey = 0x2,
+    BLACK = 0x3,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -46,6 +44,9 @@ impl Palette {
         DmgColor::from(self.palette_byte >> 6)
     }
 
+    /// Retrieve the appropriate colour for the provided pixel value.
+    ///
+    /// Due to the aforementioned the `colour_value` should have at most 2 bits in use.
     pub fn color(&self, color_value: u8) -> DmgColor {
         match color_value {
             0 => self.color_0(),
@@ -68,7 +69,7 @@ impl Default for Palette {
 impl DisplayColour {
     pub fn get_color(&self, dmg_color: &DmgColor) -> RGB {
         match dmg_color {
-            WHITE | DmgColor::TRANSPARENT => self.white,
+            WHITE => self.white,
             LightGrey => self.light_grey,
             DarkGrey => self.dark_grey,
             BLACK => self.black,
@@ -90,6 +91,8 @@ impl Into<u8> for Palette {
     }
 }
 
+// Note, this should really be TryFrom, as currently we technically break the contract by including
+// panic!
 impl From<u8> for DmgColor {
     fn from(value: u8) -> Self {
         match value {

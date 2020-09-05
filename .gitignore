@@ -5,6 +5,7 @@ core/target/
 *.gbc
 *.bin
 test roms/
+.cargo/
 
 ### Intellij ###
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio, WebStorm and Rider
