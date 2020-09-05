@@ -10,10 +10,11 @@ one would best refer to another fully working emulator, e.g [PyBoy](https://gith
 
 ## Installation
 ### Build from Source
-1. `git clone `
-2. `cargo build --release`
-3. `cd target/release`
-4. Execute `rustyboi.exe` or your OS's equivalent.
+1. `git clone https://github.com/Hirtol/Rustyboi.git`
+2. `cd Rustboi`
+3. `cargo build --release`
+4. `cd target/release`
+5. Execute `rustyboi.exe` or your OS's equivalent.
 
 ## Sources
 * https://blog.ryanlevick.com/DMG-01/public/book/introduction.html
