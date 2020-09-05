@@ -8,7 +8,6 @@ use crate::hardware::memory::*;
 use crate::hardware::memory::{Memory, MemoryMapper};
 use crate::hardware::ppu::palette::DisplayColour;
 use crate::hardware::ppu::{FRAMEBUFFER_SIZE, PPU};
-use crate::hardware::HardwareOwner;
 use crate::io::bootrom::*;
 use crate::io::interrupts::Interrupts::VBLANK;
 use crate::io::interrupts::{InterruptFlags, Interrupts};
@@ -49,6 +48,10 @@ impl Emulator {
         self.cpu.cycles_performed
     }
 
+    /// Returns the current `frame buffer` from the `PPU`.
+    ///
+    /// Should only be called on multiples of [CYCLES_PER_FRAME](constant.CYCLES_PER_FRAME.html)
+    /// otherwise the data will be only partially complete.
     pub fn frame_buffer(&self) -> [u8; FRAMEBUFFER_SIZE] {
         self.mmu.borrow().ppu.frame_buffer().clone()
     }
@@ -89,8 +92,6 @@ impl Emulator {
     fn handle_external_input(&self, input: InputKey, pressed: bool) -> Option<InterruptFlags> {
         use crate::io::joypad::*;
         let mut inputs = &mut self.mmu.borrow_mut().joypad_register;
-
-        debug!("Setting Handle for input {:?}", input);
 
         if pressed {
             inputs.press_key(input);

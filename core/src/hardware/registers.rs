@@ -160,7 +160,7 @@ impl Display for Registers {
 }
 
 #[cfg(test)]
-mod unit_tests {
+mod tests {
     use crate::hardware::registers::Registers;
 
     #[test]

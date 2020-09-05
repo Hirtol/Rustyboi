@@ -1,7 +1,7 @@
 use crate::io::interrupts::{Interrupts, InterruptFlags};
 use crate::io::timer::InputClock::C1024;
 
-///This register is incremented at rate of 16384Hz (~16779Hz on SGB).
+/// This register is incremented at rate of 16384Hz (~16779Hz on SGB).
 /// Writing any value to this register resets it to 00h.
 ///
 /// Note: The divider is affected by CGB double speed mode, and will increment at 32768Hz in double speed.
@@ -12,7 +12,7 @@ pub const DIVIDER_REGISTER: u16 = 0xFF04;
 pub const TIMER_COUNTER: u16 = 0xFF05;
 /// When the TIMA overflows, this data will be loaded.
 pub const TIMER_MODULO: u16 = 0xFF06;
-
+/// Several flags to indicate incrementing rate of the timer.
 pub const TIMER_CONTROL: u16 = 0xFF07;
 
 #[derive(Debug, Copy, Clone)]
@@ -105,7 +105,6 @@ impl TimerRegisters {
     }
 
     pub fn set_timer_control(&mut self, value: u8) {
-        log::debug!("Setting timer control!");
         self.timer_control = TimerControl::from(value);
     }
 }

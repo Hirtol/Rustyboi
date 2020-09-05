@@ -1,7 +1,6 @@
 use crate::emulator::MMU;
 use crate::hardware::cpu::execute::InstructionAddress::HLI;
 use crate::hardware::cpu::execute::{InstructionAddress, JumpModifier};
-use crate::hardware::cpu::instructions::{Instruction, RegistryTarget};
 use crate::hardware::cpu::tests::{initial_cpu, read_short, set_short};
 use crate::hardware::cpu::CPU;
 use crate::hardware::memory::{Memory, MemoryMapper};

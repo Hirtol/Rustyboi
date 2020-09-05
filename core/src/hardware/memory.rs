@@ -1,7 +1,5 @@
 use crate::hardware::cartridge::Cartridge;
-use crate::hardware::ppu::tiledata::{
-    TILEMAP_9800_START, TILEMAP_9C00_END, TILE_BLOCK_0_START, TILE_BLOCK_2_END,
-};
+use crate::hardware::ppu::tiledata::*;
 use crate::hardware::ppu::PPU;
 use crate::io::bootrom::BootRom;
 use crate::io::interrupts::InterruptFlags;
@@ -94,7 +92,7 @@ impl Memory {
             0x0000..=0x00FF if !self.boot_rom.is_finished => self.boot_rom.read_byte(address),
             ROM_BANK_00_START..=ROM_BANK_00_END => self.cartridge.read_0000_3fff(address),
             ROM_BANK_NN_START..=ROM_BANK_NN_END => self.cartridge.read_4000_7fff(address),
-            //VRAM, TODO: Address performance impact.
+            //VRAM
             TILE_BLOCK_0_START..=TILE_BLOCK_2_END => self.ppu.get_tile_byte(address),
             TILEMAP_9800_START..=TILEMAP_9C00_END => self.ppu.get_tilemap_byte(address),
             EXTERNAL_RAM_START..=EXTERNAL_RAM_END => self.memory[address as usize],
@@ -120,7 +118,7 @@ impl Memory {
 
         match address {
             ROM_BANK_00_START..=ROM_BANK_NN_END => self.cartridge.write(address),
-            //VRAM
+            // VRAM
             TILE_BLOCK_0_START..=TILE_BLOCK_2_END => self.ppu.set_tile_byte(address, value),
             TILEMAP_9800_START..=TILEMAP_9C00_END => self.ppu.set_tilemap_byte(address, value),
             EXTERNAL_RAM_START..=EXTERNAL_RAM_END => self.memory[usize_address] = value,
@@ -184,7 +182,7 @@ impl Memory {
             WX_REGISTER => self.ppu.set_window_x(value),
             0xFF50 if !self.boot_rom.is_finished => {
                 self.boot_rom.is_finished = true;
-                debug!("Finished executing BootRom!");
+                info!("Finished executing BootRom!");
             }
             _ => self.memory[address as usize] = value,
         }

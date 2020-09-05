@@ -1,3 +1,7 @@
+//! Joypad implementation, heavily inspired by MoonEyeGB,
+//! as I couldn't glean from the docs how the Joypad was implemented
+//! with games writing to the Joypad register.
+
 use bitflags::_core::fmt::Formatter;
 use bitflags::*;
 use std::convert::{TryFrom, TryInto};
@@ -32,15 +36,20 @@ impl JoyPad {
         }
     }
 
+    /// Get the current JoyPad register for the most recently selected mode (Button, Direction)
     pub fn get_register(&self) -> u8 {
         !self.selected_mode.bits
     }
 
+    /// Set the register, primarily used to set the current mode (Button, Direction) by games.
+    /// If a game tries to write to the lower nibble for some reason those bits will just be
+    /// discarded.
     pub fn set_register(&mut self, mode: u8) {
         self.selected_mode = JoypadFlags::from_bits_truncate(!mode);
         self.update_flags();
     }
 
+    /// Register a key as pressed down.
     pub fn press_key(&mut self, input: InputKey) {
         use InputKey::*;
         match input {
@@ -50,6 +59,7 @@ impl JoyPad {
         self.update_flags();
     }
 
+    /// Release a key that was pressed down before.
     pub fn release_key(&mut self, input: InputKey) {
         use InputKey::*;
         match input {
