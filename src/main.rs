@@ -44,8 +44,8 @@ const FRAME_DELAY: Duration = Duration::from_nanos(1_000_000_000u64 / FPS);
 
 fn main() {
     CombinedLogger::init(vec![
-        TermLogger::new(LevelFilter::Warn, Config::default(), TerminalMode::Mixed),
-        //WriteLogger::new(LevelFilter::Debug, ConfigBuilder::new().set_location_level(LevelFilter::Off).set_time_level(LevelFilter::Off).set_target_level(LevelFilter::Off).build(), BufWriter::new(File::create("rustyboi.log").unwrap())),
+        TermLogger::new(LevelFilter::Debug, Config::default(), TerminalMode::Mixed),
+        //WriteLogger::new(LevelFilter::Info, ConfigBuilder::new().set_location_level(LevelFilter::Off).set_time_level(LevelFilter::Off).set_target_level(LevelFilter::Off).build(), BufWriter::new(File::create("rustyboi.log").unwrap())),
     ])
     .unwrap();
 
@@ -70,18 +70,18 @@ fn main() {
     .unwrap();
 
     let mut cartridge =
-        read("***REMOVED***roms\\Dr. Mario.gb")
+        read("***REMOVED***roms\\Tetris.gb")
             .unwrap();
-    let cpu_test = read("***REMOVED***test roms\\cpu_instrs\\individual\\04-op r,imm.gb").unwrap();
+    let cpu_test = read("***REMOVED***test roms\\cpu_instrs\\individual\\10-bit ops.gb").unwrap();
     let cpu_test2 = read("***REMOVED***test roms\\mooneye\\tests\\acceptance\\timer\\tim00.gb").unwrap();
 
-    //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cpu_test, DEFAULT_DISPLAY_COLOURS);
+    //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge, DEFAULT_DISPLAY_COLOURS);
 
     // test_fast(sdl_context, &mut canvas, &mut screen_texture, &cpu_test);
     //
     // return;
 
-    let mut emulator = Emulator::new(Option::None, &cpu_test, DEFAULT_DISPLAY_COLOURS);
+    let mut emulator = Emulator::new(Option::None, &cartridge, DEFAULT_DISPLAY_COLOURS);
 
     let mut cycles = 0;
 
@@ -113,13 +113,13 @@ fn main() {
                     }
                 },
                 Event::KeyDown {keycode: Some(key), ..} => {
-                    if let Some(input_key) = keycode_to_input(key, true) {
-                        emulator.handle_input(input_key);
+                    if let Some(input_key) = keycode_to_input(key) {
+                        emulator.handle_input(input_key, true);
                     }
                 },
                 Event::KeyUp {keycode: Some(key), ..} => {
-                    if let Some(input_key) = keycode_to_input(key, false) {
-                        emulator.handle_input(input_key);
+                    if let Some(input_key) = keycode_to_input(key) {
+                        emulator.handle_input(input_key, false);
                     }
                 },
                 _ => {}
@@ -127,11 +127,11 @@ fn main() {
         }
 
         // Emulate exactly one frame's worth.
-        while cycles < CYCLES_PER_FRAME*5 {
+        while cycles < CYCLES_PER_FRAME {
             cycles += emulator.emulate_cycle() as u32;
         }
 
-        cycles -= CYCLES_PER_FRAME*5;
+        cycles -= CYCLES_PER_FRAME;
 
         fill_texture_and_copy(&mut canvas, &mut screen_texture, &emulator.frame_buffer());
 
@@ -148,16 +148,16 @@ fn main() {
     }
 }
 
-fn keycode_to_input(key: Keycode, pressed: bool) -> Option<InputKey> {
+fn keycode_to_input(key: Keycode) -> Option<InputKey> {
     match key {
-        Keycode::Up => Some(InputKey::UP(pressed)),
-        Keycode::Down => Some(InputKey::DOWN(pressed)),
-        Keycode::Left => Some(InputKey::LEFT(pressed)),
-        Keycode::Right => Some(InputKey::RIGHT(pressed)),
-        Keycode::A => Some(InputKey::A(pressed)),
-        Keycode::B => Some(InputKey::B(pressed)),
-        Keycode::S => Some(InputKey::SELECT(pressed)),
-        Keycode::T => Some(InputKey::START(pressed)),
+        Keycode::Up => Some(InputKey::UP),
+        Keycode::Down => Some(InputKey::DOWN),
+        Keycode::Left => Some(InputKey::LEFT),
+        Keycode::Right => Some(InputKey::RIGHT),
+        Keycode::A => Some(InputKey::A),
+        Keycode::B => Some(InputKey::B),
+        Keycode::S => Some(InputKey::SELECT),
+        Keycode::T => Some(InputKey::START),
         _ => None
     }
 }

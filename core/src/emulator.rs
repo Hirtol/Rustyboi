@@ -83,51 +83,23 @@ impl Emulator {
 
     /// Pass the provided `InputKey` to the emulator and ensure it's `pressed` state
     /// is represented for the current running `ROM`.
-    pub fn handle_input(&mut self, input: InputKey) {
-        self.add_new_interrupts(self.handle_external_input(input));
+    pub fn handle_input(&mut self, input: InputKey, pressed: bool) {
+        self.add_new_interrupts(self.handle_external_input(input, pressed));
     }
 
-    fn handle_external_input(&self, input: InputKey) -> Option<InterruptFlags> {
+    fn handle_external_input(&self, input: InputKey, pressed: bool) -> Option<InterruptFlags> {
+        use crate::io::joypad::*;
         let mut inputs = &mut self.mmu.borrow_mut().joypad_register;
 
         debug!("Setting Handle for input {:?}", input);
 
-        match input {
-            InputKey::START(pressed) => {
-                inputs.set(JoypadFlags::BUTTON_KEYS, !pressed);
-                inputs.set(JoypadFlags::DOWN_START, !pressed);
-            },
-            InputKey::SELECT(pressed) => {
-                inputs.set(JoypadFlags::BUTTON_KEYS, !pressed);
-                inputs.set(JoypadFlags::UP_SELECT, !pressed);
-            },
-            InputKey::A(pressed) => {
-                inputs.set(JoypadFlags::BUTTON_KEYS, !pressed);
-                inputs.set(JoypadFlags::RIGHT_A, !pressed);
-            },
-            InputKey::B(pressed) => {
-                inputs.set(JoypadFlags::BUTTON_KEYS, !pressed);
-                inputs.set(JoypadFlags::LEFT_B, !pressed);
-            },
-            InputKey::UP(pressed) => {
-                inputs.set(JoypadFlags::DIRECTION_KEYS, !pressed);
-                inputs.set(JoypadFlags::UP_SELECT, !pressed);
-            },
-            InputKey::DOWN(pressed) => {
-                inputs.set(JoypadFlags::DIRECTION_KEYS, !pressed);
-                inputs.set(JoypadFlags::DOWN_START, !pressed);
-            },
-            InputKey::LEFT(pressed) => {
-                inputs.set(JoypadFlags::DIRECTION_KEYS, !pressed);
-                inputs.set(JoypadFlags::LEFT_B, !pressed);
-            },
-            InputKey::RIGHT(pressed) => {
-                inputs.set(JoypadFlags::DIRECTION_KEYS, !pressed);
-                inputs.set(JoypadFlags::RIGHT_A, !pressed);
-            },
+        if pressed {
+            inputs.press_key(input);
+            Some(InterruptFlags::JOYPAD)
+        } else {
+            inputs.release_key(input);
+            None
         }
-
-        Some(InterruptFlags::JOYPAD)
     }
 
     /// Add any inputs to the existing flag register, will as a side effect stop the CPU from
@@ -163,7 +135,7 @@ impl Emulator {
             let repr_flag = InterruptFlags::from_bits_truncate(interrupt as u8);
 
             if interrupt_flags.contains(repr_flag) && interrupt_enable.contains(repr_flag) {
-                debug!("Firing {:?} interrupt", interrupt);
+                //debug!("Firing {:?} interrupt", interrupt);
                 interrupt_flags.remove(repr_flag);
 
                 self.mmu

@@ -73,7 +73,7 @@ pub struct Memory {
     boot_rom: BootRom,
     cartridge: Cartridge,
     pub ppu: PPU,
-    pub joypad_register: JoypadFlags,
+    pub joypad_register: JoyPad,
     pub timers: TimerRegisters,
 }
 
@@ -84,7 +84,7 @@ impl Memory {
             boot_rom: BootRom::new(boot_rom),
             cartridge: Cartridge::new(cartridge),
             ppu,
-            joypad_register: JoypadFlags::from_bits_truncate(0xFF),
+            joypad_register: JoyPad::new(),
             timers: Default::default()
         }
     }
@@ -123,7 +123,10 @@ impl Memory {
             //VRAM
             TILE_BLOCK_0_START..=TILE_BLOCK_2_END => self.ppu.set_tile_byte(address, value),
             TILEMAP_9800_START..=TILEMAP_9C00_END => self.ppu.set_tilemap_byte(address, value),
-
+            EXTERNAL_RAM_START..=EXTERNAL_RAM_END => self.memory[usize_address] = value,
+            WRAM_BANK_00_START..=WRAM_BANK_00_END => self.memory[usize_address] = value,
+            WRAM_BANK_NN_START..=WRAM_BANK_NN_END => self.memory[usize_address] = value,
+            ECHO_RAM_START..=ECHO_RAM_END => self.memory[(address - ECHO_RAM_OFFSET) as usize] = value,
             OAM_ATTRIBUTE_START..=OAM_ATTRIBUTE_END => self.ppu.set_oam_byte(address, value),
 
             IO_START..=IO_END => self.write_io_byte(address, value),
@@ -135,8 +138,9 @@ impl Memory {
     /// `address` will be cast to `u8` since all registers start with `0xFF`
     fn read_io_byte(&self, address: u16) -> u8 {
         use crate::hardware::ppu::*;
+
         match address {
-            JOYPAD_REGISTER => self.joypad_register.bits(),
+            JOYPAD_REGISTER => self.joypad_register.get_register(),
             DIVIDER_REGISTER => self.timers.divider_register,
             TIMER_COUNTER => self.timers.timer_counter,
             TIMER_MODULO => self.timers.timer_modulo,
@@ -161,7 +165,7 @@ impl Memory {
     fn write_io_byte(&mut self, address: u16, value: u8) {
         use crate::hardware::ppu::*;
         match address {
-            JOYPAD_REGISTER => self.joypad_register = JoypadFlags::from_bits_truncate(value),
+            JOYPAD_REGISTER => self.joypad_register.set_register(value),
             DIVIDER_REGISTER => self.timers.set_divider(),
             TIMER_COUNTER => self.timers.timer_counter = value,
             TIMER_MODULO => self.timers.timer_modulo = value,

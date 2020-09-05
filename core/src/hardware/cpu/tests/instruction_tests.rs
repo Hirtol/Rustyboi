@@ -408,12 +408,13 @@ fn test_sbc() {
     cpu.sbc(C);
 
     assert_eq!(cpu.registers.a, 9);
+    assert!(cpu.registers.hf())
 }
 
 #[test]
 fn test_and() {
     let mut cpu = initial_cpu();
-    // Test carry add
+
     cpu.registers.a = 0b1000_1010;
     cpu.registers.c = 0b1111_0011;
 
@@ -425,7 +426,7 @@ fn test_and() {
 #[test]
 fn test_xor() {
     let mut cpu = initial_cpu();
-    // Test carry add
+
     cpu.registers.a = 0b0000_1010;
     cpu.registers.c = 0b1111_0011;
 
@@ -437,7 +438,7 @@ fn test_xor() {
 #[test]
 fn test_or() {
     let mut cpu = initial_cpu();
-    // Test carry add
+
     cpu.registers.a = 0b0000_1010;
     cpu.registers.c = 0b1111_0011;
 

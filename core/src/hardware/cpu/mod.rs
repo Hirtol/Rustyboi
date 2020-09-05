@@ -60,6 +60,8 @@ impl<M: MemoryMapper> CPU<M> {
             result.registers.set_de(0x00D8);
             result.registers.set_hl(0x014D);
             result.registers.sp = 0xFFFE;
+            // Initialise the DIV register to this value.
+            result.mmu.borrow_mut().write_byte(0xFF04, 0xAB);
         }
 
         result
@@ -81,7 +83,7 @@ impl<M: MemoryMapper> CPU<M> {
 
         self.opcode = self.get_instr_u8();
 
-        info!(
+        trace!(
             "Executing opcode: {:04X} - registers: {}",
             self.opcode,
             self.registers,
