@@ -2,7 +2,7 @@ use log::LevelFilter;
 use log::*;
 use rustyboi_core::emulator::{Emulator, CYCLES_PER_FRAME};
 use rustyboi_core::hardware::cartridge::Cartridge;
-use rustyboi_core::hardware::ppu::palette::{DisplayColour, RGB};
+use rustyboi_core::hardware::ppu::palette::{DisplayColour, RGB, DmgColor};
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::pixels::PixelFormatEnum::RGB24;
@@ -17,6 +17,7 @@ use std::thread::sleep;
 use std::time::{Duration, Instant};
 use rustyboi_core::io::joypad::InputKey;
 use anyhow::Error;
+use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
 
 const DISPLAY_COLOURS: DisplayColour = DisplayColour {
     white: RGB(155, 188, 15),
@@ -70,13 +71,13 @@ fn main() {
     let cpu_test = read("test roms\\cpu_instrs\\individual\\08-misc instrs.gb").unwrap();
     let cpu_test2 = read("test roms/mooneye/tests/acceptance/bits/mem_oam.gb").unwrap();
 
-    //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge, DEFAULT_DISPLAY_COLOURS);
+    //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
     // test_fast(sdl_context, &mut canvas, &mut screen_texture, &cpu_test);
     //
     // return;
 
-    let mut emulator = Emulator::new(Option::None, &cartridge, DEFAULT_DISPLAY_COLOURS);
+    let mut emulator = Emulator::new(Option::None, &cartridge);
 
     let mut cycles = 0;
 
@@ -99,7 +100,7 @@ fn main() {
                         let new_cartridge =
                             read(filename).expect("Could not open the provided file!");
                         emulator =
-                            Emulator::new(Option::None, &new_cartridge, DEFAULT_DISPLAY_COLOURS);
+                            Emulator::new(Option::None, &new_cartridge);
                     } else {
                         warn!("Attempted opening of file: {} which is not a GameBoy rom!", filename);
                     }
@@ -125,7 +126,7 @@ fn main() {
 
         cycles -= CYCLES_PER_FRAME;
 
-        fill_texture_and_copy(&mut canvas, &mut screen_texture, &emulator.frame_buffer());
+        fill_texture_and_copy(&mut canvas, &mut screen_texture, &emulator.frame_buffer(), &DEFAULT_DISPLAY_COLOURS);
 
         canvas.present();
 
@@ -168,9 +169,16 @@ fn setup_sdl(canvas: &mut WindowCanvas) -> Texture {
 }
 
 /// This function assumes pixel_buffer size == texture buffer size, otherwise panic :D
-fn fill_texture_and_copy(canvas: &mut WindowCanvas, texture: &mut Texture, pixel_buffer: &[u8]) {
+fn fill_texture_and_copy(canvas: &mut WindowCanvas, texture: &mut Texture, pixel_buffer: &[DmgColor], colorizer: &DisplayColour) {
     texture.with_lock(Option::None, |arr, pitch| {
-        arr.copy_from_slice(&pixel_buffer)
+        //TODO: Find more efficient way to do this.
+        for (i, colour) in pixel_buffer.iter().enumerate() {
+            let colour = colorizer.get_color(colour);
+
+            arr[i * 3] = colour.0;
+            arr[i * 3 + 1] = colour.1;
+            arr[i * 3 + 2] = colour.2;
+        }
     });
     canvas.copy(&texture, None, None);
 }
@@ -186,7 +194,7 @@ fn vec_to_bootrom(vec: &Vec<u8>) -> [u8; 256] {
 }
 
 fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_texture: &mut Texture, cpu_test: &Vec<u8>) {
-    let mut emulator = Emulator::new(Option::None, &cpu_test, DISPLAY_COLOURS);
+    let mut emulator = Emulator::new(Option::None, &cpu_test);
     let mut count: u128 = 0;
 
     let mut event_pump = sdl_context.event_pump().unwrap();
@@ -237,7 +245,7 @@ fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_textu
             }
         }
 
-        fill_texture_and_copy(&mut canvas, &mut screen_texture, &emulator.frame_buffer());
+        fill_texture_and_copy(&mut canvas, &mut screen_texture, &emulator.frame_buffer(), &DEFAULT_DISPLAY_COLOURS);
 
         canvas.present();
 

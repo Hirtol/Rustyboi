@@ -5,7 +5,10 @@ use std::fmt;
 mod header;
 mod mbc;
 
-pub trait MBC {}
+pub trait MBC {
+    fn read_byte(&self) -> u8;
+    fn write_byte(&mut self);
+}
 
 pub struct Cartridge {
     header: CartridgeHeader,
@@ -16,7 +19,7 @@ pub struct Cartridge {
 impl Cartridge {
     pub fn new(rom: &[u8]) -> Self {
         let header = CartridgeHeader::new(rom);
-        let mbc = Box::from(create_mbc(&header));
+        let mbc = Box::from(create_mbc(&header, rom));
         Self {
             header,
             rom: Box::from(rom),
@@ -44,11 +47,19 @@ impl Debug for Cartridge {
     }
 }
 
-fn create_mbc(header: &CartridgeHeader) -> impl MBC {
+fn create_mbc(header: &CartridgeHeader, rom: &[u8]) -> impl MBC {
     test {}
 }
 
 #[derive(Debug)]
 struct test {}
 
-impl MBC for test {}
+impl MBC for test {
+    fn read_byte(&self) -> u8 {
+        unimplemented!()
+    }
+
+    fn write_byte(&mut self) {
+        unimplemented!()
+    }
+}

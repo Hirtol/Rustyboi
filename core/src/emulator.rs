@@ -6,7 +6,7 @@ use log::*;
 use crate::hardware::cpu::CPU;
 use crate::hardware::memory::*;
 use crate::hardware::memory::{Memory, MemoryMapper};
-use crate::hardware::ppu::palette::DisplayColour;
+use crate::hardware::ppu::palette::{DisplayColour, DmgColor};
 use crate::hardware::ppu::{FRAMEBUFFER_SIZE, PPU};
 use crate::io::bootrom::*;
 use crate::io::interrupts::Interrupts::VBLANK;
@@ -25,9 +25,9 @@ pub struct Emulator {
 }
 
 impl Emulator {
-    pub fn new(boot_rom: Option<[u8; 256]>, cartridge: &[u8], display_colors: DisplayColour, ) -> Self {
+    pub fn new(boot_rom: Option<[u8; 256]>, cartridge: &[u8]) -> Self {
         let mmu = MMU::new(RefCell::new(
-            Memory::new(boot_rom, cartridge, PPU::new(display_colors))));
+            Memory::new(boot_rom, cartridge, PPU::new())));
         Emulator {
             cpu: CPU::new(&mmu),
             mmu,
@@ -45,7 +45,7 @@ impl Emulator {
     ///
     /// Should only be called on multiples of [CYCLES_PER_FRAME](constant.CYCLES_PER_FRAME.html)
     /// otherwise the data will be only partially complete.
-    pub fn frame_buffer(&self) -> [u8; FRAMEBUFFER_SIZE] {
+    pub fn frame_buffer(&self) -> [DmgColor; FRAMEBUFFER_SIZE] {
         self.mmu.borrow().ppu.frame_buffer().clone()
     }
 

@@ -5,14 +5,8 @@ use std::fs::read;
 
 fn emulator_benchmark(c: &mut Criterion) {
     let mut cpu_test = read("..\\test roms\\cpu_instrs\\individual\\06-ld r,r.gb").unwrap();
-    let display_colors = DisplayColour {
-        white: RGB(155, 188, 15),
-        light_grey: RGB(139, 172, 15),
-        dark_grey: RGB(48, 98, 48),
-        black: RGB(15, 56, 15),
-    };
 
-    let mut emulator = Emulator::new(Option::None, &cpu_test, display_colors);
+    let mut emulator = Emulator::new(Option::None, &cpu_test);
     c.bench_function("Emulate Cycle", |b| b.iter(|| emulator.emulate_cycle()));
 }
 

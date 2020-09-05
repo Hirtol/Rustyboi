@@ -17,7 +17,7 @@ pub const TRUE_RESOLUTION_HEIGHT: usize = 256;
 pub const RESOLUTION_WIDTH: usize = 160;
 pub const RESOLUTION_HEIGHT: usize = 144;
 pub const RGB_CHANNELS: usize = 3;
-pub const FRAMEBUFFER_SIZE: usize = RESOLUTION_HEIGHT * RESOLUTION_WIDTH * RGB_CHANNELS;
+pub const FRAMEBUFFER_SIZE: usize = RESOLUTION_HEIGHT * RESOLUTION_WIDTH;
 
 pub const LCD_CONTROL_REGISTER: u16 = 0xFF40;
 pub const LCD_STATUS_REGISTER: u16 = 0xFF41;
@@ -100,9 +100,8 @@ pub enum Mode {
 }
 
 pub struct PPU {
-    frame_buffer: [u8; FRAMEBUFFER_SIZE],
+    frame_buffer: [DmgColor; FRAMEBUFFER_SIZE],
     scanline_buffer: [DmgColor; RESOLUTION_WIDTH],
-    pub colorizer: DisplayColour,
 
     tiles: [Tile; 384],
     tile_map_9800: TileMap,
@@ -127,11 +126,10 @@ pub struct PPU {
 }
 
 impl PPU {
-    pub fn new(display_colors: DisplayColour) -> Self {
+    pub fn new() -> Self {
         PPU {
-            frame_buffer: [0; FRAMEBUFFER_SIZE],
+            frame_buffer: [DmgColor::WHITE; FRAMEBUFFER_SIZE],
             scanline_buffer: [DmgColor::WHITE; RESOLUTION_WIDTH],
-            colorizer: display_colors,
             tiles: [Tile::default(); 384],
             tile_map_9800: TileMap::new(),
             tile_map_9c00: TileMap::new(),
@@ -267,17 +265,12 @@ impl PPU {
         if self.lcd_control.contains(LcdControl::SPRITE_DISPLAY_ENABLE) {
             self.draw_sprite_scanline();
         }
-        // TODO: Consider moving this to the consumer of the emulator instead of within
-        // Not really the business of the PPU to set the RGB representation.
-        let current_address: usize = (self.current_y as usize * 3 * RESOLUTION_WIDTH);
 
-        for (i, colour) in self.scanline_buffer.iter().enumerate() {
-            let colour = self.colorizer.get_color(colour);
+        let current_address: usize = (self.current_y as usize *  RESOLUTION_WIDTH);
 
-            self.frame_buffer[current_address + i * 3] = colour.0;
-            self.frame_buffer[current_address + i * 3 + 1] = colour.1;
-            self.frame_buffer[current_address + i * 3 + 2] = colour.2;
-        }
+        // Copy the value of the current scanline to the framebuffer.
+        self.frame_buffer[current_address..current_address+RESOLUTION_WIDTH]
+            .copy_from_slice(&self.scanline_buffer);
 
         self.current_y = self.current_y.wrapping_add(1);
     }
@@ -484,14 +477,7 @@ impl PPU {
         }
     }
 
-    fn set_rgb(&mut self, rgb: RGB, x: u8, y: u8) {
-        let address = (y as usize * RESOLUTION_HEIGHT as usize) + x as usize;
-        self.frame_buffer[address] = rgb.0;
-        self.frame_buffer[address + 1] = rgb.1;
-        self.frame_buffer[address + 2] = rgb.2;
-    }
-
-    pub fn frame_buffer(&self) -> &[u8; FRAMEBUFFER_SIZE] {
+    pub fn frame_buffer(&self) -> &[DmgColor; FRAMEBUFFER_SIZE] {
         &self.frame_buffer
     }
 }
