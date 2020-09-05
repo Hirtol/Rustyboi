@@ -1,7 +1,6 @@
 use bitflags::_core::fmt::Formatter;
 use bitflags::*;
 use std::convert::{TryFrom, TryInto};
-use crate::io::joypad::SelectedMode::{DIRECTION, BUTTON, NONE};
 
 pub const JOYPAD_REGISTER: u16 = 0xFF00;
 
@@ -72,7 +71,7 @@ impl JoyPad {
 }
 
 impl InputKey {
-    pub fn get_flag_value(&self) -> JoypadFlags {
+    fn get_flag_value(&self) -> JoypadFlags {
         match self {
             InputKey::START  | InputKey::DOWN  => JoypadFlags::DOWN_START,
             InputKey::SELECT | InputKey::UP    => JoypadFlags::UP_SELECT,
