@@ -64,24 +64,19 @@ fn main() {
 
     let mut screen_texture = setup_sdl(&mut canvas);
 
-    let bootrom_file = read(
-        "***REMOVED***roms\\DMG_ROM.bin",
-    )
-    .unwrap();
+    let bootrom_file = read("roms\\DMG_ROM.bin").unwrap();
 
-    let mut cartridge =
-        read("***REMOVED***roms\\Tetris.gb")
-            .unwrap();
-    let cpu_test = read("***REMOVED***test roms\\cpu_instrs\\individual\\10-bit ops.gb").unwrap();
-    let cpu_test2 = read("***REMOVED***test roms\\mooneye\\tests\\acceptance\\timer\\tim00.gb").unwrap();
+    let mut cartridge = read("roms\\Tetris.gb").unwrap();
+    let cpu_test = read("test roms\\cpu_instrs\\individual\\10-bit ops.gb").unwrap();
+    let cpu_test2 = read("test roms\\mooneye\\tests\\acceptance\\timer\\tim00.gb").unwrap();
 
-    //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge, DEFAULT_DISPLAY_COLOURS);
+    let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge, DEFAULT_DISPLAY_COLOURS);
 
     // test_fast(sdl_context, &mut canvas, &mut screen_texture, &cpu_test);
     //
     // return;
 
-    let mut emulator = Emulator::new(Option::None, &cartridge, DEFAULT_DISPLAY_COLOURS);
+    //let mut emulator = Emulator::new(Option::None, &cartridge, DEFAULT_DISPLAY_COLOURS);
 
     let mut cycles = 0;
 
@@ -106,10 +101,7 @@ fn main() {
                         emulator =
                             Emulator::new(Option::None, &new_cartridge, DEFAULT_DISPLAY_COLOURS);
                     } else {
-                        warn!(
-                            "Attempted opening of file: {} which is not a GameBoy rom!",
-                            filename
-                        );
+                        warn!("Attempted opening of file: {} which is not a GameBoy rom!", filename);
                     }
                 },
                 Event::KeyDown {keycode: Some(key), ..} => {
@@ -162,12 +154,38 @@ fn keycode_to_input(key: Keycode) -> Option<InputKey> {
     }
 }
 
-fn test_fast(
-    sdl_context: Sdl,
-    mut canvas: &mut Canvas<Window>,
-    mut screen_texture: &mut Texture,
-    cpu_test: &Vec<u8>,
-) {
+fn setup_sdl(canvas: &mut WindowCanvas) -> Texture {
+    canvas.set_draw_color(Color::RGB(0, 0, 0));
+    canvas.clear();
+
+    // Ensure aspect ratio is kept, in the future we could change this if we want more GUI elements.
+    // Or just render ImGui on top ㄟ( ▔, ▔ )ㄏ
+    canvas.set_logical_size(160, 144);
+    canvas.set_scale(1.0, 1.0);
+
+    canvas.present();
+    canvas.create_texture_streaming(RGB24, 160, 144).unwrap()
+}
+
+/// This function assumes pixel_buffer size == texture buffer size, otherwise panic :D
+fn fill_texture_and_copy(canvas: &mut WindowCanvas, texture: &mut Texture, pixel_buffer: &[u8]) {
+    texture.with_lock(Option::None, |arr, pitch| {
+        arr.copy_from_slice(&pixel_buffer)
+    });
+    canvas.copy(&texture, None, None);
+}
+
+fn vec_to_bootrom(vec: &Vec<u8>) -> [u8; 256] {
+    let mut result = [0u8; 256];
+
+    for (i, instr) in vec.iter().enumerate() {
+        result[i] = *instr;
+    }
+
+    result
+}
+
+fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_texture: &mut Texture, cpu_test: &Vec<u8>) {
     let mut emulator = Emulator::new(Option::None, &cpu_test, DISPLAY_COLOURS);
     let mut count: u128 = 0;
 
@@ -228,39 +246,8 @@ fn test_fast(
                 "RustyBoi - {} FPS",
                 1.0 / last_update_time.elapsed().as_secs_f64()
             )
-            .as_str(),
+                .as_str(),
         );
         last_update_time = frame_start;
     }
-}
-
-fn setup_sdl(canvas: &mut WindowCanvas) -> Texture {
-    canvas.set_draw_color(Color::RGB(0, 0, 0));
-    canvas.clear();
-
-    // Ensure aspect ratio is kept, in the future we could change this if we want.
-    // Or just render imgui on top ㄟ( ▔, ▔ )ㄏ
-    canvas.set_logical_size(160, 144);
-    canvas.set_scale(1.0, 1.0);
-
-    canvas.present();
-    canvas.create_texture_streaming(RGB24, 160, 144).unwrap()
-}
-
-/// This function assumes pixel_buffer size == texture buffer size, otherwise panic :D
-fn fill_texture_and_copy(canvas: &mut WindowCanvas, texture: &mut Texture, pixel_buffer: &[u8]) {
-    texture.with_lock(Option::None, |arr, pitch| {
-        arr.copy_from_slice(&pixel_buffer)
-    });
-    canvas.copy(&texture, None, None);
-}
-
-fn vec_to_bootrom(vec: &Vec<u8>) -> [u8; 256] {
-    let mut result = [0_u8; 256];
-
-    for (i, instr) in vec.iter().enumerate() {
-        result[i] = *instr;
-    }
-
-    result
 }

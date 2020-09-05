@@ -1,7 +1,8 @@
 core/target/
-SDL2.dll
-test.png
+*.dll
 *.log
+*.gb
+*.gbc
 # Created by https://www.toptal.com/developers/gitignore/api/rust,intellij
 # Edit at https://www.toptal.com/developers/gitignore?templates=rust,intellij
 

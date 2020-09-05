@@ -4,7 +4,7 @@ use rustyboi_core::hardware::ppu::palette::{DisplayColour, RGB};
 use std::fs::read;
 
 fn emulator_benchmark(c: &mut Criterion) {
-    let mut cpu_test = read("***REMOVED***test roms\\cpu_instrs\\individual\\06-ld r,r.gb").unwrap();
+    let mut cpu_test = read("..\\test roms\\cpu_instrs\\individual\\06-ld r,r.gb").unwrap();
     let display_colors = DisplayColour {
         white: RGB(155, 188, 15),
         light_grey: RGB(139, 172, 15),
