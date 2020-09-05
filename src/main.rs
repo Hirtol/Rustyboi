@@ -76,7 +76,7 @@ fn main() {
     //
     // return;
 
-    let mut emulator = Emulator::new(Option::None, &cpu_test, DEFAULT_DISPLAY_COLOURS);
+    let mut emulator = Emulator::new(Option::None, &cartridge, DEFAULT_DISPLAY_COLOURS);
 
     let mut cycles = 0;
 

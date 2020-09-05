@@ -25,16 +25,9 @@ pub struct Emulator {
 }
 
 impl Emulator {
-    pub fn new(
-        boot_rom: Option<[u8; 256]>,
-        cartridge: &[u8],
-        display_colors: DisplayColour,
-    ) -> Self {
-        let mmu = MMU::new(RefCell::new(Memory::new(
-            boot_rom,
-            cartridge,
-            PPU::new(display_colors),
-        )));
+    pub fn new(boot_rom: Option<[u8; 256]>, cartridge: &[u8], display_colors: DisplayColour, ) -> Self {
+        let mmu = MMU::new(RefCell::new(
+            Memory::new(boot_rom, cartridge, PPU::new(display_colors))));
         Emulator {
             cpu: CPU::new(&mmu),
             mmu,

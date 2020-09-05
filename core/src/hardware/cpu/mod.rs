@@ -1,8 +1,5 @@
 //! The CPU is the main executor of any ROM's code, and will also keep
 //! track of the cycles the CPU has performed so far.
-//!
-//! A DMG runs at `4.194304 MHz` with a Vsync of `59.73 Hz`, so that would be
-//! `4194304 / 59.73 ~= 70221 cycles/frame`
 
 use crate::emulator::*;
 use crate::hardware::cpu::execute::{InstructionAddress, JumpModifier, WrapperEnum};
@@ -32,10 +29,10 @@ mod traits;
 pub struct CPU<M: MemoryMapper> {
     pub cycles_performed: u128,
     pub ime: bool,
+    pub halted: bool,
     opcode: u8,
     registers: Registers,
     mmu: MMU<M>,
-    pub halted: bool,
     delayed_ime: bool,
 }
 

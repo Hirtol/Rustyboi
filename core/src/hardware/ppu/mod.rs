@@ -413,19 +413,17 @@ impl PPU {
                 // Required for the times when sprites are on an x < 8 or y < 16,
                 // as parts of those sprites need to then not be rendered.
                 // If the BG bit is 1 then the sprite is only drawn if the background colour
-                // is WHITE, otherwise the background takes precedence.
+                // is color_0, otherwise the background takes precedence.
                 if (pixel < 0)
                     || (pixel > 159)
-                    || (is_background_sprite && self.scanline_buffer[pixel as usize] != WHITE)
+                    || (is_background_sprite && self.scanline_buffer[pixel as usize] != self.bg_window_palette.color_0())
                 {
                     continue;
                 }
 
                 let colour = self.get_pixel_colour(j as u8, top_pixel_data, bottom_pixel_data, self.get_sprite_palette(sprite));
 
-                if colour != WHITE {
-                    self.scanline_buffer[pixel as usize] = colour;
-                }
+                self.scanline_buffer[pixel as usize] = colour;
             }
         }
     }
@@ -452,7 +450,7 @@ impl PPU {
     }
 
     fn get_sprite_palette(&self, sprite: &SpriteAttribute) -> Palette {
-        if sprite.attribute_flags.contains(AttributeFlags::PALETTE_NUMBER) {
+        if !sprite.attribute_flags.contains(AttributeFlags::PALETTE_NUMBER) {
             self.oam_palette_0
         } else {
             self.oam_palette_1
