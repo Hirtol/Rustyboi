@@ -3,8 +3,8 @@ core/target/
 *.log
 *.gb
 *.gbc
-# Created by https://www.toptal.com/developers/gitignore/api/rust,intellij
-# Edit at https://www.toptal.com/developers/gitignore?templates=rust,intellij
+*.bin
+test roms/
 
 ### Intellij ###
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio, WebStorm and Rider
