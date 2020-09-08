@@ -118,7 +118,10 @@ impl PPU {
     }
 
     pub fn set_lcd_status(&mut self, value: u8) {
-        self.lcd_status = LcdStatus::from_bits_truncate(value);
+        // Mask the 3 lower bits, which are read only and must therefore be preserved.
+        let read_only_bits = self.lcd_status.bits() & 0x7;
+        // Mask bit 3..=6 in case a game tries to write to the three lower bits as well.
+        self.lcd_status = LcdStatus::from_bits_truncate((value & 0x78) | read_only_bits);
     }
 
     pub fn set_scy(&mut self, value: u8) {

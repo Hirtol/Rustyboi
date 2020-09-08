@@ -188,20 +188,9 @@ impl PPU {
                 // Drawing (Mode 3)
                 if self.lcd_status.mode_flag() != LcdTransfer {
                     self.lcd_status.set_mode_flag(LcdTransfer);
-                    // Dirty fix, but when we currently run the system without bootrom
-                    // For some reason we end up behind one scanline with timing on the second
-                    // frame, whereas running the bootrom prevents this. Must not be setting certain
-                    // values properly when in the CPU initialisation without bootrom.
-                    if self.current_y < 144 {
-                        // Draw our actual line once we enter Drawing mode.
-                        self.draw_scanline();
-                    } else {
-                        log::warn!(
-                            "Out of line scanline call: {} - {}",
-                            self.current_y,
-                            self.current_cycles
-                        );
-                    }
+
+                    // Draw our actual line once we enter Drawing mode.
+                    self.draw_scanline();
                 }
             } else {
                 // H-Blank for the remainder of the line.
