@@ -78,7 +78,7 @@ fn main() {
     //
     // return;
 
-    let mut emulator = Emulator::new(Option::None, &cartridge);
+    let mut emulator = Emulator::new(Option::None, &cpu_test);
 
     let mut cycles = 0;
 

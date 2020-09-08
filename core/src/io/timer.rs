@@ -88,8 +88,6 @@ impl TimerRegisters {
 
     /// Write to the divider register, this will always reset it to 0x00.
     pub fn set_divider(&mut self) {
-        self.divider_register = 0;
-        self.divider_cycle_counter = 0;
         // If we've already halfway passed our cycle count then we'll increase our timer
         // due to the falling edge detector in the DMG.
         if self.timer_cycle_counter >= self.timer_control.input_select.to_cycle_count()/2 {
@@ -97,6 +95,8 @@ impl TimerRegisters {
             self.tick_timer();
         }
 
+        self.divider_register = 0;
+        self.divider_cycle_counter = 0;
         self.timer_cycle_counter = 0;
     }
 

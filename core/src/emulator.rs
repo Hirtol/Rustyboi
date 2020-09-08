@@ -135,6 +135,8 @@ impl Emulator {
                     .borrow_mut()
                     .write_byte(INTERRUPTS_FLAG, interrupt_flags.bits());
                 self.cpu.interrupts_routine(interrupt);
+                // We disable IME after an interrupt routine, thus we should preemptively break this loop.
+                break;
             }
         }
     }

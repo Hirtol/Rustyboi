@@ -105,7 +105,7 @@ impl MBC1 {
         }
     }
 }
-
+//TODO: Fix this implementation with proper masks etc.
 impl MBC for MBC1 {
     fn read_3fff(&self, address: u16) -> u8 {
         self.rom[address as usize]

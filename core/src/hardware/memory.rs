@@ -126,14 +126,15 @@ impl Memory {
             WRAM_BANK_NN_START..=WRAM_BANK_NN_END => self.memory[usize_address] = value,
             ECHO_RAM_START..=ECHO_RAM_END => self.memory[(address - ECHO_RAM_OFFSET) as usize] = value,
             OAM_ATTRIBUTE_START..=OAM_ATTRIBUTE_END => self.ppu.set_oam_byte(address, value),
-
+            NOT_USABLE_START..=NOT_USABLE_END => log::trace!("ROM Writing to Non-usable memory: {:04X}", address),
             IO_START..=IO_END => self.write_io_byte(address, value),
+            HRAM_START..=HRAM_END => self.memory[usize_address] = value,
+            INTERRUPTS_ENABLE => self.memory[usize_address] = value,
             _ => self.memory[usize_address] = value,
         }
     }
 
     /// Specific method for all calls to the IO registers.
-    /// `address` will be cast to `u8` since all registers start with `0xFF`
     fn read_io_byte(&self, address: u16) -> u8 {
         use crate::hardware::ppu::*;
 
@@ -165,7 +166,7 @@ impl Memory {
         match address {
             JOYPAD_REGISTER => self.joypad_register.set_register(value),
             DIVIDER_REGISTER => self.timers.set_divider(),
-            TIMER_COUNTER => self.timers.timer_counter = value,
+            TIMER_COUNTER => self.timers.timer_counter = value, //TODO: This should have some restrictions with when you can write to this.
             TIMER_MODULO => self.timers.timer_modulo = value,
             TIMER_CONTROL => self.timers.set_timer_control(value),
             LCD_CONTROL_REGISTER => self.ppu.set_lcd_control(value),

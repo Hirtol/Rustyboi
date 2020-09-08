@@ -70,6 +70,7 @@ impl JoyPad {
     }
 
     fn update_flags(&mut self) {
+        // Discard any writes that may have been made to the lower nibble.
         self.selected_mode = JoypadFlags::from_bits_truncate(self.selected_mode.bits() & 0b0011_0000);
         if self.selected_mode.contains(JoypadFlags::BUTTON_KEYS) {
             self.selected_mode.insert(self.pressed_buttons);

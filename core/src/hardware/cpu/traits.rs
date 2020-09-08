@@ -85,10 +85,7 @@ impl<T: MemoryMapper> ToU8<InstructionAddress> for CPU<T> {
                 let address = self.get_instr_u8() as u16;
                 self.read_byte_cycle(IO_START + address)
             }
-            IoC => self
-                .mmu
-                .borrow()
-                .read_byte(IO_START + self.registers.c as u16),
+            IoC => self.read_byte_cycle(IO_START + self.registers.c as u16),
         }
     }
 }
