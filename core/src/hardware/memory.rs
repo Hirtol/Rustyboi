@@ -167,7 +167,7 @@ impl Memory {
             DIVIDER_REGISTER => self.timers.set_divider(),
             TIMER_COUNTER => self.timers.timer_counter = value,
             TIMER_MODULO => self.timers.timer_modulo = value,
-            TIMER_CONTROL => self.timers.timer_control = TimerControl::from(value),
+            TIMER_CONTROL => self.timers.set_timer_control(value),
             LCD_CONTROL_REGISTER => self.ppu.set_lcd_control(value),
             LCD_STATUS_REGISTER => self.ppu.set_lcd_status(value),
             SCY_REGISTER => self.ppu.set_scy(value),

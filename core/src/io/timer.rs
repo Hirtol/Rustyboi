@@ -49,7 +49,7 @@ impl TimerRegisters {
         // Divider register will increment at 16_384Hz
         // At 100% speed we should see 4194304 cycles per second.
         // 4194304/16384 = 256 so we want to increment every 256 cycles.
-        if self.divider_cycle_counter >= 256 {
+        while self.divider_cycle_counter >= 256 {
             self.divider_cycle_counter -= 256;
 
             self.divider_register = self.divider_register.wrapping_add(1);
@@ -89,6 +89,7 @@ impl TimerRegisters {
     /// Write to the divider register, this will always reset it to 0x00.
     pub fn set_divider(&mut self) {
         self.divider_register = 0;
+        self.divider_cycle_counter = 0;
         // If we've already halfway passed our cycle count then we'll increase our timer
         // due to the falling edge detector in the DMG.
         if self.timer_cycle_counter >= self.timer_control.input_select.to_cycle_count()/2 {
@@ -102,7 +103,7 @@ impl TimerRegisters {
     pub fn set_timer_control(&mut self, value: u8) {
         let old_control = self.timer_control;
         self.timer_control = TimerControl::from(value);
-        self.tick_timer();
+
         // When disabling the timer the DMG will increment the timer register if our system clock
         // was already half way through it's cycle due to the falling edge detector.
         if old_control.timer_enabled
@@ -120,10 +121,6 @@ impl TimerRegisters {
             log::debug!("Lower timer increment");
             self.tick_timer()
         }
-
-
-
-
     }
 }
 
