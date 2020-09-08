@@ -24,7 +24,7 @@ pub struct MBC0 {
 
 impl MBC0 {
     pub fn new(rom: Vec<u8>) -> Self {
-        MBC0 { rom, ram: [0; EXTERNAL_RAM_SIZE] }
+        MBC0 { rom, ram: [0xFF; EXTERNAL_RAM_SIZE] }
     }
 }
 
@@ -60,7 +60,7 @@ pub struct MBC1 {
 
 impl MBC1 {
     pub fn new(rom: Vec<u8>) -> Self {
-        MBC1 { ram_enabled: false, banking_mode_select: false, rom_bank: 1, ram_bank: 0, rom, ram: [0; EXTERNAL_RAM_SIZE*4] }
+        MBC1 { ram_enabled: false, banking_mode_select: false, rom_bank: 1, ram_bank: 0, rom, ram: [0xFF; EXTERNAL_RAM_SIZE*4] }
     }
 
     #[inline]

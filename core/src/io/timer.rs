@@ -1,5 +1,5 @@
 use crate::io::interrupts::{Interrupts, InterruptFlags};
-use crate::io::timer::InputClock::C1024;
+use crate::io::timer::InputClock::{C1024, C256};
 
 /// This register is incremented at rate of 16384Hz (~16779Hz on SGB).
 /// Writing any value to this register resets it to 00h.
@@ -37,10 +37,13 @@ pub struct TimerRegisters {
     pub timer_control: TimerControl,
     divider_cycle_counter: u128,
     timer_cycle_counter: u128,
+    timer_overflowed: bool,
 }
 
 impl TimerRegisters {
     pub fn tick_timers(&mut self, delta_cycles: u128) -> Option<InterruptFlags> {
+        let mut to_return = None;
+
         self.divider_cycle_counter += delta_cycles;
 
         // Divider register will increment at 16_384Hz
@@ -52,60 +55,75 @@ impl TimerRegisters {
             self.divider_register = self.divider_register.wrapping_add(1);
         }
 
+        // Whenever an overflow occurs we delay by 4 cycles (1 nop)
+        // We call this tick_timers() every instruction, so we're getting close enough by just delaying
+        // it by one tick_timers() iteration as we're doing now.
+        if self.timer_overflowed && self.timer_counter == 0 {
+            self.timer_counter = self.timer_modulo;
+            self.timer_overflowed = false;
+            to_return = Some(InterruptFlags::TIMER)
+        }
+
         if self.timer_control.timer_enabled {
             self.timer_cycle_counter += delta_cycles;
-            let threshold;
+            // Increment every xx cycles.
+            let threshold= self.timer_control.input_select.to_cycle_count();
 
-            match self.timer_control.input_select {
-                InputClock::C16 => {
-                    // Increment every 16 cycles
-                    threshold = 16;
-                },
-                InputClock::C64 => {
-                    // Increment every 64 cycles
-                    threshold = 64;
-                },
-                InputClock::C256 => {
-                    // Increment every 256 cycles
-                    threshold = 256;
-                },
-                InputClock::C1024 => {
-                    // Increment every 1024 cycles
-                    threshold = 1024;
-                },
-            }
-
-            if self.timer_cycle_counter > threshold {
+            while self.timer_cycle_counter > threshold {
                 self.timer_cycle_counter -= threshold;
-                return self.tick_timer();
+                self.tick_timer();
             }
         }
 
-        None
+        to_return
     }
 
-    fn tick_timer(&mut self) -> Option<InterruptFlags>{
+    fn tick_timer(&mut self){
         let (new_value, overflowed) = self.timer_counter.overflowing_add(1);
 
-        if overflowed {
-            self.timer_counter = self.timer_modulo;
-            Some(InterruptFlags::TIMER)
-        } else {
-            self.timer_counter = new_value;
-            None
-        }
+        self.timer_counter = new_value;
+        // If we overflow, we'll set the timer_counter and send the interrupt in the next iteration.
+        self.timer_overflowed = overflowed;
     }
 
     /// Write to the divider register, this will always reset it to 0x00.
     pub fn set_divider(&mut self) {
         self.divider_register = 0;
-        // We reset this here, but it could very well be that I misunderstood MooneyeGB's test
-        // TODO: Verify with div_write.gb test
-        self.timer_counter = 0;
+        // If we've already halfway passed our cycle count then we'll increase our timer
+        // due to the falling edge detector in the DMG.
+        if self.timer_cycle_counter >= self.timer_control.input_select.to_cycle_count()/2 {
+            log::debug!("Div write timer increment");
+            self.tick_timer();
+        }
+
+        self.timer_cycle_counter = 0;
     }
 
     pub fn set_timer_control(&mut self, value: u8) {
+        let old_control = self.timer_control;
         self.timer_control = TimerControl::from(value);
+        self.tick_timer();
+        // When disabling the timer the DMG will increment the timer register if our system clock
+        // was already half way through it's cycle due to the falling edge detector.
+        if old_control.timer_enabled
+            && !self.timer_control.timer_enabled
+            && self.timer_cycle_counter >= self.timer_control.input_select.to_cycle_count()/2 {
+            log::debug!("Halfway timer increment");
+            self.tick_timer();
+        }else if self.timer_cycle_counter < old_control.input_select.to_cycle_count()/2
+            && self.timer_cycle_counter >= self.timer_control.input_select.to_cycle_count()/2
+            && self.timer_control.timer_enabled {
+            // if the old selected bit by the multiplexer was 0, the new one is
+            // 1, and the new enable bit of TAC is set to 1, it will increase TIMA.
+            // Put another way: If our old control had not yet done half of its cycles
+            // but our new control will have done so, then we'll increment our timer.
+            log::debug!("Lower timer increment");
+            self.tick_timer()
+        }
+
+
+
+
     }
 }
 
@@ -119,7 +137,7 @@ impl TimerControl {
 
 impl Default for TimerControl {
     fn default() -> Self {
-        TimerControl{input_select: C1024, timer_enabled: false}
+        TimerControl{input_select: C256, timer_enabled: false}
     }
 }
 
@@ -140,6 +158,25 @@ impl From<u8> for InputClock {
             0x2 => InputClock::C64,
             0x3 => InputClock::C256,
             _ => panic!("Invalid value passed to the InputClock parser.")
+        }
+    }
+}
+
+impl InputClock {
+    pub fn to_cycle_count(&self) -> u128 {
+        match self {
+            InputClock::C16 => {
+                16
+            },
+            InputClock::C64 => {
+                64
+            },
+            InputClock::C256 => {
+                256
+            },
+            InputClock::C1024 => {
+                1024
+            },
         }
     }
 }
