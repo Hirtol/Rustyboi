@@ -1,43 +1,48 @@
 use crate::hardware::cartridge::header::CartridgeHeader;
 use bitflags::_core::fmt::{Debug, Formatter};
 use std::fmt;
+use crate::hardware::cartridge::mbc::{MBC0, MBC1};
 
 mod header;
 mod mbc;
 
 pub trait MBC {
-    fn read_byte(&self) -> u8;
-    fn write_byte(&mut self);
+    fn read_3fff(&self, address: u16) -> u8;
+    fn read_7fff(&self, address: u16) -> u8;
+    fn read_ex_ram(&self, address: u16) -> u8;
+    fn write_byte(&mut self, address: u16, value: u8);
 }
 
 pub struct Cartridge {
     header: CartridgeHeader,
-    rom: Box<[u8]>,
     mbc: Box<dyn MBC>,
 }
 
 impl Cartridge {
     pub fn new(rom: &[u8]) -> Self {
         let header = CartridgeHeader::new(rom);
-        let mbc = Box::from(create_mbc(&header, rom));
+        let mbc = create_mbc(&header, rom);
         Self {
             header,
-            rom: Box::from(rom),
             mbc,
         }
     }
 
     pub fn read_0000_3fff(&self, address: u16) -> u8 {
-        self.rom[address as usize]
+        self.mbc.read_3fff(address)
     }
 
     pub fn read_4000_7fff(&self, address: u16) -> u8 {
-        self.rom[address as usize]
+        self.mbc.read_7fff(address)
     }
 
-    pub fn write(&self, address: u16) {
+    pub fn read_external_ram(&self, address: u16) -> u8 {
+        self.mbc.read_ex_ram(address)
+    }
+
+    pub fn write_byte(&mut self, address: u16, value: u8) {
         log::debug!("Writing to ROM address: 0x{:04X}", address);
-        //unimplemented!("ROM is read only, to be used for bank switching")
+        self.mbc.write_byte(address, value);
     }
 }
 
@@ -47,19 +52,15 @@ impl Debug for Cartridge {
     }
 }
 
-fn create_mbc(header: &CartridgeHeader, rom: &[u8]) -> impl MBC {
-    test {}
-}
+fn create_mbc(header: &CartridgeHeader, rom: &[u8]) -> Box<dyn MBC> {
+    let rom_vec = rom.to_vec();
 
-#[derive(Debug)]
-struct test {}
+    log::debug!("Loading ROM with type: 0x{:02X}", header.cartridge_type);
 
-impl MBC for test {
-    fn read_byte(&self) -> u8 {
-        unimplemented!()
+    match header.cartridge_type {
+        0x0 => Box::new(MBC0::new(rom_vec)),
+        0x1 => Box::new(MBC1::new(rom_vec)),
+        _ => panic!("Unsupported cartridge type, please add support for: 0x{:02X}", header.cartridge_type)
     }
 
-    fn write_byte(&mut self) {
-        unimplemented!()
-    }
 }

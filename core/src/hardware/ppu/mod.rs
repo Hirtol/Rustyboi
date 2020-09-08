@@ -111,9 +111,9 @@ pub struct PPU {
     lcd_control: LcdControl,
     lcd_status: LcdStatus,
 
-    pub bg_window_palette: Palette,
-    pub oam_palette_0: Palette,
-    pub oam_palette_1: Palette,
+    bg_window_palette: Palette,
+    oam_palette_0: Palette,
+    oam_palette_1: Palette,
 
     compare_line: u8,
     current_y: u8,

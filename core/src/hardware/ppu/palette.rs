@@ -67,6 +67,7 @@ impl Default for Palette {
 }
 
 impl DisplayColour {
+    #[inline]
     pub fn get_color(&self, dmg_color: &DmgColor) -> RGB {
         match dmg_color {
             WHITE => self.white,

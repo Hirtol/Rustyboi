@@ -18,6 +18,7 @@ use std::time::{Duration, Instant};
 use rustyboi_core::io::joypad::InputKey;
 use anyhow::Error;
 use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
+use std::intrinsics::{copy_nonoverlapping, transmute};
 
 const DISPLAY_COLOURS: DisplayColour = DisplayColour {
     white: RGB(155, 188, 15),
@@ -168,16 +169,16 @@ fn setup_sdl(canvas: &mut WindowCanvas) -> Texture {
     canvas.create_texture_streaming(RGB24, 160, 144).unwrap()
 }
 
-/// This function assumes pixel_buffer size == texture buffer size, otherwise panic :D
+/// This function assumes pixel_buffer size * 3 == texture buffer size, otherwise panic
 fn fill_texture_and_copy(canvas: &mut WindowCanvas, texture: &mut Texture, pixel_buffer: &[DmgColor], colorizer: &DisplayColour) {
     texture.with_lock(Option::None, |arr, pitch| {
-        //TODO: Find more efficient way to do this.
+        // TODO: Find more efficient way to do this.
         for (i, colour) in pixel_buffer.iter().enumerate() {
             let colour = colorizer.get_color(colour);
-
-            arr[i * 3] = colour.0;
-            arr[i * 3 + 1] = colour.1;
-            arr[i * 3 + 2] = colour.2;
+            let offset = i * 3;
+            arr[offset]     = colour.0;
+            arr[offset + 1] = colour.1;
+            arr[offset + 2] = colour.2;
         }
     });
     canvas.copy(&texture, None, None);

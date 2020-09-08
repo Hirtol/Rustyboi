@@ -1,6 +1,6 @@
 use crate::hardware::cartridge::Cartridge;
 use crate::hardware::ppu::tiledata::*;
-use crate::hardware::ppu::PPU;
+use crate::hardware::ppu::{PPU, DMA_TRANSFER};
 use crate::io::bootrom::BootRom;
 use crate::io::interrupts::InterruptFlags;
 use bitflags::_core::cell::RefCell;
@@ -95,7 +95,7 @@ impl Memory {
             //VRAM
             TILE_BLOCK_0_START..=TILE_BLOCK_2_END => self.ppu.get_tile_byte(address),
             TILEMAP_9800_START..=TILEMAP_9C00_END => self.ppu.get_tilemap_byte(address),
-            EXTERNAL_RAM_START..=EXTERNAL_RAM_END => self.memory[address as usize],
+            EXTERNAL_RAM_START..=EXTERNAL_RAM_END => self.cartridge.read_external_ram(address),
             WRAM_BANK_00_START..=WRAM_BANK_00_END => self.memory[address as usize],
             WRAM_BANK_NN_START..=WRAM_BANK_NN_END => self.memory[address as usize],
             ECHO_RAM_START..=ECHO_RAM_END => self.memory[(address - ECHO_RAM_OFFSET) as usize],
@@ -117,11 +117,11 @@ impl Memory {
         }
 
         match address {
-            ROM_BANK_00_START..=ROM_BANK_NN_END => self.cartridge.write(address),
+            ROM_BANK_00_START..=ROM_BANK_NN_END => self.cartridge.write_byte(address, value),
             // VRAM
             TILE_BLOCK_0_START..=TILE_BLOCK_2_END => self.ppu.set_tile_byte(address, value),
             TILEMAP_9800_START..=TILEMAP_9C00_END => self.ppu.set_tilemap_byte(address, value),
-            EXTERNAL_RAM_START..=EXTERNAL_RAM_END => self.memory[usize_address] = value,
+            EXTERNAL_RAM_START..=EXTERNAL_RAM_END => self.cartridge.write_byte(address, value),
             WRAM_BANK_00_START..=WRAM_BANK_00_END => self.memory[usize_address] = value,
             WRAM_BANK_NN_START..=WRAM_BANK_NN_END => self.memory[usize_address] = value,
             ECHO_RAM_START..=ECHO_RAM_END => self.memory[(address - ECHO_RAM_OFFSET) as usize] = value,
@@ -149,7 +149,7 @@ impl Memory {
             SCX_REGISTER => self.ppu.get_scx(),
             LY_REGISTER => self.ppu.get_ly(),
             LYC_REGISTER => self.ppu.get_lyc(),
-            DMA_TRANSFER => panic!("OH NO, DMA!"), //TODO: Implement
+            DMA_TRANSFER => self.memory[DMA_TRANSFER as usize], //TODO: Verify if correct
             BG_PALETTE => self.ppu.get_bg_palette(),
             OB_PALETTE_0 => self.ppu.get_oam_palette_0(),
             OB_PALETTE_1 => self.ppu.get_oam_palette_1(),
@@ -191,6 +191,7 @@ impl Memory {
     fn dma_transfer(&mut self, value: u8) {
         let address = (value as usize) << 8;
         log::trace!("OAM Transfer starting from: 0x{:04X}", address);
+        self.memory[DMA_TRANSFER as usize] = value;
         self.ppu.oam_dma_transfer(&self.gather_shadow_oam(address));
     }
 
@@ -200,10 +201,10 @@ impl Memory {
             .collect()
     }
 
-    /// Simply returns 0 while also printing a warning to the logger.
+    /// Simply returns 0xFF while also printing a warning to the logger.
     fn non_usable_call(&self, address: u16) -> u8 {
         warn!("ROM Accessed non usable memory: {:4X}", address);
-        0
+        0xFF
     }
 }
 
