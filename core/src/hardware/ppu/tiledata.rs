@@ -45,7 +45,7 @@ pub struct Tile {
 /// It is organized as 32 rows of 32 bytes each. Each byte contains a number of a tile to be displayed.
 ///
 /// Tile patterns are taken from the Tile Data Table using either of
-/// the two addressing modes (described above), which can be selected via LCDC register.
+/// the two addressing modes, which can be selected via LCDC register.
 ///
 /// As one background tile has a size of 8x8 pixels,
 /// the BG maps may hold a picture of 256x256 pixels,

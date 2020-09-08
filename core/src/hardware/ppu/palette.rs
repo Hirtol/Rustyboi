@@ -8,17 +8,6 @@ pub enum DmgColor {
     BLACK = 0x3,
 }
 
-#[derive(Copy, Clone, Debug)]
-pub struct RGB(pub u8, pub u8, pub u8);
-
-#[derive(Debug)]
-pub struct DisplayColour {
-    pub white: RGB,
-    pub light_grey: RGB,
-    pub dark_grey: RGB,
-    pub black: RGB,
-}
-
 #[derive(Debug, Copy, Clone)]
 pub struct Palette {
     palette_byte: u8,
@@ -62,18 +51,6 @@ impl Default for Palette {
     fn default() -> Self {
         Palette {
             palette_byte: 0b1110_0100,
-        }
-    }
-}
-
-impl DisplayColour {
-    #[inline]
-    pub fn get_color(&self, dmg_color: &DmgColor) -> RGB {
-        match dmg_color {
-            WHITE => self.white,
-            LightGrey => self.light_grey,
-            DarkGrey => self.dark_grey,
-            BLACK => self.black,
         }
     }
 }

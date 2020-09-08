@@ -107,11 +107,7 @@ impl<T: MemoryMapper> SetU8<InstructionAddress> for CPU<T> {
                 self.set_u8_value(HLI, value);
                 self.registers.set_hl(self.registers.hl().wrapping_sub(1));
             }
-            DIRECT => {
-                let address = self.get_instr_u16();
-                self.write_byte_cycle(address, value)
-            }
-            DirectMem => {
+            DIRECT | DirectMem => {
                 let address = self.get_instr_u16();
                 self.write_byte_cycle(address, value)
             }
@@ -194,11 +190,7 @@ impl<T: MemoryMapper> SetU16<InstructionAddress> for CPU<T> {
         use InstructionAddress::*;
 
         match target {
-            DIRECT => {
-                let address = self.get_instr_u16();
-                self.write_short_cycle(address, value);
-            }
-            DirectMem => {
+            DIRECT | DirectMem => {
                 let address = self.get_instr_u16();
                 self.write_short_cycle(address, value);
             }

@@ -2,7 +2,7 @@ use log::LevelFilter;
 use log::*;
 use rustyboi_core::emulator::{Emulator, CYCLES_PER_FRAME};
 use rustyboi_core::hardware::cartridge::Cartridge;
-use rustyboi_core::hardware::ppu::palette::{DisplayColour, RGB, DmgColor};
+use rustyboi_core::hardware::ppu::palette::{DmgColor};
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::pixels::PixelFormatEnum::RGB24;
@@ -19,6 +19,9 @@ use rustyboi_core::io::joypad::InputKey;
 use anyhow::Error;
 use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
 use std::intrinsics::{copy_nonoverlapping, transmute};
+use crate::display::{DisplayColour, RGB};
+
+mod display;
 
 const DISPLAY_COLOURS: DisplayColour = DisplayColour {
     white: RGB(155, 188, 15),
@@ -70,7 +73,7 @@ fn main() {
 
     let mut cartridge = read("roms\\Tetris.gb").unwrap();
     let cpu_test = read("test roms/instr_timing/instr_timing.gb").unwrap();
-    let cpu_test2 = read("test roms/mooneye/tests/acceptance/timer/rapid_toggle.gb").unwrap();
+    let cpu_test2 = read("test roms/mooneye/tests/acceptance/timer/tima_write_reloading.gb").unwrap();
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
@@ -78,7 +81,7 @@ fn main() {
     //
     // return;
 
-    let mut emulator = Emulator::new(Option::None, &cpu_test);
+    let mut emulator = Emulator::new(Option::None, &cpu_test2);
 
     let mut cycles = 0;
 
@@ -260,3 +263,6 @@ fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_textu
         last_update_time = frame_start;
     }
 }
+
+
+

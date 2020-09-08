@@ -6,7 +6,7 @@ use log::*;
 use crate::hardware::cpu::CPU;
 use crate::hardware::memory::*;
 use crate::hardware::memory::{Memory, MemoryMapper};
-use crate::hardware::ppu::palette::{DisplayColour, DmgColor};
+use crate::hardware::ppu::palette::{DmgColor};
 use crate::hardware::ppu::{FRAMEBUFFER_SIZE, PPU};
 use crate::io::bootrom::*;
 use crate::io::interrupts::Interrupts::VBLANK;

@@ -3,16 +3,12 @@ use std::collections::VecDeque;
 use crate::emulator::{CYCLES_PER_FRAME, MMU};
 use crate::hardware::memory::{Memory, MemoryMapper, INTERRUPTS_FLAG};
 use crate::hardware::ppu::palette::DmgColor::WHITE;
-use crate::hardware::ppu::palette::{DisplayColour, DmgColor, Palette, RGB};
+use crate::hardware::ppu::palette::{DmgColor, Palette};
 use crate::hardware::ppu::register_flags::*;
 use crate::hardware::ppu::tiledata::*;
 use crate::hardware::ppu::Mode::{HBlank, LcdTransfer, OamSearch, VBlank};
 use crate::io::interrupts::InterruptFlags;
 use num_integer::Integer;
-
-/// The DMG in fact has a 256x256 drawing area, whereupon a viewport of 160x144 is placed.
-pub const TRUE_RESOLUTION_WIDTH: usize = 256;
-pub const TRUE_RESOLUTION_HEIGHT: usize = 256;
 
 pub const RESOLUTION_WIDTH: usize = 160;
 pub const RESOLUTION_HEIGHT: usize = 144;

@@ -166,8 +166,8 @@ impl Memory {
         match address {
             JOYPAD_REGISTER => self.joypad_register.set_register(value),
             DIVIDER_REGISTER => self.timers.set_divider(),
-            TIMER_COUNTER => self.timers.timer_counter = value, //TODO: This should have some restrictions with when you can write to this.
-            TIMER_MODULO => self.timers.timer_modulo = value,
+            TIMER_COUNTER => self.timers.set_timer_counter(value), //TODO: This should have some restrictions with when you can write to this.
+            TIMER_MODULO => self.timers.set_tma(value),
             TIMER_CONTROL => self.timers.set_timer_control(value),
             LCD_CONTROL_REGISTER => self.ppu.set_lcd_control(value),
             LCD_STATUS_REGISTER => self.ppu.set_lcd_status(value),
