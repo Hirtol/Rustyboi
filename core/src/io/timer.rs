@@ -114,7 +114,8 @@ impl TimerRegisters {
         // we should replace the value with the new one.
         //TODO: Verify
         if !self.timer_overflowed && self.timer_counter == self.timer_modulo {
-            self.timer_counter = value;
+            // Currently causes more register tests to fail in tma_write_reloading
+            //self.timer_counter = value;
         }
         self.timer_modulo = value;
     }

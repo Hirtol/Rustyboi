@@ -4,7 +4,7 @@
 //! If this is a second run then the `old` images will be compared to the `new` images via a
 //! `Blake2s` hash. Were there to be any files which differ they will be printed to the output.
 
-use std::fs::{File, read_dir, read, rename, remove_dir, remove_dir_all, create_dir_all};
+use std::fs::{File, read_dir, read, rename, remove_dir, remove_dir_all, create_dir_all, read_to_string, copy};
 use std::{io, env};
 use std::io::Read;
 use std::path::{Path, PathBuf};
@@ -25,27 +25,33 @@ use std::iter::Map;
 use std::collections::HashMap;
 use anyhow::*;
 use blake2::digest::Output;
+use std::sync::Arc;
+use image::imageops::FilterType;
 
 mod display;
 mod options;
 
 const TESTING_PATH_OLD: &str = "testing_frames/old/";
+const TESTING_PATH_CHANGED: &str = "testing_frames/changed/";
 const TESTING_PATH_NEW: &str = "testing_frames/new/";
 
 fn main() -> anyhow::Result<()>{
     let options: Options = Options::parse();
+    let current_time = Instant::now();
     // Clean out old files.
     remove_dir_all(TESTING_PATH_OLD);
+    remove_dir_all(TESTING_PATH_CHANGED);
     // Move the current images, if they exist, into the `old` directory for comparison purposes.
     if Path::new(TESTING_PATH_NEW).exists() {
         rename(TESTING_PATH_NEW, TESTING_PATH_OLD);
     }
-    // Create the new dir or we'll panic in the image creation step.
+    // Create the new dirs or we'll panic in the image creation step.
     create_dir_all(TESTING_PATH_NEW);
+    create_dir_all(TESTING_PATH_CHANGED);
 
     let old_hashes = calculate_hashes(TESTING_PATH_OLD).unwrap_or_default();
 
-    run_test_roms(options.blargg_path, options.mooneye_path)?;
+    run_test_roms(options.blargg_path, options.mooneye_path);
 
     let new_hashes = calculate_hashes(TESTING_PATH_NEW).unwrap_or_default();
 
@@ -53,12 +59,109 @@ fn main() -> anyhow::Result<()>{
         // Can safely unwrap since we know that any old hashes will be in the new hashes
         if let Some(_) = new_hashes.get(&path).filter(|t| &**t != &hash) {
             println!("Change in file: {:?}", path);
+            copy_changed_file(&path);
         }
     }
+
+    println!("Took: {:?}", current_time.elapsed());
 
     Ok(())
 }
 
+fn run_test_roms(blargg_path: impl AsRef<str>, mooneye_path: impl AsRef<str>){
+    if !blargg_path.as_ref().is_empty() {
+        run_path(blargg_path.as_ref());
+    }
+
+    if !mooneye_path.as_ref().is_empty() {
+        run_path(mooneye_path.as_ref());
+    }
+}
+
+/// An incredibly naive way of doing this, by just spawning as many threads as possible for
+/// all test roms and running them for ~25 million iterations.
+///
+/// But it works!
+fn run_path(path: impl AsRef<str>) {
+    let tests = list_files_with_extensions(path.as_ref(), ".gb").unwrap();
+    let custom_list =  Arc::new(get_custom_list("custom_test_cycles.txt"));
+    let mut threads = Vec::with_capacity(100);
+
+    for path in tests {
+        let list_copy = custom_list.clone();
+        threads.push(spawn(move || {
+            let file_stem = path.file_stem().unwrap().to_owned();
+            let mut cycles_to_do = 2_000_000;
+            let mut emu = Emulator::new(Option::None, &read(path).unwrap());
+
+            if let Some(cycles) = list_copy.get(file_stem.to_str().unwrap_or_default()) {
+                cycles_to_do = *cycles;
+            }
+
+            for _ in 0..cycles_to_do {
+                emu.emulate_cycle();
+            }
+
+            let mut remaining_cycles_for_frame = (emu.cycles_performed() % CYCLES_PER_FRAME as u128) as i128;
+
+            while remaining_cycles_for_frame > 0 {
+                remaining_cycles_for_frame -= emu.emulate_cycle() as i128;
+            }
+
+            save_image(&emu.frame_buffer(), format!("{}.png", file_stem.to_str().unwrap()));
+        }));
+    }
+
+    for t in threads {
+        t.join();
+    }
+}
+
+/// Lists all files in the provided `path` (if the former is a directory) with the provided
+/// `extension`
+fn list_files_with_extensions(path: impl AsRef<Path>, extension: impl AsRef<str>) -> anyhow::Result<Vec<PathBuf>> {
+    let mut result = Vec::with_capacity(200);
+    if path.as_ref().is_dir() {
+        for entry in read_dir(path)? {
+            let path = entry?.path();
+            if path.is_dir() {
+                result.extend(list_files_with_extensions(&path, extension.as_ref())?);
+            } else if path.to_str().filter(|t| t.ends_with(extension.as_ref())).is_some(){
+                result.push(path);
+            }
+        }
+    } else {
+        ()
+    }
+    Ok(result)
+}
+
+
+/// Copy the provided `file_name` from [TESTING_PATH_NEW](const.TESTING_PATH_NEW.html)
+/// and [TESTING_PATH_OLD](const.TESTING_PATH_OLD.html)
+/// to [TESTING_PATH_CHANGED](const.TESTING_PATH_CHANGED.html)
+fn copy_changed_file(file_name: &OsString) {
+    for path in read_dir(TESTING_PATH_NEW).unwrap() {
+        let path = path.unwrap().path();
+        let path_str = path.file_stem().and_then(OsStr::to_str).unwrap();
+        if path_str.contains(file_name.to_str().unwrap()) {
+            copy(path.clone(), format!("{}{}_new.png", TESTING_PATH_CHANGED, path_str));
+        }
+    }
+    for path in read_dir(TESTING_PATH_OLD).unwrap() {
+        let path = path.unwrap().path();
+        let path_str = path.file_stem().and_then(OsStr::to_str).unwrap();
+        if path_str.contains(file_name.to_str().unwrap()) {
+            copy(path.clone(), format!("{}{}_old.png", TESTING_PATH_CHANGED, path_str));
+        }
+    }
+}
+
+/// Calculates all the hashes for any `.png` files in the provided `directory`
+///
+/// # Returns
+///
+/// A `HashMap` with the file stem of a `.png` file as it's key, and the hash as the value
 fn calculate_hashes(directory: impl AsRef<Path>) -> anyhow::Result<HashMap<OsString, String>> {
     let files = list_files_with_extensions(directory, ".png")?;
     let mut result = HashMap::with_capacity(100);
@@ -79,68 +182,7 @@ fn calculate_hashes(directory: impl AsRef<Path>) -> anyhow::Result<HashMap<OsStr
     Ok(result)
 }
 
-fn run_test_roms(blargg_path: impl AsRef<str>, mooneye_path: impl AsRef<str>) -> anyhow::Result<()>{
-    if !blargg_path.as_ref().is_empty() {
-        run_path(blargg_path.as_ref());
-    }
-
-    if !mooneye_path.as_ref().is_empty() {
-        run_path(mooneye_path.as_ref());
-    }
-
-    Ok(())
-}
-
-/// An incredibly naive way of doing this, by just spawning as many threads as possible for
-/// all test roms and running them for ~25 million iterations.
-///
-/// But it works!
-fn run_path(path: impl AsRef<str>) {
-    let tests = list_files_with_extensions(path.as_ref(), ".gb").unwrap();
-    let mut threads = Vec::with_capacity(100);
-
-    for path in tests {
-        threads.push(spawn(move || {
-            let file_stem = path.file_stem().unwrap().to_owned();
-
-            let mut emu = Emulator::new(Option::None, &read(path).unwrap());
-
-            for _ in 0..25_000_000 {
-                emu.emulate_cycle();
-            }
-
-            let mut remaining_cycles_for_frame = (emu.cycles_performed() % CYCLES_PER_FRAME as u128) as i128;
-
-            while remaining_cycles_for_frame > 0 {
-                remaining_cycles_for_frame -= emu.emulate_cycle() as i128;
-            }
-
-            save_image(&emu.frame_buffer(), format!("{}.png", file_stem.to_str().unwrap()));
-        }));
-    }
-
-    for t in threads {
-        t.join();
-    }
-}
-
-fn list_files_with_extensions(path: impl AsRef<Path>, extension: impl AsRef<str>) -> anyhow::Result<Vec<PathBuf>> {
-    let mut result = Vec::with_capacity(200);
-    if path.as_ref().is_dir() {
-        for entry in read_dir(path)? {
-            let path = entry?.path();
-            if path.is_dir() {
-                result.extend(list_files_with_extensions(&path, extension.as_ref())?);
-            } else if path.to_str().filter(|t| t.ends_with(extension.as_ref())).is_some(){
-                result.push(path);
-            }
-        }
-    } else {
-        ()
-    }
-    Ok(result)
-}
-
+/// Renders and saves the provided framebuffer to the `file_name`.
 fn save_image(framebuffer: &[DmgColor], file_name: impl AsRef<str>) {
     let mut true_image_buffer = vec!(0u8; FRAMEBUFFER_SIZE * 3);
 
@@ -153,6 +195,29 @@ fn save_image(framebuffer: &[DmgColor], file_name: impl AsRef<str>) {
     }
 
     let temp_buffer: ImageBuffer<image::Rgb<u8>, Vec<u8>> = image::ImageBuffer::from_raw(160, 144, true_image_buffer).unwrap();
-
+    let temp_buffer = image::imageops::resize(&temp_buffer, 320, 288, FilterType::Nearest);
     temp_buffer.save(format!("{}{}", TESTING_PATH_NEW, file_name.as_ref())).unwrap();
+}
+
+/// Returns the entries from the provided `filename` in the format:
+///
+/// ```text
+/// file_name_no_extension=3000
+/// ```
+///
+/// Where `file_name_no_extension` is the ROM, and `3000` is the amount of emulator cycles.
+fn get_custom_list(filename: impl AsRef<str>) -> HashMap<String, u32>{
+    let mut result = HashMap::with_capacity(10);
+
+    if Path::new(filename.as_ref()).exists() {
+        let file_string = read_to_string(filename.as_ref()).unwrap_or_default();
+        for line in file_string.lines() {
+            let mut name_and_value = line.split("=");
+            let name = name_and_value.next().expect("The format of the custom list file is not valid!");
+            let cycles = name_and_value.next().and_then(|val| val.parse::<u32>().ok()).expect("The format of the custom list file is not valid!");
+            result.insert(name.trim().to_owned(), cycles);
+        }
+    }
+
+    result
 }
