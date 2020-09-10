@@ -6,19 +6,27 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[[bin]]
+name = "rustyboi_sdl"
+path = "src/sdl_frontend/main.rs"
+
+[[bin]]
+name = "rustyboi_testing"
+path = "src/testing_frontend/main.rs"
+
 [dependencies]
 log = "0.4.11"
 anyhow = "1.0.32"
 simplelog = "0.8.0"
-clap = "2.33.2"
+clap = "3.0.0-beta.1"
 rustyboi-core = {path = "core" }
+image = "0.23.8"
+blake2 = "0.9.0"
 
 
 [dependencies.sdl2]
 version = "0.34.3"
 features = ["unsafe_textures"]
-
-
 
 
 #[profile.release]

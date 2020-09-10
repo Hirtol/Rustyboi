@@ -72,7 +72,7 @@ fn main() {
     let bootrom_file = read("roms\\DMG_ROM.bin").unwrap();
 
     let mut cartridge = read("roms\\Tetris.gb").unwrap();
-    let cpu_test = read("test roms/instr_timing/instr_timing.gb").unwrap();
+    let cpu_test = read("test roms/blargg/instr_timing/instr_timing.gb").unwrap();
     let cpu_test2 = read("test roms/mooneye/tests/acceptance/timer/tima_write_reloading.gb").unwrap();
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
@@ -81,7 +81,7 @@ fn main() {
     //
     // return;
 
-    let mut emulator = Emulator::new(Option::None, &cpu_test2);
+    let mut emulator = Emulator::new(Option::None, &cpu_test);
 
     let mut cycles = 0;
 
