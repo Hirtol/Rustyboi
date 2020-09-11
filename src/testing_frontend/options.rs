@@ -1,12 +1,14 @@
-use clap::Clap;
+use gumdrop::Options;
 
-#[derive(Clap)]
-#[clap(version = "1.0", author = "Hirtol")]
-pub struct Options {
+#[derive(Options)]
+pub struct AppOptions {
+    /// Print this help message
+    #[options()]
+    help: bool,
     /// The path to the folder with all Blargg tests.
-    #[clap(short, default_value = "test roms/blargg/")]
+    #[options(default = "test roms/blargg/")]
     pub blargg_path: String,
     /// The path to the folder with all MoonEyeGB tests.
-    #[clap(short, default_value = "test roms/mooneye/")]
+    #[options(default = "test roms/mooneye/")]
     pub mooneye_path: String,
 }

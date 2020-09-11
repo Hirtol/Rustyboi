@@ -1,15 +1,14 @@
 //! This is an integration test suite which runs (if specified) all the test roms provided and saves
-//! an image of their framebuffer after ~25 million full emulation cycles (note, different from CPU cycles)
+//! an image of their framebuffer after ~2 million full emulation cycles (note, different from CPU cycles)
 //!
 //! If this is a second run then the `old` images will be compared to the `new` images via a
 //! `Blake2s` hash. Were there to be any files which differ they will be printed to the output.
 
 use std::fs::{File, read_dir, read, rename, remove_dir, remove_dir_all, create_dir_all, read_to_string, copy};
-use std::{io, env};
+use std::{io, env, fs};
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
-use clap::Clap;
 use std::ffi::{OsStr, OsString};
 use rustyboi_core::hardware::ppu::palette::DmgColor;
 use crate::display::{DisplayColour, RGB, TEST_COLOURS};
@@ -19,7 +18,7 @@ use std::time::Instant;
 use std::thread::{Thread, spawn};
 use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
 use image::ImageBuffer;
-use crate::options::Options;
+use crate::options::AppOptions;
 use blake2::{Blake2s, Digest};
 use std::iter::Map;
 use std::collections::HashMap;
@@ -27,6 +26,7 @@ use anyhow::*;
 use blake2::digest::Output;
 use std::sync::Arc;
 use image::imageops::FilterType;
+use gumdrop::Options;
 
 mod display;
 mod options;
@@ -36,8 +36,9 @@ const TESTING_PATH_CHANGED: &str = "testing_frames/changed/";
 const TESTING_PATH_NEW: &str = "testing_frames/new/";
 
 fn main() -> anyhow::Result<()>{
-    let options: Options = Options::parse();
+    let options: AppOptions = AppOptions::parse_args_default_or_exit();
     let current_time = Instant::now();
+
     // Clean out old files.
     remove_dir_all(TESTING_PATH_OLD);
     remove_dir_all(TESTING_PATH_CHANGED);
@@ -56,7 +57,6 @@ fn main() -> anyhow::Result<()>{
     let new_hashes = calculate_hashes(TESTING_PATH_NEW).unwrap_or_default();
 
     for (path, hash) in old_hashes {
-        // Can safely unwrap since we know that any old hashes will be in the new hashes
         if let Some(_) = new_hashes.get(&path).filter(|t| &**t != &hash) {
             println!("Change in file: {:?}", path);
             copy_changed_file(&path);
@@ -79,7 +79,7 @@ fn run_test_roms(blargg_path: impl AsRef<str>, mooneye_path: impl AsRef<str>){
 }
 
 /// An incredibly naive way of doing this, by just spawning as many threads as possible for
-/// all test roms and running them for ~25 million iterations.
+/// all test roms and running them for ~2 million iterations, or a custom amount if set via config.
 ///
 /// But it works!
 fn run_path(path: impl AsRef<str>) {

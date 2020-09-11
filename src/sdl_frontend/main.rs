@@ -102,9 +102,7 @@ fn main() {
             if !handle_events(event, &mut emulator) {
                 break 'mainloop;
             }
-
         }
-
         // Emulate exactly one frame's worth.
         while cycles < CYCLES_PER_FRAME {
             cycles += emulator.emulate_cycle() as u32;
