@@ -114,7 +114,21 @@ impl PPU {
     }
 
     pub fn set_lcd_control(&mut self, value: u8) {
-        self.lcd_control = LcdControl::from_bits_truncate(value);
+        let new_control = LcdControl::from_bits_truncate(value);
+
+        // If we turn OFF the display
+        if !new_control.contains(LcdControl::LCD_DISPLAY) && self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
+            log::debug!("Turning off LCD");
+            self.current_y = 0;
+            self.lcd_status.set_mode_flag(Mode::HBlank);
+        }
+        // If we turn ON the display
+        if new_control.contains(LcdControl::LCD_DISPLAY) && !self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
+            log::debug!("Turning on LCD");
+            self.lcd_status.set_mode_flag(Mode::HBlank);
+        }
+
+        self.lcd_control = new_control;
     }
 
     pub fn set_lcd_status(&mut self, value: u8) {
