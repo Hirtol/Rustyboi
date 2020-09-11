@@ -76,7 +76,7 @@ fn main() {
     let cpu_test = read("test roms/blargg/dmg-acid2.gb").unwrap();
     let cpu_test2 = read("test roms/mooneye/tests/acceptance/timer/tima_write_reloading.gb").unwrap();
 
-    //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
+    let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
     // test_fast(sdl_context, &mut canvas, &mut screen_texture, &cpu_test);
     //
@@ -84,7 +84,7 @@ fn main() {
 
     let mut timer = sdl_context.timer().unwrap();
 
-    let mut emulator = Emulator::new(Option::None, &cpu_test);
+    //let mut emulator = Emulator::new(Option::None, &cpu_test);
 
     let mut cycles = 0;
     let mut loop_cycles = 0;

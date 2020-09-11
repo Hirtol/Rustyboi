@@ -99,11 +99,11 @@ impl Emulator {
     /// HALTing.
     fn add_new_interrupts(&mut self, interrupt: Option<InterruptFlags>) {
         if let Some(intr) = interrupt {
-           self.cpu.halted = false;
+            self.cpu.halted = false;
 
             let mut interrupts = self.get_interrupts();
             interrupts.insert(intr);
-            self.mmu.borrow_mut().write_byte(INTERRUPTS_FLAG, interrupts.bits())
+            self.mmu.borrow_mut().interrupts_flag = interrupts;
         }
     }
 
@@ -114,8 +114,7 @@ impl Emulator {
 
         let mut interrupt_flags: InterruptFlags = self.get_interrupts();
 
-        let interrupt_enable: InterruptFlags =
-            InterruptFlags::from_bits_truncate(self.mmu.borrow().read_byte(INTERRUPTS_ENABLE));
+        let interrupt_enable: InterruptFlags = self.mmu.borrow().interrupts_enable;
 
         if interrupt_flags.is_empty() {
             return;
@@ -131,9 +130,8 @@ impl Emulator {
                 //debug!("Firing {:?} interrupt", interrupt);
                 interrupt_flags.remove(repr_flag);
 
-                self.mmu
-                    .borrow_mut()
-                    .write_byte(INTERRUPTS_FLAG, interrupt_flags.bits());
+                self.mmu.borrow_mut().interrupts_flag = interrupt_flags;
+
                 self.cpu.interrupts_routine(interrupt);
                 // We disable IME after an interrupt routine, thus we should preemptively break this loop.
                 break;
@@ -142,7 +140,7 @@ impl Emulator {
     }
 
     fn get_interrupts(&self) -> InterruptFlags {
-        InterruptFlags::from_bits_truncate(self.mmu.borrow().read_byte(INTERRUPTS_FLAG))
+        self.mmu.borrow().interrupts_flag
     }
 }
 

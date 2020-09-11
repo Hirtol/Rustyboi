@@ -99,7 +99,7 @@ impl<M: MemoryMapper> CPU<M> {
     /// This will reset the `ime` flag and jump to the proper interrupt address.
     pub fn interrupts_routine(&mut self, interrupt: Interrupts) {
         use Interrupts::*;
-        trace!("Interrupt called! {:?}", interrupt);
+        debug!("Interrupt called! {:?}", interrupt);
         // Two wait cycles
         self.add_cycles();
         self.add_cycles();

@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use crate::emulator::{CYCLES_PER_FRAME, MMU};
-use crate::hardware::memory::{Memory, MemoryMapper, INTERRUPTS_FLAG};
+use crate::hardware::memory::{Memory, MemoryMapper};
 use crate::hardware::ppu::palette::DmgColor::WHITE;
 use crate::hardware::ppu::palette::{DmgColor, Palette};
 use crate::hardware::ppu::register_flags::*;
