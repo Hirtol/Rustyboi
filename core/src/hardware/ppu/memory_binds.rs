@@ -48,6 +48,9 @@ impl PPU {
         let relative_address = (address - OAM_ATTRIBUTE_START) / 4;
 
         self.oam[relative_address as usize].set_byte((address % 4) as u8, value);
+
+        //self.sort_oam();
+
     }
 
     /// More efficient batch operation for DMA transfer.
@@ -67,6 +70,17 @@ impl PPU {
             };
             self.oam[i] = current_sprite;
         }
+        // Sort the OAM here so that we don't have to do it during scanline calls
+        // Will need to be discarded when/if we get to CGB mode, as that only uses OAM order.
+        //self.sort_oam();
+
+    }
+
+    /// Sort the `OAM` so that sprites with lower x coordinates are rendered last.
+    /// Therefore a lower x coordinate should net a higher index in the `OAM`
+    fn sort_oam(&mut self) {
+        self.oam.sort_by_key(|e| e.x_pos);
+        self.oam.reverse();
     }
 
     pub fn get_lcd_control(&self) -> u8 {

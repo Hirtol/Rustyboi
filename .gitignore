@@ -1,12 +1,15 @@
 core/target/
+.cargo/
+test roms/
+testing_frames/
 *.dll
 *.log
 *.gb
 *.gbc
 *.bin
-test roms/
-.cargo/
-testing_frames/
+*.png
+
+
 
 ### Intellij ###
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio, WebStorm and Rider

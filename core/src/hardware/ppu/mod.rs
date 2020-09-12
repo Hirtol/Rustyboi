@@ -360,7 +360,8 @@ impl PPU {
             let screen_x_pos = sprite.x_pos as i16 - 8;
             let screen_y_pos = sprite.y_pos as i16 - 16;
 
-            if !is_sprite_on_scanline(self.current_y as i16, screen_y_pos, y_size as i16) || sprites_on_scanline >= 10{
+            if !is_sprite_on_scanline(self.current_y as i16, screen_y_pos, y_size as i16)
+                || sprites_on_scanline >= 10 {
                 continue;
             }
 
@@ -378,11 +379,20 @@ impl PPU {
                 line = y_size - (line + 1);
             }
 
-            // This assumes the 16 pixels long tiles are next to each other in memory, if not.. well..
-            let tile = if line < 8 {
-                self.tiles[sprite.tile_number as usize]
+            let tile_index = sprite.tile_number as usize;
+            let tile = if !tall_sprites {
+                self.tiles[tile_index]
             } else {
-                self.tiles[(sprite.tile_number + 1) as usize]
+                // If we're on the lower 8x8 block of the 16 pixel tall sprite
+                if line < 8 {
+                    // Ignore lower bit one
+                    self.tiles[tile_index & 0xFE]
+                }else {
+                    // Add one, if appropriate.
+                    // PanDocs references an OR operation here, but to me an unconditional +1
+                    // would make more sense, but I'll keep it like this for now.
+                    self.tiles[tile_index | 0x01]
+                }
             };
 
             let (top_pixel_data, bottom_pixel_data) = tile.get_pixel_line(line % 8);
