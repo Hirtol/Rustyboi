@@ -203,6 +203,8 @@ impl PPU {
             if self.lcd_status.mode_flag() != VBlank {
                 self.lcd_status.set_mode_flag(VBlank);
 
+                self.ly_lyc_compare(&mut pending_interrupts);
+
                 self.current_y = self.current_y.wrapping_add(1);
                 self.ly_lyc_compare(&mut pending_interrupts);
                 // A rather hacky way (also taken from GBE Plus) but it'll suffice for now.
