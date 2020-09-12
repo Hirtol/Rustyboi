@@ -1,14 +1,16 @@
 use std::collections::VecDeque;
 
+use itertools::Itertools;
+use num_integer::Integer;
+
 use crate::emulator::{CYCLES_PER_FRAME, MMU};
 use crate::hardware::memory::{Memory, MemoryMapper};
-use crate::hardware::ppu::palette::DmgColor::WHITE;
+use crate::hardware::ppu::Mode::{HBlank, LcdTransfer, OamSearch, VBlank};
 use crate::hardware::ppu::palette::{DmgColor, Palette};
+use crate::hardware::ppu::palette::DmgColor::WHITE;
 use crate::hardware::ppu::register_flags::*;
 use crate::hardware::ppu::tiledata::*;
-use crate::hardware::ppu::Mode::{HBlank, LcdTransfer, OamSearch, VBlank};
 use crate::io::interrupts::InterruptFlags;
-use num_integer::Integer;
 
 pub const RESOLUTION_WIDTH: usize = 160;
 pub const RESOLUTION_HEIGHT: usize = 144;
@@ -76,9 +78,6 @@ pub mod memory_binds;
 pub mod palette;
 pub mod register_flags;
 pub mod tiledata;
-
-//TODO: Implement 10 sprite per scanline limit.
-//TODO: Implement sprite priority (x-based, in case of tie, then first sprite in mem; start: 0xFE00)
 
 // Misc:
 // If the Window is enabled while drawing the screen (LY is between 0 and 143)
@@ -152,7 +151,7 @@ impl PPU {
     /// # Returns
     ///
     /// Any interrupts that may have occurred during this `do_cycle`.
-    pub fn do_cycle(&mut self, cpu_clock_increment: u32) -> Option<InterruptFlags>{
+    pub fn do_cycle(&mut self, cpu_clock_increment: u32) -> Option<InterruptFlags> {
         self.current_cycles += cpu_clock_increment;
 
         if !self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
@@ -207,7 +206,7 @@ impl PPU {
 
                 // We used to increment this immediately, but in hindsight I'm not sure this
                 // makes sense so it's commented out for now.
-                // This does precipitate changes in the lcdon_timing-GS
+                // This does precipitate changes in the lcdon_timing-GS (still failing)
                 // TODO: Analyse these changes.
                 // self.current_y = self.current_y.wrapping_add(1);
                 // self.ly_lyc_compare(&mut pending_interrupts);
@@ -252,7 +251,7 @@ impl PPU {
             if self.lcd_control.contains(LcdControl::WINDOW_DISPLAY) {
                 self.draw_window_scanline();
             }
-        }else {
+        } else {
             let bgcolour = self.bg_window_palette.color_0();
             for pixel in self.scanline_buffer.iter_mut() {
                 *pixel = bgcolour;
@@ -263,10 +262,10 @@ impl PPU {
             self.draw_sprite_scanline();
         }
 
-        let current_address: usize = (self.current_y as usize *  RESOLUTION_WIDTH);
+        let current_address: usize = (self.current_y as usize * RESOLUTION_WIDTH);
 
         // Copy the value of the current scanline to the framebuffer.
-        self.frame_buffer[current_address..current_address+RESOLUTION_WIDTH]
+        self.frame_buffer[current_address..current_address + RESOLUTION_WIDTH]
             .copy_from_slice(&self.scanline_buffer);
 
         self.current_y = self.current_y.wrapping_add(1);
@@ -358,29 +357,32 @@ impl PPU {
     fn draw_sprite_scanline(&mut self) {
         let tall_sprites = self.lcd_control.contains(LcdControl::SPRITE_SIZE);
         let y_size: u8 = if tall_sprites { 16 } else { 8 };
-        let mut sprites_on_scanline = 0;
 
-        for sprite in self.oam.iter() {
+        // Sort by x such that a lower x-pos will always overwrite a higher x-pos sprite.
+        let sprites_to_draw = self.oam.iter()
+            .filter(|sprite|
+                {
+                    let screen_y_pos = sprite.y_pos as i16 - 16;
+                    is_sprite_on_scanline(self.current_y as i16, screen_y_pos, y_size as i16)
+                })
+            .take(10) // Max 10 sprites per scanline
+            .sorted_by_key(|x| x.x_pos)
+            .rev();
+
+        for sprite in sprites_to_draw {
             // We need to cast to i16 here, as otherwise we'd wrap around
             // Tried a simple wrapping method, broke quite a bit.
             // May try again another time as all this casting is ugly and probably expensive.
             let screen_x_pos = sprite.x_pos as i16 - 8;
             let screen_y_pos = sprite.y_pos as i16 - 16;
 
-            if !is_sprite_on_scanline(self.current_y as i16, screen_y_pos, y_size as i16)
-                || sprites_on_scanline >= 10 {
-                continue;
-            }
-
-            sprites_on_scanline += 1;
-
-            let mut line = (self.current_y as i16 - screen_y_pos) as u8;
-
             let x_flip = sprite.attribute_flags.contains(AttributeFlags::X_FLIP);
             let y_flip = sprite.attribute_flags.contains(AttributeFlags::Y_FLIP);
             let is_background_sprite = sprite
                 .attribute_flags
                 .contains(AttributeFlags::OBJ_TO_BG_PRIORITY);
+
+            let mut line = (self.current_y as i16 - screen_y_pos) as u8;
 
             if y_flip {
                 line = y_size - (line + 1);
@@ -394,7 +396,7 @@ impl PPU {
                 if line < 8 {
                     // Ignore lower bit one
                     self.tiles[tile_index & 0xFE]
-                }else {
+                } else {
                     // Add one, if appropriate.
                     // PanDocs references an OR operation here, but to me an unconditional +1
                     // would make more sense, but I'll keep it like this for now.

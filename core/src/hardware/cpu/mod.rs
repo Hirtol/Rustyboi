@@ -340,7 +340,6 @@ impl<M: MemoryMapper> CPU<M> {
     /// `halt until interrupt occurs (low power)`
     fn halt(&mut self) {
         self.halted = true;
-        log::warn!("HALT");
     }
 
     /// `A=A+r` OR `A=A+n` OR `A=A+(HL)`
