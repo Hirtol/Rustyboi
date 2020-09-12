@@ -205,8 +205,13 @@ impl PPU {
 
                 self.ly_lyc_compare(&mut pending_interrupts);
 
-                self.current_y = self.current_y.wrapping_add(1);
-                self.ly_lyc_compare(&mut pending_interrupts);
+                // We used to increment this immediately, but in hindsight I'm not sure this
+                // makes sense so it's commented out for now.
+                // This does precipitate changes in the lcdon_timing-GS
+                // TODO: Analyse these changes.
+                // self.current_y = self.current_y.wrapping_add(1);
+                // self.ly_lyc_compare(&mut pending_interrupts);
+
                 // A rather hacky way (also taken from GBE Plus) but it'll suffice for now.
                 self.vblank_cycles = self.current_cycles - 65664;
 
