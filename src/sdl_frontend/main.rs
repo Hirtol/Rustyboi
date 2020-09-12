@@ -72,11 +72,11 @@ fn main() {
 
     let bootrom_file = read("roms\\DMG_ROM.bin").unwrap();
 
-    let mut cartridge = read("roms\\Dr. Mario.gb").unwrap();
+    let mut cartridge = read("roms\\Tetris.gb").unwrap();
     let cpu_test = read("test roms/blargg/dmg-acid2.gb").unwrap();
     let cpu_test2 = read("test roms/mooneye/tests/acceptance/timer/tima_write_reloading.gb").unwrap();
 
-    let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
+    //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
     // test_fast(sdl_context, &mut canvas, &mut screen_texture, &cpu_test);
     //
@@ -84,7 +84,7 @@ fn main() {
 
     let mut timer = sdl_context.timer().unwrap();
 
-    //let mut emulator = Emulator::new(Option::None, &cpu_test);
+    let mut emulator = Emulator::new(Option::None, &cartridge);
 
     let mut cycles = 0;
     let mut loop_cycles = 0;
@@ -104,11 +104,11 @@ fn main() {
             }
         }
         // Emulate exactly one frame's worth.
-        while cycles < CYCLES_PER_FRAME*20 {
+        while cycles < CYCLES_PER_FRAME {
             cycles += emulator.emulate_cycle() as u32;
         }
 
-        cycles -= CYCLES_PER_FRAME*20;
+        cycles -= CYCLES_PER_FRAME;
 
         fill_texture_and_copy(&mut canvas, &mut screen_texture, &emulator.frame_buffer(), &DEFAULT_DISPLAY_COLOURS);
 

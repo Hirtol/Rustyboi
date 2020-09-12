@@ -245,6 +245,11 @@ impl PPU {
             if self.lcd_control.contains(LcdControl::WINDOW_DISPLAY) {
                 self.draw_window_scanline();
             }
+        }else {
+            let bgcolour = self.bg_window_palette.color_0();
+            for pixel in self.scanline_buffer.iter_mut() {
+                *pixel = bgcolour;
+            }
         }
 
         if self.lcd_control.contains(LcdControl::SPRITE_DISPLAY_ENABLE) {
@@ -346,6 +351,7 @@ impl PPU {
     fn draw_sprite_scanline(&mut self) {
         let tall_sprites = self.lcd_control.contains(LcdControl::SPRITE_SIZE);
         let y_size: u8 = if tall_sprites { 16 } else { 8 };
+        let mut sprites_on_scanline = 0;
 
         for sprite in self.oam.iter() {
             // We need to cast to i16 here, as otherwise we'd wrap around
@@ -354,9 +360,11 @@ impl PPU {
             let screen_x_pos = sprite.x_pos as i16 - 8;
             let screen_y_pos = sprite.y_pos as i16 - 16;
 
-            if !is_sprite_on_scanline(self.current_y as i16, screen_y_pos, y_size as i16) {
+            if !is_sprite_on_scanline(self.current_y as i16, screen_y_pos, y_size as i16) || sprites_on_scanline >= 10{
                 continue;
             }
+
+            sprites_on_scanline += 1;
 
             let mut line = (self.current_y as i16 - screen_y_pos) as u8;
 
@@ -401,7 +409,10 @@ impl PPU {
 
                 let colour = self.get_pixel_colour(j as u8, top_pixel_data, bottom_pixel_data, self.get_sprite_palette(sprite));
 
-                self.scanline_buffer[pixel as usize] = colour;
+                // The colour 0 should be transparent for sprites.
+                if colour != self.get_sprite_palette(sprite).color_0() {
+                    self.scanline_buffer[pixel as usize] = colour;
+                }
             }
         }
     }
