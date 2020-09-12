@@ -1,24 +1,24 @@
 use log::LevelFilter;
 use log::*;
 use rustyboi_core::emulator::{Emulator, CYCLES_PER_FRAME};
-use rustyboi_core::hardware::cartridge::Cartridge;
+
 use rustyboi_core::hardware::ppu::palette::{DmgColor};
 use sdl2::keyboard::Keycode;
-use sdl2::pixels::{Color, PixelFormatEnum};
+use sdl2::pixels::{Color};
 use sdl2::pixels::PixelFormatEnum::RGB24;
 use sdl2::render::{Canvas, Texture, WindowCanvas};
-use sdl2::video::{Window, DisplayMode};
+use sdl2::video::{Window};
 use sdl2::Sdl;
 use simplelog::{CombinedLogger, Config, ConfigBuilder, TermLogger, TerminalMode, WriteLogger};
-use std::convert::TryInto;
-use std::fs::{read, File};
-use std::io::BufWriter;
+
+use std::fs::{read};
+
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 use rustyboi_core::io::joypad::InputKey;
-use anyhow::Error;
-use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
-use std::intrinsics::{copy_nonoverlapping, transmute};
+
+
+
 use crate::display::{DisplayColour, RGB};
 use sdl2::event::Event;
 use std::ops::Div;
@@ -59,7 +59,7 @@ fn main() {
     let sdl_context = sdl2::init().expect("Failed to initialise SDL context!");
     let video_subsystem = sdl_context.video().expect("SDL context failed to initialise video!");
 
-    let mut window = video_subsystem
+    let window = video_subsystem
         .window("RustyBoi", 800, 720)
         .position_centered()
         .resizable()
@@ -72,7 +72,7 @@ fn main() {
 
     let bootrom_file = read("roms\\DMG_ROM.bin").unwrap();
 
-    let mut cartridge = read("roms\\Dr. Mario.gb").unwrap();
+    let cartridge = read("roms\\Dr. Mario.gb").unwrap();
     let cpu_test = read("test roms/blargg/dmg-acid2.gb").unwrap();
     let cpu_test2 = read("test roms/mooneye/tests/acceptance/timer/tima_write_reloading.gb").unwrap();
 
@@ -201,7 +201,7 @@ fn setup_sdl(canvas: &mut WindowCanvas) -> Texture {
 
 /// This function assumes pixel_buffer size * 3 == texture buffer size, otherwise panic
 fn fill_texture_and_copy(canvas: &mut WindowCanvas, texture: &mut Texture, pixel_buffer: &[DmgColor], colorizer: &DisplayColour) {
-    texture.with_lock(Option::None, |arr, pitch| {
+    texture.with_lock(Option::None, |arr, _pitch| {
         for (i, colour) in pixel_buffer.iter().enumerate() {
             let colour = colorizer.get_color(colour);
             let offset = i * 3;

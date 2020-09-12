@@ -1,5 +1,5 @@
 use crate::io::interrupts::Interrupts::{LcdStat, JOYPAD, SERIAL, TIMER, VBLANK};
-use bitflags::_core::fmt::Formatter;
+
 use bitflags::*;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]

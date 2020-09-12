@@ -1,15 +1,15 @@
 use std::rc::Rc;
 
 use bitflags::_core::cell::RefCell;
-use log::*;
+
 
 use crate::hardware::cpu::CPU;
-use crate::hardware::memory::*;
-use crate::hardware::memory::{Memory, MemoryMapper};
+
+use crate::hardware::memory::{Memory};
 use crate::hardware::ppu::palette::{DmgColor};
 use crate::hardware::ppu::{FRAMEBUFFER_SIZE, PPU};
-use crate::io::bootrom::*;
-use crate::io::interrupts::Interrupts::VBLANK;
+
+
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::io::joypad::*;
 
@@ -83,8 +83,7 @@ impl Emulator {
     }
 
     fn handle_external_input(&self, input: InputKey, pressed: bool) -> Option<InterruptFlags> {
-        use crate::io::joypad::*;
-        let mut inputs = &mut self.mmu.borrow_mut().joypad_register;
+        let inputs = &mut self.mmu.borrow_mut().joypad_register;
 
         if pressed {
             inputs.press_key(input);

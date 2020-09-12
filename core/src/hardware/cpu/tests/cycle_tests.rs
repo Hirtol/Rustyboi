@@ -1,5 +1,5 @@
-use crate::hardware::cpu::tests::{initial_cpu, read_short, set_short};
-use crate::hardware::memory::MemoryMapper;
+use crate::hardware::cpu::tests::{initial_cpu, set_short};
+
 use crate::io::interrupts::Interrupts;
 
 #[test]

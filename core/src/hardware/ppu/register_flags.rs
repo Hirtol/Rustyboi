@@ -1,6 +1,6 @@
 use crate::hardware::ppu::tiledata::{TILE_BLOCK_0_START, TILE_BLOCK_1_START};
 use crate::hardware::ppu::Mode;
-use bitflags::_core::fmt::Formatter;
+
 use bitflags::*;
 
 // # PPU FLAGS #
@@ -145,7 +145,7 @@ impl LcdStatus {
 mod tests {
     use crate::hardware::ppu::register_flags::LcdStatus;
     use crate::hardware::ppu::Mode::{HBlank, OamSearch};
-    use crate::io::interrupts::Interrupts::LcdStat;
+    
 
     #[test]
     fn status_tests() {

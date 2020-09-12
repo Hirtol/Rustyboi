@@ -2,9 +2,9 @@
 //! as I couldn't glean from the docs how the Joypad was implemented
 //! with games writing to the Joypad register.
 
-use bitflags::_core::fmt::Formatter;
+
 use bitflags::*;
-use std::convert::{TryFrom, TryInto};
+
 
 pub const JOYPAD_REGISTER: u16 = 0xFF00;
 

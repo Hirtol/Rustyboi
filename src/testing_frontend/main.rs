@@ -4,26 +4,26 @@
 //! If this is a second run then the `old` images will be compared to the `new` images via a
 //! `Blake2s` hash. Were there to be any files which differ they will be printed to the output.
 
-use std::fs::{File, read_dir, read, rename, remove_dir, remove_dir_all, create_dir_all, read_to_string, copy};
-use std::{io, env, fs};
-use std::io::Read;
+use std::fs::{File, read_dir, read, rename, remove_dir_all, create_dir_all, read_to_string, copy};
+use std::{io};
+
 use std::path::{Path, PathBuf};
 
 use std::ffi::{OsStr, OsString};
 use rustyboi_core::hardware::ppu::palette::DmgColor;
-use crate::display::{DisplayColour, RGB, TEST_COLOURS};
-use rustyboi_core::hardware::cartridge::Cartridge;
+use crate::display::{TEST_COLOURS};
+
 use rustyboi_core::emulator::{Emulator, CYCLES_PER_FRAME};
 use std::time::Instant;
-use std::thread::{Thread, spawn};
+use std::thread::{spawn};
 use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
 use image::ImageBuffer;
 use crate::options::AppOptions;
 use blake2::{Blake2s, Digest};
-use std::iter::Map;
+
 use std::collections::HashMap;
 use anyhow::*;
-use blake2::digest::Output;
+
 use std::sync::Arc;
 use image::imageops::FilterType;
 use gumdrop::Options;
@@ -173,7 +173,7 @@ fn calculate_hashes(directory: impl AsRef<Path>) -> anyhow::Result<HashMap<OsStr
     for path in files.iter() {
         let mut file = File::open(path)?;
         let mut hasher = Blake2s::new();
-        let n = io::copy(&mut file, &mut hasher)?;
+        let _n = io::copy(&mut file, &mut hasher)?;
         let hash = hasher.finalize();
 
         result.insert(path.file_stem().unwrap().to_os_string(), format!("{:x}", hash));

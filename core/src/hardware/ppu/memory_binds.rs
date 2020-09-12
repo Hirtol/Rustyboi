@@ -2,7 +2,7 @@
 //! to the MMU.
 use super::*;
 use crate::hardware::memory::OAM_ATTRIBUTE_START;
-use crate::hardware::ppu::register_flags::*;
+
 use crate::hardware::ppu::PPU;
 
 impl PPU {

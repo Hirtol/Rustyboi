@@ -1,13 +1,13 @@
-use crate::emulator::MMU;
+
 use crate::hardware::cpu::execute::InstructionAddress::HLI;
 use crate::hardware::cpu::execute::{InstructionAddress, JumpModifier};
 use crate::hardware::cpu::tests::{initial_cpu, read_short, set_short};
-use crate::hardware::cpu::CPU;
-use crate::hardware::memory::{Memory, MemoryMapper};
-use crate::hardware::registers::{Flags, Reg16::*, Reg8::*, Registers};
-use crate::io::bootrom::BootRom;
-use bitflags::_core::cell::RefCell;
-use std::rc::Rc;
+
+use crate::hardware::memory::{MemoryMapper};
+use crate::hardware::registers::{Flags, Reg16::*, Reg8::*};
+
+
+
 
 #[test]
 fn test_load_16bit() {

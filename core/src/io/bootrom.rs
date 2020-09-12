@@ -1,5 +1,5 @@
-use bitflags::_core::fmt::{Debug, Formatter};
-use core::fmt;
+
+
 /// 256 bytes total.
 pub const BOOTROM_SIZE: usize = 0x100;
 

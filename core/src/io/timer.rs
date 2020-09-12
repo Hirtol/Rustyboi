@@ -1,5 +1,5 @@
-use crate::io::interrupts::{Interrupts, InterruptFlags};
-use crate::io::timer::InputClock::{C1024, C256};
+use crate::io::interrupts::{InterruptFlags};
+use crate::io::timer::InputClock::{C256};
 
 /// This register is incremented at rate of 16384Hz (~16779Hz on SGB).
 /// Writing any value to this register resets it to 00h.
@@ -160,7 +160,7 @@ impl TimerRegisters {
 
 impl TimerControl {
     pub fn to_bits(&self) -> u8 {
-        let mut result = if self.timer_enabled {0x4} else {0};
+        let result = if self.timer_enabled {0x4} else {0};
 
         result | self.input_select as u8
     }

@@ -1,13 +1,13 @@
-use std::collections::VecDeque;
+
 
 use itertools::Itertools;
 use num_integer::Integer;
 
-use crate::emulator::{CYCLES_PER_FRAME, MMU};
-use crate::hardware::memory::{Memory, MemoryMapper};
+use crate::emulator::{CYCLES_PER_FRAME};
+
 use crate::hardware::ppu::Mode::{HBlank, LcdTransfer, OamSearch, VBlank};
 use crate::hardware::ppu::palette::{DmgColor, Palette};
-use crate::hardware::ppu::palette::DmgColor::WHITE;
+
 use crate::hardware::ppu::register_flags::*;
 use crate::hardware::ppu::tiledata::*;
 use crate::io::interrupts::InterruptFlags;
@@ -262,7 +262,7 @@ impl PPU {
             self.draw_sprite_scanline();
         }
 
-        let current_address: usize = (self.current_y as usize * RESOLUTION_WIDTH);
+        let current_address: usize = self.current_y as usize * RESOLUTION_WIDTH;
 
         // Copy the value of the current scanline to the framebuffer.
         self.frame_buffer[current_address..current_address + RESOLUTION_WIDTH]

@@ -14,8 +14,8 @@ use crate::hardware::ppu::register_flags::AttributeFlags;
 use bitflags::_core::fmt::Formatter;
 use std::fmt;
 use std::fmt::Debug;
-use std::mem::size_of;
-use std::ops::Index;
+
+
 
 // 128 tiles each of 16 bytes each.
 pub const TILE_BLOCK_0_START: u16 = 0x8000;
@@ -108,7 +108,7 @@ impl Debug for SpriteAttribute {
 }
 
 impl Tile {
-    pub fn get_pixel_line(&self, mut line_y: u8) -> (u8, u8) {
+    pub fn get_pixel_line(&self, line_y: u8) -> (u8, u8) {
         let address = (line_y * 2) as usize;
         (self.data[address], self.data[address + 1])
     }

@@ -3,11 +3,11 @@ use crate::hardware::ppu::tiledata::*;
 use crate::hardware::ppu::{PPU, DMA_TRANSFER};
 use crate::io::bootrom::BootRom;
 use crate::io::interrupts::InterruptFlags;
-use bitflags::_core::cell::RefCell;
+
 use bitflags::_core::fmt::{Debug, Formatter};
 use log::*;
 use std::fmt;
-use std::rc::Rc;
+
 use crate::io::joypad::*;
 use crate::io::timer::*;
 

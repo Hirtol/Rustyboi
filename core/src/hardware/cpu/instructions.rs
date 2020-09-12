@@ -5,7 +5,7 @@
 use crate::hardware::cpu::execute::{
     horizontal_decode, vertical_decode, InstructionAddress, JumpModifier,
 };
-use crate::hardware::registers::Reg16;
+
 use crate::hardware::registers::Reg16::*;
 use crate::hardware::registers::Reg8::*;
 

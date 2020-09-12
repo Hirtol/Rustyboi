@@ -3,7 +3,7 @@
 
 use crate::hardware::cpu::CPU;
 use crate::hardware::memory::MemoryMapper;
-use log::trace;
+
 
 impl<M: MemoryMapper> CPU<M> {
     /// Add 4 cycles to the internal counter

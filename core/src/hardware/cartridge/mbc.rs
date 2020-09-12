@@ -84,7 +84,7 @@ impl MBC1 {
     fn set_higher_rom_bank(&mut self, value: u8) {
         if !self.banking_mode_select{
             // ROM Banking
-            let rom_bank = (value<<5); // Move bits into correct location.
+            let rom_bank = value<<5; // Move bits into correct location.
             self.rom_bank &= 0x60; // Turn off bits 5 and 6.
             self.rom_bank |= rom_bank; // Set bits 5 and 6.
         } else {

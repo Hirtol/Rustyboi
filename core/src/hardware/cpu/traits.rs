@@ -174,7 +174,7 @@ impl<T: MemoryMapper> SetU16<Reg16> for CPU<T> {
 
 impl<T: MemoryMapper> ToU16<InstructionAddress> for CPU<T> {
     fn read_u16_value(&mut self, target: InstructionAddress) -> u16 {
-        use crate::hardware::memory::IO_START;
+        
         use InstructionAddress::*;
 
         match target {
@@ -186,7 +186,7 @@ impl<T: MemoryMapper> ToU16<InstructionAddress> for CPU<T> {
 
 impl<T: MemoryMapper> SetU16<InstructionAddress> for CPU<T> {
     fn set_u16_value(&mut self, target: InstructionAddress, value: u16) {
-        use crate::hardware::memory::IO_START;
+        
         use InstructionAddress::*;
 
         match target {

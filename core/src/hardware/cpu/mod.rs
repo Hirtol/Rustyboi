@@ -3,18 +3,18 @@
 
 use crate::emulator::*;
 use crate::hardware::cpu::execute::{InstructionAddress, JumpModifier, WrapperEnum};
-use crate::hardware::cpu::instructions::*;
+
 use crate::hardware::cpu::traits::{SetU16, SetU8, ToU16, ToU8};
-use crate::hardware::memory::Memory;
+
 use crate::hardware::memory::*;
 use crate::hardware::registers::Reg8::A;
-use crate::hardware::registers::{Flags, Reg16, Reg8, Registers};
+use crate::hardware::registers::{Flags, Reg16, Registers};
 use crate::io::interrupts::Interrupts;
-use bitflags::_core::cell::RefCell;
+
 use log::*;
 use std::fmt::*;
-use std::io::Read;
-use std::rc::Rc;
+
+
 
 #[cfg(test)]
 mod tests;
@@ -619,7 +619,7 @@ impl<M: MemoryMapper> CPU<M> {
     /// Flags: `00HC`
     fn load_sp_i(&mut self) {
         let value = self.get_instr_u8() as i8 as u16;
-        let (new_value) = self.registers.sp.wrapping_add(value);
+        let new_value = self.registers.sp.wrapping_add(value);
 
         self.registers.set_hl(new_value);
         self.registers.set_zf(false);

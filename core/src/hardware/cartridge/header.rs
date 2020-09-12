@@ -1,6 +1,6 @@
 use bitflags::_core::str::from_utf8;
-use std::fs::File;
-use std::path::Path;
+
+
 
 pub const HEADER_START: u16 = 0x0100;
 pub const HEADER_END: u16 = 0x014F;
@@ -140,8 +140,8 @@ fn read_global_checksum(rom: &[u8]) -> u16 {
 #[cfg(test)]
 mod tests {
     use crate::hardware::cartridge::header::{read_cgb_flag, read_title, CartridgeHeader};
-    use std::fs::read;
-    use std::io::Read;
+    
+    
 
     #[test]
     fn test_read_title() {
