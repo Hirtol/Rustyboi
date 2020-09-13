@@ -147,7 +147,7 @@ impl Memory {
 
         match address {
             JOYPAD_REGISTER => self.joypad_register.get_register(),
-            DIVIDER_REGISTER => self.timers.divider_register,
+            DIVIDER_REGISTER => self.timers.divider_register(),
             TIMER_COUNTER => self.timers.timer_counter,
             TIMER_MODULO => self.timers.timer_modulo,
             TIMER_CONTROL => self.timers.timer_control.to_bits(),
