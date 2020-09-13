@@ -116,6 +116,7 @@ pub struct PPU {
     scroll_y: u8,
     window_x: u8,
     window_y: u8,
+    window_counter: u8,
     current_cycles: u32,
     vblank_cycles: u32,
 }
@@ -140,6 +141,7 @@ impl PPU {
             scroll_y: 0,
             window_x: 0,
             window_y: 0,
+            window_counter: 0,
             current_cycles: 0,
             vblank_cycles: 0,
         }
@@ -213,6 +215,7 @@ impl PPU {
 
                 // A rather hacky way (also taken from GBE Plus) but it'll suffice for now.
                 self.vblank_cycles = self.current_cycles - 65664;
+                self.window_counter = 0;
 
                 if self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT) {
                     pending_interrupts.insert(InterruptFlags::LCD);
@@ -310,31 +313,33 @@ impl PPU {
             self.bg_window_render_pixels(&mut pixel_counter, &mut x_remainder, top_pixel_data, bottom_pixel_data);
         }
     }
+    //TODO: Look at BG again as it's slightly broken.
 
     fn draw_window_scanline(&mut self) {
+        // -7 is apparently necessary for some reason
+        let window_x = self.window_x.wrapping_sub(7);
         // If it's not on our current y or if the window x is out of scope, don't bother rendering.
-        if self.current_y < self.window_y || self.window_x >= 160 {
+        if self.current_y < self.window_y || window_x >= 160 {
             return;
         }
 
-        let scanline_to_be_rendered = self.current_y;
-        // -7 is apparently necessary for some reason
-        let window_x = self.window_x.wrapping_sub(7);
-        // scanline_to_be_rendered can be in range 0-255, where each tile is 8 in length.
-        // As we'll want to use this variable to index on the TileMap (1 byte pointer to tile)
-        // We need to first divide by 8, and then multiply by 32 for our 1d representation array.
-        let tile_lower_bound = ((scanline_to_be_rendered / 8) as u16 * 32) + (window_x / 8) as u16;
+        // The window always start to pick tiles from the top left of its BG tile map,
+        // and has a separate line counter for its
+        let tile_lower_bound = (self.window_counter / 8) as u16 * 32;
         // We need as many tiles as there are to the end of the current scanline, even if they're
         // partial, therefore we need a ceiling divide.
         let tile_higher_bound = (tile_lower_bound as u16 + (160 - window_x as u16).div_ceil(&8))
             % BACKGROUND_TILE_SIZE as u16;
 
-        let tile_pixel_y = scanline_to_be_rendered % 8;
+        let tile_pixel_y = self.current_y % 8;
         let mut pixel_counter = window_x as usize;
         let mut x_remainder = (window_x % 8) as i8;
+        // Increment the window counter for future cycles.
+        self.window_counter += 1;
 
         for i in tile_lower_bound..tile_higher_bound {
             let mut tile_relative_address = self.get_tile_address_window(i) as usize;
+
             if self.lcd_control.bg_window_tile_address() == TILE_BLOCK_1_START {
                 tile_relative_address = (tile_relative_address as i8) as usize;
             }
@@ -370,7 +375,7 @@ impl PPU {
             .rev();
 
         for sprite in sprites_to_draw {
-            // We need to cast to i16 here, as otherwise we'd wrap around
+            // We need to cast to i16 here, as otherwise we'd wrap around when x is f.e 7.
             // Tried a simple wrapping method, broke quite a bit.
             // May try again another time as all this casting is ugly and probably expensive.
             let screen_x_pos = sprite.x_pos as i16 - 8;
@@ -428,7 +433,7 @@ impl PPU {
 
                 let colour = self.get_pixel_colour(j as u8, top_pixel_data, bottom_pixel_data, self.get_sprite_palette(sprite));
 
-                // The colour 0 should be transparent for sprites.
+                // The colour 0 should be transparent for sprites, therefore we don't draw it.
                 if colour != self.get_sprite_palette(sprite).color_0() {
                     self.scanline_buffer[pixel as usize] = colour;
                 }
