@@ -276,24 +276,36 @@ impl PPU {
 
     fn draw_bg_scanline(&mut self) {
         let scanline_to_be_rendered = self.current_y.wrapping_add(self.scroll_y);
-        let mut x_remainder = (self.scroll_x % 8) as i8;
         // scanline_to_be_rendered can be in range 0-255, where each tile is 8 in length.
         // As we'll want to use this variable to index on the TileMap (1 byte pointer to tile)
-        // We need to first divide by 8, to then multiply by 32 for our 1d representation array.
+        // We need to first divide by 8, to then multiply by 32 for our array with a 1d representation.
         let tile_lower_bound =
             ((scanline_to_be_rendered / 8) as u16 * 32) + (self.scroll_x / 8) as u16;
-        // Modulo would only be necessary for an extreme case like scroll_x = 250 and scanline = 255
-        let mut tile_higher_bound = (tile_lower_bound as u16 + 20) % BACKGROUND_TILE_SIZE as u16;
+        // 20 since 20*8 = 160 pixels
+        let mut tile_higher_bound = (tile_lower_bound + 20);
+
+        // Which particular y coordinate to use from an 8x8 or 16x8 tile.
+        let tile_line_y = scanline_to_be_rendered % 8;
+        // How many pixels we've drawn so far on this scanline.
+        let mut pixel_counter: usize = 0;
+        // The amount of pixels to partially render from the first tile in the sequence
+        // (for cases where self.scroll_x % 8 != 0, and thus not nicely aligned on tile boundaries)
+        let mut x_remainder = (self.scroll_x % 8) as i8;
 
         if x_remainder != 0 {
             tile_higher_bound += 1;
         }
 
-        let mut pixel_counter = 0;
-        let tile_line_y = scanline_to_be_rendered % 8;
-
-        for i in tile_lower_bound..tile_higher_bound {
-            let mut tile_relative_address = self.get_tile_address_bg(i) as usize;
+        for mut i in tile_lower_bound..tile_higher_bound {
+            // When we wraparound in the x direction we want to stay on the same internal y-tile
+            // Since we have a 1d representation of the tile map we have to subtract 32 to 'negate'
+            // the effect of the x wraparound (since this wraparound
+            // would have us go to the next y-tile line in the tile map)
+            if (self.scroll_x as u16 + pixel_counter as u16) > 255 {
+                i -= 32;
+            }
+            // Modulo for the y-wraparound if scroll_y > 111
+            let mut tile_relative_address = self.get_tile_address_bg(i % BACKGROUND_TILE_SIZE as u16) as usize;
 
             if !self.lcd_control.contains(LcdControl::BG_WINDOW_TILE_SELECT) {
                 tile_relative_address = (tile_relative_address as i8) as usize;
@@ -328,8 +340,7 @@ impl PPU {
         let tile_lower_bound = (self.window_counter / 8) as u16 * 32;
         // We need as many tiles as there are to the end of the current scanline, even if they're
         // partial, therefore we need a ceiling divide.
-        let tile_higher_bound = (tile_lower_bound as u16 + (160 - window_x as u16).div_ceil(&8))
-            % BACKGROUND_TILE_SIZE as u16;
+        let tile_higher_bound = (tile_lower_bound as u16 + (160 - window_x as u16).div_ceil(&8)) as u16;
 
         let tile_pixel_y = self.current_y % 8;
         let mut pixel_counter = window_x as usize;
