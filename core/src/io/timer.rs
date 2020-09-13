@@ -42,16 +42,14 @@ pub struct TimerRegisters {
 }
 
 impl TimerRegisters {
+
     pub fn divider_register(&self) -> u8 {
         (self.system_clock >> 8) as u8
     }
 
-    pub fn tick_timers(&mut self, delta_cycles: u128) -> Option<InterruptFlags> {
+    pub fn tick_timers(&mut self, mut delta_cycles: u128) -> Option<InterruptFlags> {
         let mut to_return = None;
         self.just_overflowed = false;
-
-        let old_sys_clock = self.system_clock;
-        self.system_clock = self.system_clock.wrapping_add(delta_cycles as u16);
 
         // Whenever an overflow occurs we delay by 4 cycles (1 nop)
         // We call this tick_timers() method every instruction, so we're getting close enough by just delaying
@@ -63,12 +61,21 @@ impl TimerRegisters {
             to_return = Some(InterruptFlags::TIMER)
         }
 
-        if self.timer_control.timer_enabled {
-            let select_bit = self.timer_control.input_select.to_relevant_bit();
+        // We need to gradually add since we can have > 16 cycles being added at once,
+        // which would screw over the timer when we are in C16 mode.
+        while delta_cycles > 0 {
+            let old_sys_clock = self.system_clock;
+            self.system_clock = self.system_clock.wrapping_add(4);
 
-            if self.fallen_sys_clock(old_sys_clock, select_bit) {
-                self.tick_timer();
+            if self.timer_control.timer_enabled {
+                let select_bit = self.timer_control.input_select.to_relevant_bit();
+
+                if self.fallen_sys_clock(old_sys_clock, select_bit) {
+                    self.tick_timer();
+                }
             }
+
+            delta_cycles -= 4;
         }
 
         to_return
@@ -100,6 +107,8 @@ impl TimerRegisters {
             self.timer_overflowed = false;
         }
 
+        // If you write to TIMA during the cycle that TMA is being loaded to it [B], the write will be ignored
+        // and TMA value will be written to TIMA instead.
         if self.just_overflowed {
             self.timer_counter = self.timer_modulo;
         } else {
@@ -111,16 +120,21 @@ impl TimerRegisters {
     /// Write to the `TMA` register (internally `timer_modulo`) and update
     /// `timer_counter` as appropriate
     pub fn set_tma(&mut self, value: u8) {
+        // If TMA is written to during the same period as we overflow this new value is used
+        // instead of the 'old' value.
+        if self.just_overflowed {
+            self.timer_counter = value;
+        }
         self.timer_modulo = value;
     }
 
     /// Write to the divider register, this will always reset it to 0x00.
     pub fn set_divider(&mut self) {
-        // If we've already halfway passed our cycle count then we'll increase our timer
-        // due to the falling edge detector in the DMG.
         let old_sys_clock = self.system_clock;
         self.system_clock = 0;
 
+        // If we've already halfway passed our cycle count then we'll increase our timer
+        // due to the falling edge detector in the DMG.
         if self.fallen_sys_clock(old_sys_clock, self.timer_control.input_select.to_relevant_bit()) {
             log::debug!("Div write timer increment");
             self.tick_timer();
@@ -137,13 +151,14 @@ impl TimerRegisters {
         // was already half way through it's cycle due to the falling edge detector.
         if old_control.timer_enabled
             && !self.timer_control.timer_enabled
-            && self.system_clock & select_bit != 0 {
+            && (self.system_clock & (select_bit)) != 0 {
             log::debug!("Halfway timer increment");
             self.tick_timer();
         }
-        if self.timer_control.timer_enabled
-            && self.system_clock & old_select_bit == 0
-            && self.system_clock & select_bit != 0 {
+        if old_control.timer_enabled
+            && self.timer_control.timer_enabled
+            && (self.system_clock & (old_select_bit)) != 0
+            && (self.system_clock & (select_bit)) == 0 {
             // if the old selected bit by the multiplexer was 0, the new one is
             // 1, and the new enable bit of TAC is set to 1, it will increase TIMA.
             // Put another way: If our old control had not yet done half of its cycles
@@ -190,23 +205,6 @@ impl From<u8> for InputClock {
 }
 
 impl InputClock {
-    pub fn to_cycle_count(&self) -> u128 {
-        match self {
-            InputClock::C16 => {
-                16
-            }
-            InputClock::C64 => {
-                64
-            }
-            InputClock::C256 => {
-                256
-            }
-            InputClock::C1024 => {
-                1024
-            }
-        }
-    }
-
     pub fn to_relevant_bit(&self) -> u16 {
         match self {
             InputClock::C16 => {
