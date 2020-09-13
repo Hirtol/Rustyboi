@@ -14,8 +14,6 @@ use crate::io::interrupts::Interrupts;
 use log::*;
 use std::fmt::*;
 
-
-
 #[cfg(test)]
 mod tests;
 

@@ -1,4 +1,3 @@
-use crate::io::interrupts::Interrupts::{LcdStat, JOYPAD, SERIAL, TIMER, VBLANK};
 
 use bitflags::*;
 
@@ -13,6 +12,7 @@ pub enum Interrupts {
 
 impl Interrupts {
     pub fn iter() -> impl Iterator<Item = Interrupts> {
+        use crate::io::interrupts::Interrupts::{LcdStat, JOYPAD, SERIAL, TIMER, VBLANK};
         [VBLANK, LcdStat, TIMER, SERIAL, JOYPAD].iter().copied()
     }
 }
@@ -30,6 +30,17 @@ bitflags! {
         const SERIAL = 0b0000_1000;
         /// Joypad
         const JOYPAD = 0b0001_0000;
+    }
+}
+
+impl InterruptFlags {
+    pub fn contains_interrupt(&self, interrupt: Interrupts) -> bool {
+        self.contains(InterruptFlags::from_bits_truncate(interrupt as u8))
+    }
+
+    pub fn iter() -> impl Iterator<Item = InterruptFlags> {
+        [InterruptFlags::VBLANK, InterruptFlags::LCD,
+            InterruptFlags::TIMER, InterruptFlags::SERIAL, InterruptFlags::JOYPAD].iter().copied()
     }
 }
 

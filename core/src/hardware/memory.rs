@@ -133,7 +133,10 @@ impl Memory {
             NOT_USABLE_START..=NOT_USABLE_END => log::trace!("ROM Writing to Non-usable memory: {:04X}", address),
             IO_START..=IO_END => self.write_io_byte(address, value),
             HRAM_START..=HRAM_END => self.memory[usize_address] = value,
-            INTERRUPTS_ENABLE => self.interrupts_enable = InterruptFlags::from_bits_truncate(value),
+            INTERRUPTS_ENABLE => {
+                log::warn!("Interrupt enable: {:?}", InterruptFlags::from_bits_truncate(value));
+                self.interrupts_enable = InterruptFlags::from_bits_truncate(value)
+            },
             _ => self.memory[usize_address] = value,
         }
     }

@@ -25,11 +25,11 @@ use std::ops::Div;
 
 mod display;
 
-const DISPLAY_COLOURS: DisplayColour = DisplayColour {
-    white: RGB(155, 188, 15),
-    light_grey: RGB(139, 172, 15),
-    dark_grey: RGB(48, 98, 48),
-    black: RGB(15, 56, 15),
+const KIRBY_DISPLAY_COLOURS: DisplayColour = DisplayColour {
+    white: RGB(44, 44, 150),
+    light_grey: RGB(119, 51, 231),
+    dark_grey: RGB(231, 134, 134),
+    black: RGB(247, 190, 247),
 };
 
 const GBC_UNR_DISPLAY_COLOURS: DisplayColour = DisplayColour {
@@ -72,7 +72,7 @@ fn main() {
 
     let bootrom_file = read("roms\\DMG_ROM.bin").unwrap();
 
-    let cartridge = read("roms\\Tetris.gb").unwrap();
+    let cartridge = read("roms\\Dr. Mario.gb").unwrap();
     let cpu_test = read("test roms/blargg/dmg-acid2.gb").unwrap();
     let cpu_test2 = read("test roms/mooneye/tests/acceptance/timer/tima_write_reloading.gb").unwrap();
 
@@ -84,7 +84,7 @@ fn main() {
 
     let mut timer = sdl_context.timer().unwrap();
 
-    let mut emulator = Emulator::new(Option::None, &cpu_test);
+    let mut emulator = Emulator::new(Option::None, &cartridge);
 
     let mut cycles = 0;
     let mut loop_cycles = 0;

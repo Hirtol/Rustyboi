@@ -56,9 +56,11 @@ impl Emulator {
     /// The delta in clock cycles due to the current emulation, to be used
     /// for timing purposes by the consumer of the emulator.
     pub fn emulate_cycle(&mut self) -> u128 {
+        let mut prior_cycles = self.cpu.cycles_performed;
+
         self.handle_interrupts();
 
-        let prior_cycles = self.cpu.cycles_performed;
+        //TODO: Consider ticking PPU/timers here since interrupts do tick timers.?
 
         self.cpu.step_cycle();
 
@@ -66,6 +68,7 @@ impl Emulator {
 
         let mut interrupt = self.mmu.borrow_mut().ppu.do_cycle(delta_cycles as u32);
         self.add_new_interrupts(interrupt);
+
         interrupt = self.mmu.borrow_mut().timers.tick_timers(delta_cycles);
         self.add_new_interrupts(interrupt);
 
@@ -124,8 +127,7 @@ impl Emulator {
         // version. Something without bitflags mayhap.
         for interrupt in Interrupts::iter() {
             let repr_flag = InterruptFlags::from_bits_truncate(interrupt as u8);
-
-            if interrupt_flags.contains(repr_flag) && interrupt_enable.contains(repr_flag) {
+            if !(repr_flag & interrupt_flags & interrupt_enable).is_empty() {
                 //debug!("Firing {:?} interrupt", interrupt);
                 interrupt_flags.remove(repr_flag);
 
