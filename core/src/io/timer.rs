@@ -103,7 +103,6 @@ impl TimerRegisters {
         // We check for self.timer_counter == 0 to ensure that we've not JUST loaded TMA
         // into TIMA, for if we did then we should ignore this write.
         if self.timer_overflowed && self.timer_counter == 0 {
-            log::info!("Preventing timer overflow!");
             self.timer_overflowed = false;
         }
 
@@ -136,7 +135,6 @@ impl TimerRegisters {
         // If we've already halfway passed our cycle count then we'll increase our timer
         // due to the falling edge detector in the DMG.
         if self.fallen_sys_clock(old_sys_clock, self.timer_control.input_select.to_relevant_bit()) {
-            log::debug!("Div write timer increment");
             self.tick_timer();
         }
     }
@@ -152,18 +150,17 @@ impl TimerRegisters {
         if old_control.timer_enabled
             && !self.timer_control.timer_enabled
             && (self.system_clock & (select_bit)) != 0 {
-            log::debug!("Halfway timer increment");
             self.tick_timer();
         }
+
+        // if the old selected bit by the multiplexer was 0, the new one is
+        // 1, and the new enable bit of TAC is set to 1, it will increase TIMA.
+        // Put another way: If our old control had not yet done half of its cycles
+        // but our new control will have done so, then we'll increment our timer.
         if old_control.timer_enabled
             && self.timer_control.timer_enabled
             && (self.system_clock & (old_select_bit)) != 0
             && (self.system_clock & (select_bit)) == 0 {
-            // if the old selected bit by the multiplexer was 0, the new one is
-            // 1, and the new enable bit of TAC is set to 1, it will increase TIMA.
-            // Put another way: If our old control had not yet done half of its cycles
-            // but our new control will have done so, then we'll increment our timer.
-            log::debug!("Lower timer increment");
             self.tick_timer()
         }
     }
