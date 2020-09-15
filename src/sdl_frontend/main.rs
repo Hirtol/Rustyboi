@@ -11,7 +11,7 @@ use sdl2::video::{Window};
 use sdl2::Sdl;
 use simplelog::{CombinedLogger, Config, ConfigBuilder, TermLogger, TerminalMode, WriteLogger};
 
-use std::fs::{read};
+use std::fs::{read, File};
 
 use std::thread::sleep;
 use std::time::{Duration, Instant};
@@ -22,6 +22,7 @@ use rustyboi_core::io::joypad::InputKey;
 use crate::display::{DisplayColour, RGB};
 use sdl2::event::Event;
 use std::ops::Div;
+use std::io::BufWriter;
 
 mod display;
 
@@ -52,7 +53,7 @@ const FRAME_DELAY: Duration = Duration::from_nanos(1_000_000_000u64 / FPS);
 fn main() {
     CombinedLogger::init(vec![
         TermLogger::new(LevelFilter::Debug, Config::default(), TerminalMode::Mixed),
-        //WriteLogger::new(LevelFilter::Info, ConfigBuilder::new().set_location_level(LevelFilter::Off).set_time_level(LevelFilter::Off).set_target_level(LevelFilter::Off).build(), BufWriter::new(File::create("rustyboi.log").unwrap())),
+        //WriteLogger::new(LevelFilter::Trace, ConfigBuilder::new().set_location_level(LevelFilter::Off).set_time_level(LevelFilter::Off).set_target_level(LevelFilter::Off).build(), BufWriter::new(File::create("rustyboi.log").unwrap())),
     ])
     .unwrap();
 

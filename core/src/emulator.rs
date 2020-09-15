@@ -101,6 +101,7 @@ impl Emulator {
     /// HALTing.
     fn add_new_interrupts(&mut self, interrupt: Option<InterruptFlags>) {
         if let Some(intr) = interrupt {
+            log::trace!("Adding interrupt: {:?}", intr);
             let mut interrupts = self.get_interrupts();
             interrupts.insert(intr);
             self.mmu.borrow_mut().interrupts_flag = interrupts;
@@ -128,7 +129,7 @@ impl Emulator {
         for interrupt in Interrupts::iter() {
             let repr_flag = InterruptFlags::from_bits_truncate(interrupt as u8);
             if !(repr_flag & interrupt_flags & interrupt_enable).is_empty() {
-                //debug!("Firing {:?} interrupt", interrupt);
+                log::debug!("Firing {:?} interrupt", interrupt);
                 interrupt_flags.remove(repr_flag);
 
                 self.mmu.borrow_mut().interrupts_flag = interrupt_flags;

@@ -107,7 +107,10 @@ impl Memory {
             NOT_USABLE_START..=NOT_USABLE_END => self.non_usable_call(address),
             IO_START..=IO_END => self.read_io_byte(address),
             HRAM_START..=HRAM_END => self.memory[address as usize],
-            INTERRUPTS_ENABLE => self.interrupts_enable.bits(),
+            INTERRUPTS_ENABLE => {
+                log::info!("Reading interrupt enable {:?}", self.interrupts_enable);
+                self.interrupts_enable.bits()
+            },
             _ => self.memory[address as usize],
         }
     }
@@ -134,7 +137,7 @@ impl Memory {
             IO_START..=IO_END => self.write_io_byte(address, value),
             HRAM_START..=HRAM_END => self.memory[usize_address] = value,
             INTERRUPTS_ENABLE => {
-                log::warn!("Interrupt enable: {:?}", InterruptFlags::from_bits_truncate(value));
+                log::info!("Writing Interrupt Enable: {:?}", InterruptFlags::from_bits_truncate(value));
                 self.interrupts_enable = InterruptFlags::from_bits_truncate(value)
             },
             _ => self.memory[usize_address] = value,
@@ -151,7 +154,10 @@ impl Memory {
             TIMER_COUNTER => self.timers.timer_counter,
             TIMER_MODULO => self.timers.timer_modulo,
             TIMER_CONTROL => self.timers.timer_control.to_bits(),
-            INTERRUPTS_FLAG => self.interrupts_flag.bits(),
+            INTERRUPTS_FLAG => {
+                log::info!("Reading interrupt flag {:?}", self.interrupts_flag);
+                self.interrupts_flag.bits()
+            },
             LCD_CONTROL_REGISTER => self.ppu.get_lcd_control(),
             LCD_STATUS_REGISTER => self.ppu.get_lcd_status(),
             SCY_REGISTER => self.ppu.get_scy(),
@@ -177,7 +183,10 @@ impl Memory {
             TIMER_COUNTER => self.timers.set_timer_counter(value), //TODO: This should have some restrictions with when you can write to this.
             TIMER_MODULO => self.timers.set_tma(value),
             TIMER_CONTROL => self.timers.set_timer_control(value),
-            INTERRUPTS_FLAG => self.interrupts_flag = InterruptFlags::from_bits_truncate(value),
+            INTERRUPTS_FLAG => {
+                self.interrupts_flag = InterruptFlags::from_bits_truncate(value);
+                log::info!("Writing interrupt flag {:?}", self.interrupts_flag);
+            },
             LCD_CONTROL_REGISTER => self.ppu.set_lcd_control(value),
             LCD_STATUS_REGISTER => self.ppu.set_lcd_status(value),
             SCY_REGISTER => self.ppu.set_scy(value),

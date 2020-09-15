@@ -13,6 +13,7 @@ use crate::io::interrupts::Interrupts;
 
 use log::*;
 use std::fmt::*;
+use crate::hardware::cpu::instructions::get_assembly_from_opcode;
 
 #[cfg(test)]
 mod tests;
@@ -78,17 +79,22 @@ impl<M: MemoryMapper> CPU<M> {
 
         self.opcode = self.get_instr_u8();
 
-        trace!(
-            "Executing opcode: {:04X} - registers: {}",
-            self.opcode,
-            self.registers,
-        );
         // trace!(
-        //     "Executing opcode: {:04X} - registers: {} - name: {}",
+        //     "Executing opcode: {:04X} - registers: {}",
         //     self.opcode,
         //     self.registers,
-        //     get_assembly_from_opcode(self.opcode)
         // );
+        let ie = self.mmu.borrow().read_byte(INTERRUPTS_ENABLE);
+        let if_flag = self.mmu.borrow().read_byte(INTERRUPTS_FLAG);
+        trace!(
+            "Executing opcode: {:04X} - name: {:<22}\n----------- registers: {} - IE: {:02X} - IF: {:02X} - ime: {}",
+            self.opcode,
+            get_assembly_from_opcode(self.opcode),
+            self.registers,
+            ie,
+            if_flag,
+            self.ime
+        );
 
         self.execute(self.opcode);
     }
@@ -142,7 +148,7 @@ impl<M: MemoryMapper> CPU<M> {
     {
         let source_value = self.read_u8_value(source);
 
-        trace!("Executing LD {:?} 0x{:04X}", destination, source_value);
+        trace!("LD {:?} 0x{:02X}", destination, source_value);
 
         self.set_u8_value(destination, source_value);
     }
@@ -337,6 +343,7 @@ impl<M: MemoryMapper> CPU<M> {
 
     /// `halt until interrupt occurs (low power)`
     fn halt(&mut self) {
+        log::info!("Entering halt");
         self.halted = true;
     }
 
@@ -608,7 +615,8 @@ impl<M: MemoryMapper> CPU<M> {
     /// Flags: `----`
     fn di(&mut self) {
         self.ime = false;
-        self.mmu.borrow_mut().write_byte(INTERRUPTS_ENABLE, 0x0);
+        // Never, ever, ever, get it in your head to add this again. 2 Days of debugging ._.
+        //self.mmu.borrow_mut().write_byte(INTERRUPTS_ENABLE, 0x0);
     }
 
     /// `LD HL,SP+i8`

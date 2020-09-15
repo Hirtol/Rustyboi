@@ -83,6 +83,7 @@ impl<T: MemoryMapper> ToU8<InstructionAddress> for CPU<T> {
             }
             IoDirect => {
                 let address = self.get_instr_u8() as u16;
+                log::trace!("IoDirect read from address: 0x{:04X}", IO_START + address);
                 self.read_byte_cycle(IO_START + address)
             }
             IoC => self.read_byte_cycle(IO_START + self.registers.c as u16),
@@ -109,10 +110,12 @@ impl<T: MemoryMapper> SetU8<InstructionAddress> for CPU<T> {
             }
             DIRECT | DirectMem => {
                 let address = self.get_instr_u16();
-                self.write_byte_cycle(address, value)
+                log::trace!("Direct memory write to address: 0x{:04X} with value: 0x{:02X}", address, value);
+                self.write_byte_cycle(address, value);
             }
             IoDirect => {
                 let addition = self.get_instr_u8() as u16;
+                log::trace!("IoDirect write to address: 0x{:04X} with value: 0x{:02X}", IO_START + addition, value);
                 self.write_byte_cycle(IO_START + addition, value);
             }
             IoC => self.write_byte_cycle(IO_START + self.registers.c as u16, value),
