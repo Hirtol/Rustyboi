@@ -4,6 +4,7 @@ use super::*;
 use crate::hardware::memory::OAM_ATTRIBUTE_START;
 
 use crate::hardware::ppu::PPU;
+use crate::print_array_raw;
 
 impl PPU {
     pub fn get_tile_byte(&self, address: u16) -> u8 {

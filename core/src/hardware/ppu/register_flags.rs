@@ -96,7 +96,8 @@ bitflags! {
     #[derive(Default)]
     pub struct AttributeFlags: u8 {
         //TODO: Add CGB Flags to this.
-
+        /// Purely so that the full byte is transferred.
+        const UNUSED = 0b0000_1111;
         /// (0=OBP0, 1=OBP1)
         const PALETTE_NUMBER = 0b0001_0000;
         /// (0=Normal, 1=Horizontally mirrored)

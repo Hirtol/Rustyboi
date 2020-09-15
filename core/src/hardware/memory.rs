@@ -200,7 +200,7 @@ impl Memory {
 
     fn dma_transfer(&mut self, value: u8) {
         let address = (value as usize) << 8;
-        log::trace!("OAM Transfer starting from: 0x{:04X}", address);
+        log::info!("OAM Transfer starting from: 0x{:04X}", address);
         self.memory[DMA_TRANSFER as usize] = value;
         self.ppu.oam_dma_transfer(&self.gather_shadow_oam(address));
     }
