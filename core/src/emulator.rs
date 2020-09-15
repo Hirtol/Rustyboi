@@ -101,8 +101,6 @@ impl Emulator {
     /// HALTing.
     fn add_new_interrupts(&mut self, interrupt: Option<InterruptFlags>) {
         if let Some(intr) = interrupt {
-            self.cpu.halted = false;
-
             let mut interrupts = self.get_interrupts();
             interrupts.insert(intr);
             self.mmu.borrow_mut().interrupts_flag = interrupts;
@@ -110,17 +108,19 @@ impl Emulator {
     }
 
     fn handle_interrupts(&mut self) {
-        if !self.cpu.ime {
-            return;
-        }
-
         let mut interrupt_flags: InterruptFlags = self.get_interrupts();
 
-        let interrupt_enable: InterruptFlags = self.mmu.borrow().interrupts_enable;
-
-        if interrupt_flags.is_empty() {
+        if !self.cpu.ime {
+            // While we have interrupts pending we can't enter halt mode again.
+            if !interrupt_flags.is_empty(){
+                self.cpu.halted = false;
+            }
+            return;
+        }else if interrupt_flags.is_empty() {
             return;
         }
+
+        let interrupt_enable: InterruptFlags = self.mmu.borrow().interrupts_enable;
 
         // Thanks to the iterator this should go in order, therefore also giving us the proper
         // priority. This is not at all optimised, so consider changing this for a better performing
