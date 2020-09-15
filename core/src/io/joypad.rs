@@ -97,20 +97,20 @@ bitflags! {
     #[derive(Default)]
     struct JoypadFlags: u8 {
         /// Right or A
-        const RIGHT_A = 0b0000_0001;
+        const RIGHT_A         = 0b0000_0001;
         /// Left or B
-        const LEFT_B    = 0b0000_0010;
+        const LEFT_B          = 0b0000_0010;
         /// Input Up or Select
-        const UP_SELECT  = 0b0000_0100;
+        const UP_SELECT       = 0b0000_0100;
         /// Input Down or Start
-        const DOWN_START = 0b0000_1000;
+        const DOWN_START      = 0b0000_1000;
         /// Select Direction Keys
-        const DIRECTION_KEYS = 0b0001_0000;
+        const DIRECTION_KEYS  = 0b0001_0000;
         /// Select Button Keys
-        const BUTTON_KEYS = 0b0010_0000;
+        const BUTTON_KEYS     = 0b0010_0000;
         /// Unused, but necessary for bits() to return 0xFF
-        const UNUSED_0 = 0b0100_0000;
+        const UNUSED_0        = 0b0100_0000;
         /// Unused, but necessary for bits() to return 0xFF
-        const UNUSED_1 = 0b1000_0000;
+        const UNUSED_1        = 0b1000_0000;
     }
 }

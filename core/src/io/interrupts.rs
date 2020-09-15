@@ -30,6 +30,8 @@ bitflags! {
         const SERIAL = 0b0000_1000;
         /// Joypad
         const JOYPAD = 0b0001_0000;
+        /// Unused, not yet sure if necesarry.
+        const UNUSED = 0b1110_0000;
     }
 }
 

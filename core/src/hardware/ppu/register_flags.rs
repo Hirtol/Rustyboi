@@ -83,6 +83,8 @@ bitflags! {
         const MODE_2_OAM_INTERRUPT = 0b0010_0000;
         /// LYC=LY Coincidence Interrupt (1=Enable) (Read/Write)
         const COINCIDENCE_INTERRUPT = 0b0100_0000;
+
+        const UNUSED = 0b1000_0000;
     }
 }
 
