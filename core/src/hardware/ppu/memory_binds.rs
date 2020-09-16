@@ -149,7 +149,7 @@ impl PPU {
     }
 
     pub fn set_ly(&mut self, value: u8) {
-        log::debug!("Attempted write to LY (0xFF44) when this register is read only!");
+        //log::debug!("Attempted write to LY (0xFF44) when this register is read only!");
         //self.current_y = value
     }
 

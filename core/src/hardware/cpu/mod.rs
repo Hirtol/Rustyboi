@@ -29,25 +29,27 @@ pub struct CPU<M: MemoryMapper> {
     pub cycles_performed: u128,
     pub ime: bool,
     pub halted: bool,
+    pub mmu: M,
     opcode: u8,
     registers: Registers,
-    mmu: MMU<M>,
     delayed_ime: bool,
 }
 
 impl<M: MemoryMapper> CPU<M> {
-    pub fn new(mmu: &MMU<M>) -> Self {
+    pub fn new(mmu: M) -> Self {
+        let boot_rom_finished = mmu.boot_rom_finished();
+
         let mut result = CPU {
             opcode: 0,
             registers: Registers::new(),
-            mmu: mmu.clone(),
+            mmu,
             halted: false,
             cycles_performed: 0,
             ime: false,
             delayed_ime: false,
         };
 
-        if mmu.borrow().boot_rom_finished() {
+        if boot_rom_finished {
             result.registers.pc = 0x100;
             // Set the registers to the state they would
             // have if we used the bootrom, missing MEM values
@@ -57,7 +59,7 @@ impl<M: MemoryMapper> CPU<M> {
             result.registers.set_hl(0x014D);
             result.registers.sp = 0xFFFE;
             // Initialise the DIV register to the value it would have had we run the bootrom.
-            result.mmu.borrow_mut().write_byte(0xFF04, 0xAB);
+            result.mmu.write_byte(0xFF04, 0xAB);
         }
 
         result
@@ -84,17 +86,17 @@ impl<M: MemoryMapper> CPU<M> {
         //     self.opcode,
         //     self.registers,
         // );
-        let ie = self.mmu.borrow().read_byte(INTERRUPTS_ENABLE);
-        let if_flag = self.mmu.borrow().read_byte(INTERRUPTS_FLAG);
-        trace!(
-            "Executing opcode: {:04X} - name: {:<22}\n----------- registers: {} - IE: {:02X} - IF: {:02X} - ime: {}",
-            self.opcode,
-            get_assembly_from_opcode(self.opcode),
-            self.registers,
-            ie,
-            if_flag,
-            self.ime
-        );
+        // let ie = self.mmu.read_byte(INTERRUPTS_ENABLE);
+        // let if_flag = self.mmu.read_byte(INTERRUPTS_FLAG);
+        // // trace!(
+        // //     "Executing opcode: {:04X} - name: {:<22}\n----------- registers: {} - IE: {:02X} - IF: {:02X} - ime: {}",
+        // //     self.opcode,
+        // //     get_assembly_from_opcode(self.opcode),
+        // //     self.registers,
+        // //     ie,
+        // //     if_flag,
+        // //     self.ime
+        // // );
 
         self.execute(self.opcode);
     }
@@ -616,7 +618,7 @@ impl<M: MemoryMapper> CPU<M> {
     fn di(&mut self) {
         self.ime = false;
         // Never, ever, ever, get it in your head to add this again. 2 Days of debugging ._.
-        //self.mmu.borrow_mut().write_byte(INTERRUPTS_ENABLE, 0x0);
+        //self.mmu.write_byte(INTERRUPTS_ENABLE, 0x0);
     }
 
     /// `LD HL,SP+i8`

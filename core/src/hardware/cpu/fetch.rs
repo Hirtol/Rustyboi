@@ -15,11 +15,11 @@ impl<M: MemoryMapper> CPU<M> {
     /// a prefix opcode.
     pub fn cb_prefix_call(&mut self) {
         self.opcode = self.get_instr_u8();
-        log::trace!(
-            "Executing opcode: {:04X} - registers: {}",
-            self.opcode,
-            self.registers,
-        );
+        // log::trace!(
+        //     "Executing opcode: {:04X} - registers: {}",
+        //     self.opcode,
+        //     self.registers,
+        // );
         self.execute_prefix(self.opcode);
     }
 
@@ -48,13 +48,13 @@ impl<M: MemoryMapper> CPU<M> {
     /// Read a byte from the `MMU` and increment the cycle counter by 4.
     pub fn read_byte_cycle(&mut self, address: u16) -> u8 {
         self.add_cycles();
-        self.mmu.borrow().read_byte(address)
+        self.mmu.read_byte(address)
     }
 
     /// Set a byte in the `MMU` and increment the cycle counter by 4.
     pub fn write_byte_cycle(&mut self, address: u16, value: u8) {
         self.add_cycles();
-        self.mmu.borrow_mut().write_byte(address, value);
+        self.mmu.write_byte(address, value);
         //TODO: Potentially add DMA transfer cycles (160*4 cycles) here?
     }
 

@@ -21,16 +21,12 @@ pub type MMU<T> = Rc<RefCell<T>>;
 
 pub struct Emulator {
     cpu: CPU<Memory>,
-    mmu: MMU<Memory>,
 }
 
 impl Emulator {
     pub fn new(boot_rom: Option<[u8; 256]>, cartridge: &[u8]) -> Self {
-        let mmu = MMU::new(RefCell::new(
-            Memory::new(boot_rom, cartridge, PPU::new())));
         Emulator {
-            cpu: CPU::new(&mmu),
-            mmu,
+            cpu: CPU::new(Memory::new(boot_rom, cartridge, PPU::new())),
         }
     }
 
@@ -46,7 +42,7 @@ impl Emulator {
     /// Should only be called on multiples of [CYCLES_PER_FRAME](constant.CYCLES_PER_FRAME.html)
     /// otherwise the data will be only partially complete.
     pub fn frame_buffer(&self) -> [DmgColor; FRAMEBUFFER_SIZE] {
-        self.mmu.borrow().ppu.frame_buffer().clone()
+        self.cpu.mmu.ppu.frame_buffer().clone()
     }
 
     /// Emulate one CPU cycle, and any other things that need to happen.
@@ -66,10 +62,10 @@ impl Emulator {
 
         let delta_cycles = self.cpu.cycles_performed - prior_cycles;
 
-        let mut interrupt = self.mmu.borrow_mut().ppu.do_cycle(delta_cycles as u32);
+        let mut interrupt = self.cpu.mmu.ppu.do_cycle(delta_cycles as u32);
         self.add_new_interrupts(interrupt);
 
-        interrupt = self.mmu.borrow_mut().timers.tick_timers(delta_cycles);
+        interrupt = self.cpu.mmu.timers.tick_timers(delta_cycles);
         self.add_new_interrupts(interrupt);
 
         // For PPU timing, maybe see how many cycles the cpu did, pass this to the PPU,
@@ -82,11 +78,12 @@ impl Emulator {
     /// Pass the provided `InputKey` to the emulator and ensure it's `pressed` state
     /// is represented for the current running `ROM`.
     pub fn handle_input(&mut self, input: InputKey, pressed: bool) {
-        self.add_new_interrupts(self.handle_external_input(input, pressed));
+        let result = self.handle_external_input(input, pressed);
+        self.add_new_interrupts(result);
     }
 
-    fn handle_external_input(&self, input: InputKey, pressed: bool) -> Option<InterruptFlags> {
-        let inputs = &mut self.mmu.borrow_mut().joypad_register;
+    fn handle_external_input(&mut self, input: InputKey, pressed: bool) -> Option<InterruptFlags> {
+        let inputs = &mut self.cpu.mmu.joypad_register;
 
         if pressed {
             inputs.press_key(input);
@@ -101,10 +98,10 @@ impl Emulator {
     /// HALTing.
     fn add_new_interrupts(&mut self, interrupt: Option<InterruptFlags>) {
         if let Some(intr) = interrupt {
-            log::trace!("Adding interrupt: {:?}", intr);
+            //log::trace!("Adding interrupt: {:?}", intr);
             let mut interrupts = self.get_interrupts();
             interrupts.insert(intr);
-            self.mmu.borrow_mut().interrupts_flag = interrupts;
+            self.cpu.mmu.interrupts_flag = interrupts;
         }
     }
 
@@ -121,7 +118,7 @@ impl Emulator {
             return;
         }
 
-        let interrupt_enable: InterruptFlags = self.mmu.borrow().interrupts_enable;
+        let interrupt_enable: InterruptFlags = self.cpu.mmu.interrupts_enable;
 
         // Thanks to the iterator this should go in order, therefore also giving us the proper
         // priority. This is not at all optimised, so consider changing this for a better performing
@@ -129,10 +126,10 @@ impl Emulator {
         for interrupt in Interrupts::iter() {
             let repr_flag = InterruptFlags::from_bits_truncate(interrupt as u8);
             if !(repr_flag & interrupt_flags & interrupt_enable).is_empty() {
-                log::debug!("Firing {:?} interrupt", interrupt);
+                //log::debug!("Firing {:?} interrupt", interrupt);
                 interrupt_flags.remove(repr_flag);
 
-                self.mmu.borrow_mut().interrupts_flag = interrupt_flags;
+                self.cpu.mmu.interrupts_flag = interrupt_flags;
 
                 self.cpu.interrupts_routine(interrupt);
                 // We disable IME after an interrupt routine, thus we should preemptively break this loop.
@@ -142,12 +139,12 @@ impl Emulator {
     }
 
     fn get_interrupts(&self) -> InterruptFlags {
-        self.mmu.borrow().interrupts_flag
+        self.cpu.mmu.interrupts_flag
     }
 }
 
 // pub fn tilemap_image(&self) {
-//     //let tile_data: TileData = self.mmu.borrow().get_tile_data();
+//     //let tile_data: TileData = self.cpu.mmu.get_tile_data();
 //     let back_x = 8;
 //     let back_y = 1024;
 //
@@ -157,8 +154,8 @@ impl Emulator {
 //         let dx = 7 - (x % 8);
 //         let dy = 2 * (y % 8) as u16;
 //         // Pixel data is spread over 2 bytes
-//         let a = self.mmu.borrow().read_byte((0x8200 + y) as u16);
-//         let b = self.mmu.borrow().read_byte((0x8200 + y + 1) as u16);
+//         let a = self.cpu.mmu.read_byte((0x8200 + y) as u16);
+//         let b = self.cpu.mmu.read_byte((0x8200 + y + 1) as u16);
 //         //warn!("READING BYTES: {:04x} {:04x}", 0x9000 + y, 0x9000 +y + 1);
 //         let bit1 = (a & (1 << dx)) >> dx;
 //         let bit2 = (b & (1 << dx)) >> dx;
@@ -169,7 +166,7 @@ impl Emulator {
 //             .borrow()
 //             .ppu
 //             .colorisor
-//             .get_color(&self.mmu.borrow().ppu.bg_window_palette.color(pixeldata));
+//             .get_color(&self.cpu.mmu.ppu.bg_window_palette.color(pixeldata));
 //
 //         *pixel = image::Rgb([color.0, color.1, color.2]);
 //     }

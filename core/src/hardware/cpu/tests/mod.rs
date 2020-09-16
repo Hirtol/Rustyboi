@@ -30,31 +30,28 @@ impl MemoryMapper for TestMemory {
 
 impl<T: MemoryMapper> CPU<T> {
     fn set_instruction(&mut self, code: u8) {
-        self.mmu.borrow_mut().write_byte(0, code);
+        self.mmu.write_byte(0, code);
     }
 }
 
 fn initial_cpu() -> CPU<TestMemory> {
-    let mmu = Rc::new(RefCell::new(TestMemory {
+    let mut cpu = CPU::new(TestMemory {
         mem: vec![0; 0x10000],
-    }));
-    let mut cpu = CPU::new(&mmu);
+    });
     cpu.registers = Registers::new();
     cpu
 }
 
 pub fn read_short<T: MemoryMapper>(cpu: &CPU<T>, address: u16) -> u16 {
-    let least_s_byte = cpu.mmu.borrow().read_byte(address) as u16;
-    let most_s_byte = cpu.mmu.borrow().read_byte(address.wrapping_add(1)) as u16;
+    let least_s_byte = cpu.mmu.read_byte(address) as u16;
+    let most_s_byte = cpu.mmu.read_byte(address.wrapping_add(1)) as u16;
 
     (most_s_byte << 8) | least_s_byte
 }
 
 pub fn set_short<T: MemoryMapper>(cpu: &mut CPU<T>, address: u16, value: u16) {
     cpu.mmu
-        .borrow_mut()
         .write_byte(address, (value & 0xFF) as u8); // Least significant byte first.
     cpu.mmu
-        .borrow_mut()
         .write_byte(address.wrapping_add(1), ((value & 0xFF00) >> 8) as u8);
 }

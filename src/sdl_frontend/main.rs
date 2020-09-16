@@ -73,15 +73,15 @@ fn main() {
 
     let bootrom_file = read("roms\\DMG_ROM.bin").unwrap();
 
-    let cartridge = read("roms\\Dr. Mario.gb").unwrap();
+    let cartridge = read("roms\\Tetris.gb").unwrap();
     let cpu_test = read("test roms/blargg/cpu_instrs/individual/02-interrupts.gb").unwrap();
     let cpu_test2 = read("test roms/mooneye/tests/acceptance/oam_dma/basic.gb").unwrap();
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
-    // test_fast(sdl_context, &mut canvas, &mut screen_texture, &cpu_test);
-    //
-    // return;
+    test_fast(sdl_context, &mut canvas, &mut screen_texture, &cpu_test);
+
+    return;
 
     let mut timer = sdl_context.timer().unwrap();
 

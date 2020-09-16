@@ -108,7 +108,7 @@ impl Memory {
             IO_START..=IO_END => self.read_io_byte(address),
             HRAM_START..=HRAM_END => self.memory[address as usize],
             INTERRUPTS_ENABLE => {
-                log::info!("Reading interrupt enable {:?}", self.interrupts_enable);
+                //log::info!("Reading interrupt enable {:?}", self.interrupts_enable);
                 self.interrupts_enable.bits()
             },
             _ => self.memory[address as usize],
@@ -137,7 +137,7 @@ impl Memory {
             IO_START..=IO_END => self.write_io_byte(address, value),
             HRAM_START..=HRAM_END => self.memory[usize_address] = value,
             INTERRUPTS_ENABLE => {
-                log::info!("Writing Interrupt Enable: {:?}", InterruptFlags::from_bits_truncate(value));
+                //log::info!("Writing Interrupt Enable: {:?}", InterruptFlags::from_bits_truncate(value));
                 self.interrupts_enable = InterruptFlags::from_bits_truncate(value)
             },
             _ => self.memory[usize_address] = value,
@@ -155,7 +155,7 @@ impl Memory {
             TIMER_MODULO => self.timers.timer_modulo,
             TIMER_CONTROL => self.timers.timer_control.to_bits(),
             INTERRUPTS_FLAG => {
-                log::info!("Reading interrupt flag {:?}", self.interrupts_flag);
+                //log::info!("Reading interrupt flag {:?}", self.interrupts_flag);
                 self.interrupts_flag.bits()
             },
             LCD_CONTROL_REGISTER => self.ppu.get_lcd_control(),
@@ -185,7 +185,7 @@ impl Memory {
             TIMER_CONTROL => self.timers.set_timer_control(value),
             INTERRUPTS_FLAG => {
                 self.interrupts_flag = InterruptFlags::from_bits_truncate(value);
-                log::info!("Writing interrupt flag {:?}", self.interrupts_flag);
+                //log::info!("Writing interrupt flag {:?}", self.interrupts_flag);
             },
             LCD_CONTROL_REGISTER => self.ppu.set_lcd_control(value),
             LCD_STATUS_REGISTER => self.ppu.set_lcd_status(value),
@@ -209,7 +209,7 @@ impl Memory {
 
     fn dma_transfer(&mut self, value: u8) {
         let address = (value as usize) << 8;
-        log::info!("OAM Transfer starting from: 0x{:04X}", address);
+        //log::info!("OAM Transfer starting from: 0x{:04X}", address);
         self.memory[DMA_TRANSFER as usize] = value;
         self.ppu.oam_dma_transfer(&self.gather_shadow_oam(address));
     }

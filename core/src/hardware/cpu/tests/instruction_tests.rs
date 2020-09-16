@@ -36,7 +36,7 @@ fn test_load_16bit() {
     // Test cycle
 
     cpu.registers.pc = 0;
-    cpu.mmu.borrow_mut().write_byte(0, 0x8);
+    cpu.mmu.write_byte(0, 0x8);
     cpu.cycles_performed = 0;
     cpu.step_cycle();
 
@@ -51,7 +51,7 @@ fn test_load_8bit() {
 
     cpu.registers.c = 40;
     cpu.registers.set_hl(0x4000);
-    cpu.mmu.borrow_mut().write_byte(0x4000, 30);
+    cpu.mmu.write_byte(0x4000, 30);
 
     // Basic test
     cpu.load_8bit(B, C);
@@ -66,7 +66,7 @@ fn test_load_8bit() {
     // Test to memory
     cpu.load_8bit(InstructionAddress::HLI, C);
 
-    assert_eq!(cpu.mmu.borrow().read_byte(cpu.registers.hl()), 40);
+    assert_eq!(cpu.mmu.read_byte(cpu.registers.hl()), 40);
 
     // Test if execute can handle some instructions.
     cpu.execute(0x7A);
@@ -84,11 +84,11 @@ fn test_increment() {
 
     assert_eq!(cpu.registers.c, 21);
 
-    assert_eq!(cpu.mmu.borrow().read_byte(0), 0);
+    assert_eq!(cpu.mmu.read_byte(0), 0);
 
     cpu.increment(HLI);
 
-    assert_eq!(cpu.mmu.borrow().read_byte(0), 1);
+    assert_eq!(cpu.mmu.read_byte(0), 1);
 }
 
 #[test]
@@ -167,10 +167,10 @@ fn test_decrement() {
     assert_eq!(cpu.registers.a, 4);
 
     cpu.registers.set_hl(0x100);
-    cpu.mmu.borrow_mut().write_byte(0x100, 1);
+    cpu.mmu.write_byte(0x100, 1);
     cpu.decrement(HLI);
 
-    assert_eq!(cpu.mmu.borrow().read_byte(0x100), 0);
+    assert_eq!(cpu.mmu.read_byte(0x100), 0);
     assert!(cpu.registers.f.contains(Flags::ZF));
 }
 
@@ -228,22 +228,22 @@ fn test_rla() {
 fn test_relative_jump() {
     let mut cpu = initial_cpu();
 
-    cpu.mmu.borrow_mut().write_byte(0, 0x18); // JR code
-    cpu.mmu.borrow_mut().write_byte(1, 30);
+    cpu.mmu.write_byte(0, 0x18); // JR code
+    cpu.mmu.write_byte(1, 30);
 
     cpu.step_cycle();
 
     // TODO: Check if relative jump should also jump relative to it's own execution size (2 bytes)
     assert_eq!(cpu.registers.pc, 32);
     let test: i8 = -20;
-    cpu.mmu.borrow_mut().write_byte(32, 0x18); // JR code
-    cpu.mmu.borrow_mut().write_byte(33, test as u8);
+    cpu.mmu.write_byte(32, 0x18); // JR code
+    cpu.mmu.write_byte(33, test as u8);
 
     cpu.step_cycle();
 
     assert_eq!(cpu.registers.pc, 14);
 
-    cpu.mmu.borrow_mut().write_byte(14, 0x28); // JR z-flag code
+    cpu.mmu.write_byte(14, 0x28); // JR z-flag code
     cpu.step_cycle();
 
     assert_eq!(cpu.registers.pc, 16);
@@ -471,7 +471,7 @@ fn test_compare() {
 fn test_call_and_ret() {
     let mut cpu = initial_cpu();
     cpu.registers.sp = 0xFFFF;
-    cpu.mmu.borrow_mut().write_byte(0, 0xCD);
+    cpu.mmu.write_byte(0, 0xCD);
     set_short(&mut cpu, 1, 0x1445);
 
     cpu.step_cycle();
@@ -520,7 +520,7 @@ fn test_add_sp() {
     cpu.registers.sp = 50;
 
     cpu.set_instruction(0xE8);
-    cpu.mmu.borrow_mut().write_byte(1, (-20 as i8) as u8);
+    cpu.mmu.write_byte(1, (-20 as i8) as u8);
 
     cpu.step_cycle();
 
