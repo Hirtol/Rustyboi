@@ -2,7 +2,7 @@ use log::LevelFilter;
 use log::*;
 use rustyboi_core::emulator::{Emulator, CYCLES_PER_FRAME};
 
-use rustyboi_core::hardware::ppu::palette::{DmgColor};
+use rustyboi_core::{DmgColor, InputKey, emulator};
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::{Color};
 use sdl2::pixels::PixelFormatEnum::RGB24;
@@ -15,7 +15,6 @@ use std::fs::{read, File};
 
 use std::thread::sleep;
 use std::time::{Duration, Instant};
-use rustyboi_core::io::joypad::InputKey;
 
 
 
@@ -79,9 +78,9 @@ fn main() {
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
-    test_fast(sdl_context, &mut canvas, &mut screen_texture, &cpu_test);
-
-    return;
+    // test_fast(sdl_context, &mut canvas, &mut screen_texture, &cpu_test);
+    //
+    // return;
 
     let mut timer = sdl_context.timer().unwrap();
 

@@ -1,5 +1,5 @@
-use rustyboi_core::hardware::ppu::palette::DmgColor::*;
-use rustyboi_core::hardware::ppu::palette::DmgColor;
+use rustyboi_core::DmgColor::*;
+use rustyboi_core::DmgColor;
 
 #[derive(Copy, Clone, Debug)]
 pub struct RGB(pub u8, pub u8, pub u8);

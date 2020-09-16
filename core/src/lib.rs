@@ -1,6 +1,11 @@
 pub mod emulator;
-pub mod hardware;
-pub mod io;
+pub use crate::hardware::ppu::palette::DmgColor;
+pub use crate::io::joypad::InputKey;
+
+mod hardware;
+mod io;
+
+
 
 
 fn print_array_raw<T: Sized>(array: T) {
