@@ -458,53 +458,37 @@ impl PPU {
                     continue;
                 }
 
-                let colour = self.get_pixel_colour(
-                    j as u8,
-                    top_pixel_data,
-                    bottom_pixel_data,
-                    self.get_sprite_palette(sprite),
-                );
+                let colour = self.get_pixel_colour(j as u8, top_pixel_data, bottom_pixel_data);
 
                 // The colour 0 should be transparent for sprites, therefore we don't draw it.
-                if colour != self.get_sprite_palette(sprite).color_0() {
-                    self.scanline_buffer[pixel as usize] = colour;
+                if colour != 0x0 {
+                    self.scanline_buffer[pixel as usize] = self.get_sprite_palette(sprite).colour(colour);
                 }
             }
         }
     }
 
-    fn bg_window_render_pixels(
-        &mut self,
-        pixel_counter: &mut usize,
-        x_remainder: &mut i8,
-        top_pixel_data: u8,
-        bottom_pixel_data: u8,
-    ) {
+    fn bg_window_render_pixels(&mut self, pixel_counter: &mut usize,
+                               x_remainder: &mut i8, top_pixel_data: u8, bottom_pixel_data: u8, ) {
         for j in (0..=7).rev() {
             if *x_remainder > 0 || *pixel_counter > 159 {
                 *x_remainder -= 1;
                 continue;
             }
 
-            self.scanline_buffer[*pixel_counter] =
-                self.get_pixel_colour(j, top_pixel_data, bottom_pixel_data, self.bg_window_palette);
+            let colour = self.get_pixel_colour(j, top_pixel_data, bottom_pixel_data);
+
+            self.scanline_buffer[*pixel_counter] = self.bg_window_palette.colour(colour);
 
             *pixel_counter += 1;
         }
     }
 
-    fn get_pixel_colour(
-        &self,
-        bit_offset: u8,
-        top_pixel_data: u8,
-        bottom_pixel_data: u8,
-        palette: Palette,
-    ) -> DmgColor {
+    fn get_pixel_colour(&self, bit_offset: u8, top_pixel_data: u8, bottom_pixel_data: u8) -> u8 {
         let bit1 = (top_pixel_data & (0x1 << bit_offset)) >> bit_offset;
         let bit2 = (bottom_pixel_data & (0x1 << bit_offset)) >> bit_offset;
-        let current_pixel = bit1 | (bit2 << 1);
 
-        palette.color(current_pixel)
+        bit1 | (bit2 << 1)
     }
 
     fn get_sprite_palette(&self, sprite: &SpriteAttribute) -> Palette {

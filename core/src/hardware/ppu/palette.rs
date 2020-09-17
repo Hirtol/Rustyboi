@@ -36,7 +36,7 @@ impl Palette {
     /// Retrieve the appropriate colour for the provided pixel value.
     ///
     /// Due to the aforementioned the `colour_value` should have at most 2 bits in use.
-    pub fn color(&self, color_value: u8) -> DmgColor {
+    pub fn colour(&self, color_value: u8) -> DmgColor {
         match color_value {
             0 => self.color_0(),
             1 => self.color_1(),
