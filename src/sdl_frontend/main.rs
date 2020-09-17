@@ -72,7 +72,7 @@ fn main() {
 
     let bootrom_file = read("roms\\DMG_ROM.bin").unwrap();
 
-    let cartridge = read("roms\\Tetris.gb").unwrap();
+    let cartridge = read("roms\\Dr. Mario.gb").unwrap();
     let cpu_test = read("test roms/blargg/cpu_instrs/individual/02-interrupts.gb").unwrap();
     let cpu_test2 = read("test roms/mooneye/tests/acceptance/oam_dma/basic.gb").unwrap();
 

@@ -2,7 +2,7 @@ pub mod emulator;
 pub use crate::hardware::ppu::palette::DmgColor;
 pub use crate::io::joypad::InputKey;
 
-mod hardware;
+pub mod hardware;
 mod io;
 
 

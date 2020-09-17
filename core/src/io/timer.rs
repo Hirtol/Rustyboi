@@ -35,8 +35,6 @@ pub struct TimerRegisters {
     pub timer_counter: u8,
     pub timer_modulo: u8,
     pub timer_control: TimerControl,
-    divider_cycle_counter: u128,
-    timer_cycle_counter: u128,
     timer_overflowed: bool,
     just_overflowed: bool,
 }
@@ -47,7 +45,7 @@ impl TimerRegisters {
         (self.system_clock >> 8) as u8
     }
 
-    pub fn tick_timers(&mut self, mut delta_cycles: u128) -> Option<InterruptFlags> {
+    pub fn tick_timers(&mut self, mut delta_cycles: u64) -> Option<InterruptFlags> {
         let mut to_return = None;
         self.just_overflowed = false;
 

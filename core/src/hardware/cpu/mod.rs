@@ -26,7 +26,7 @@ mod traits;
 
 #[derive(Debug)]
 pub struct CPU<M: MemoryMapper> {
-    pub cycles_performed: u128,
+    pub cycles_performed: u64,
     pub ime: bool,
     pub halted: bool,
     pub mmu: M,

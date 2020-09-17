@@ -10,7 +10,7 @@ use std::{io};
 use std::path::{Path, PathBuf};
 
 use std::ffi::{OsStr, OsString};
-use rustyboi_core::hardware::ppu::palette::DmgColor;
+use rustyboi_core::DmgColor;
 use crate::display::{TEST_COLOURS};
 
 use rustyboi_core::emulator::{Emulator, CYCLES_PER_FRAME};
@@ -102,10 +102,10 @@ fn run_path(path: impl AsRef<str>) {
                 emu.emulate_cycle();
             }
 
-            let mut remaining_cycles_for_frame = (emu.cycles_performed() % CYCLES_PER_FRAME as u128) as i128;
+            let mut remaining_cycles_for_frame = (emu.cycles_performed() % CYCLES_PER_FRAME as u64) as i64;
 
             while remaining_cycles_for_frame > 0 {
-                remaining_cycles_for_frame -= emu.emulate_cycle() as i128;
+                remaining_cycles_for_frame -= emu.emulate_cycle() as i64;
             }
 
             save_image(&emu.frame_buffer(), format!("{}.png", file_stem.to_str().unwrap()));

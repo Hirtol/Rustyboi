@@ -33,7 +33,7 @@ impl Emulator {
     /// Return how many cycles the CPU has performed so far.
     ///
     /// Mainly useful for timing.
-    pub fn cycles_performed(&self) -> u128 {
+    pub fn cycles_performed(&self) -> u64 {
         self.cpu.cycles_performed
     }
 
@@ -51,7 +51,7 @@ impl Emulator {
     ///
     /// The delta in clock cycles due to the current emulation, to be used
     /// for timing purposes by the consumer of the emulator.
-    pub fn emulate_cycle(&mut self) -> u128 {
+    pub fn emulate_cycle(&mut self) -> u64 {
         let mut prior_cycles = self.cpu.cycles_performed;
 
         self.handle_interrupts();
