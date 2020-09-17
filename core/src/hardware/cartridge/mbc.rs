@@ -274,7 +274,7 @@ mod tests {
             set_rom_bank_to_value(&mut rom, i, i as u8);
         }
 
-        MBC1::new(rom, false, KB32)
+        MBC1::new(rom, false, &KB32)
     }
 
     fn set_rom_bank_to_value(rom: &mut [u8], rom_bank: usize, value: u8) {
