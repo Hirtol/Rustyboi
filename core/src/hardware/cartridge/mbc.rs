@@ -69,7 +69,7 @@ pub struct MBC1 {
 
 impl MBC1 {
     pub fn new(rom: Vec<u8>, has_battery: bool) -> Self {
-        log::info!("Size: {} - Result calc: {}", rom.len(), (rom.len() % (EXTERNAL_RAM_SIZE * 2)));
+        log::info!("Size: {} - Effective banks: {}", rom.len(), (rom.len() / (EXTERNAL_RAM_SIZE * 2)));
         MBC1 {
             ram_enabled: false,
             has_battery,
@@ -128,27 +128,33 @@ impl MBC1 {
         }
     }
 }
-//TODO: Fix this implementation with proper masks etc.
+
 impl MBC for MBC1 {
     fn read_3fff(&self, address: u16) -> u8 {
         if !self.banking_mode_select {
             self.rom[address as usize]
         } else {
-            let mut effective_address = (address as usize) & 0x3FFF;
+            let mut effective_address = (address - ROM_BANK_00_START) as usize;
             //effective_address = effective_address | ((self.bank2 as usize) << 14);
-            self.rom[effective_address]
+            let offset = ROM_BANK_NN_START as usize * ((self.rom_bank & 0x60) % self.effective_banks) as usize;
+            self.rom[effective_address + offset]
         }
     }
 
     fn read_7fff(&self, address: u16) -> u8 {
-        let offset = ROM_BANK_NN_START * self.rom_bank as u16;
-        self.rom[((address - ROM_BANK_NN_START) + offset) as usize]
+        let offset = ROM_BANK_NN_START as usize * ((self.rom_bank % self.effective_banks) as usize);
+        let address = ((address - ROM_BANK_NN_START) as usize + offset);
+        self.rom[address]
     }
 
     fn read_ex_ram(&self, address: u16) -> u8 {
         // Currently we do no check that the cartridge actually has ram..
-        let offset = EXTERNAL_RAM_SIZE * self.ram_bank as usize;
-        self.ram[(address - EXTERNAL_RAM_START) as usize + offset]
+        if self.ram_enabled {
+            let offset = EXTERNAL_RAM_SIZE * self.ram_bank as usize;
+            self.ram[(address - EXTERNAL_RAM_START) as usize + offset]
+        }else {
+            INVALID_READ
+        }
     }
 
     fn write_byte(&mut self, address: u16, value: u8) {
@@ -171,14 +177,8 @@ mod tests {
 
     #[test]
     fn basic_mbc_1_test() {
-        // 64KB rom, 4 banks
-        let mut rom = vec![0x0_u8; EXTERNAL_RAM_SIZE*8];
-        // Set the upper 2 banks to something different.
-        set_rom_bank_to_value(&mut rom, 1, 0x1);
-        set_rom_bank_to_value(&mut rom, 2, 0x2);
-        set_rom_bank_to_value(&mut rom, 3, 0x3);
-
-        let mut mbc = MBC1::new(rom, false);
+        // 64 KB, 4 banks
+        let mut mbc = get_basic_mbc1(EXTERNAL_RAM_SIZE*8);
 
         assert_eq!(mbc.read_3fff(0x500), 0x0);
         assert_eq!(mbc.read_7fff(0x4500), 0x1);
@@ -186,10 +186,44 @@ mod tests {
         mbc.write_byte(0x2000, 0b101_0_0010);
 
         assert_eq!(mbc.read_7fff(0x4500), 0x2);
-
-
     }
 
+    #[test]
+    fn test_effective_rom_bank_mbc1() {
+        let mut mbc = get_basic_mbc1(EXTERNAL_RAM_SIZE*8);
+        // Bank 1 write
+        mbc.write_byte(0x2000, 0b101_1_0010);
+        // Bank 2 write
+        mbc.write_byte(0x4500, 0b1111_0001);
+
+        assert_eq!(mbc.rom_bank, 0b0110010);
+        // Ensure we wrap around properly.
+        assert_eq!(mbc.read_7fff(0x4500), 2);
+    }
+
+    #[test]
+    fn test_bank_mode_mbc1() {
+        // 64 banks
+        let mut mbc = get_basic_mbc1(EXTERNAL_RAM_SIZE*128);
+        // Bank 1 write
+        mbc.write_byte(0x2000, 0b101_1_0010);
+        // Bank 2 write
+        mbc.write_byte(0x4500, 0b1111_0001);
+        // Turn on bank mode
+        mbc.write_byte(0x6000, 0x1);
+
+        assert_eq!(mbc.read_3fff(0x2000), 32);
+    }
+
+    fn get_basic_mbc1(size: usize) -> MBC1 {
+        let mut rom = vec![0x0_u8; size];
+        // Set the upper 2 banks to something different.
+        for i in 0..(size/(EXTERNAL_RAM_SIZE * 2)) {
+            set_rom_bank_to_value(&mut rom, i, i as u8);
+        }
+
+        MBC1::new(rom, false)
+    }
 
     fn set_rom_bank_to_value(rom: &mut [u8], rom_bank: usize, value: u8) {
         for i in (EXTERNAL_RAM_SIZE*2*(rom_bank))..(EXTERNAL_RAM_SIZE*2*(rom_bank)+EXTERNAL_RAM_SIZE*2) {
