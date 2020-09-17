@@ -40,7 +40,6 @@ pub struct TimerRegisters {
 }
 
 impl TimerRegisters {
-
     pub fn divider_register(&self) -> u8 {
         (self.system_clock >> 8) as u8
     }
@@ -111,7 +110,6 @@ impl TimerRegisters {
         } else {
             self.timer_counter = value;
         }
-
     }
 
     /// Write to the `TMA` register (internally `timer_modulo`) and update
@@ -132,7 +130,10 @@ impl TimerRegisters {
 
         // If we've already halfway passed our cycle count then we'll increase our timer
         // due to the falling edge detector in the DMG.
-        if self.fallen_sys_clock(old_sys_clock, self.timer_control.input_select.to_relevant_bit()) {
+        if self.fallen_sys_clock(
+            old_sys_clock,
+            self.timer_control.input_select.to_relevant_bit(),
+        ) {
             self.tick_timer();
         }
     }
@@ -147,7 +148,8 @@ impl TimerRegisters {
         // was already half way through it's cycle due to the falling edge detector.
         if old_control.timer_enabled
             && !self.timer_control.timer_enabled
-            && (self.system_clock & (select_bit)) != 0 {
+            && (self.system_clock & (select_bit)) != 0
+        {
             self.tick_timer();
         }
 
@@ -158,7 +160,8 @@ impl TimerRegisters {
         if old_control.timer_enabled
             && self.timer_control.timer_enabled
             && (self.system_clock & (old_select_bit)) != 0
-            && (self.system_clock & (select_bit)) == 0 {
+            && (self.system_clock & (select_bit)) == 0
+        {
             self.tick_timer()
         }
     }
@@ -174,7 +177,10 @@ impl TimerControl {
 
 impl Default for TimerControl {
     fn default() -> Self {
-        TimerControl { input_select: C256, timer_enabled: false }
+        TimerControl {
+            input_select: C256,
+            timer_enabled: false,
+        }
     }
 }
 
@@ -194,7 +200,7 @@ impl From<u8> for InputClock {
             0x1 => InputClock::C16,
             0x2 => InputClock::C64,
             0x3 => InputClock::C256,
-            _ => panic!("Invalid value passed to the InputClock parser.")
+            _ => panic!("Invalid value passed to the InputClock parser."),
         }
     }
 }
@@ -202,18 +208,10 @@ impl From<u8> for InputClock {
 impl InputClock {
     pub fn to_relevant_bit(&self) -> u16 {
         match self {
-            InputClock::C16 => {
-                0x0008
-            }
-            InputClock::C64 => {
-                0x0020
-            }
-            InputClock::C256 => {
-                0x0080
-            }
-            InputClock::C1024 => {
-                0x0200
-            }
+            InputClock::C16 => 0x0008,
+            InputClock::C64 => 0x0020,
+            InputClock::C256 => 0x0080,
+            InputClock::C1024 => 0x0200,
         }
     }
 }

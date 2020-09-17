@@ -118,14 +118,18 @@ impl PPU {
         let new_control = LcdControl::from_bits_truncate(value);
 
         // If we turn OFF the display
-        if !new_control.contains(LcdControl::LCD_DISPLAY) && self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
+        if !new_control.contains(LcdControl::LCD_DISPLAY)
+            && self.lcd_control.contains(LcdControl::LCD_DISPLAY)
+        {
             log::debug!("Turning off LCD");
             self.current_y = 0;
             self.window_counter = 0;
             self.lcd_status.set_mode_flag(Mode::HBlank);
         }
         // If we turn ON the display
-        if new_control.contains(LcdControl::LCD_DISPLAY) && !self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
+        if new_control.contains(LcdControl::LCD_DISPLAY)
+            && !self.lcd_control.contains(LcdControl::LCD_DISPLAY)
+        {
             log::debug!("Turning on LCD");
             self.lcd_status.set_mode_flag(Mode::HBlank);
         }

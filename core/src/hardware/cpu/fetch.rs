@@ -4,7 +4,6 @@
 use crate::hardware::cpu::CPU;
 use crate::hardware::memory::MemoryMapper;
 
-
 impl<M: MemoryMapper> CPU<M> {
     /// Add 4 cycles to the internal counter
     pub fn add_cycles(&mut self) {

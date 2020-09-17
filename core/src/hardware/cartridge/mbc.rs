@@ -19,12 +19,15 @@ const EXTERNAL_RAM_SIZE: usize = 8192;
 /// Struct representing No MBC
 pub struct MBC0 {
     rom: Vec<u8>,
-    ram: [u8; EXTERNAL_RAM_SIZE]
+    ram: [u8; EXTERNAL_RAM_SIZE],
 }
 
 impl MBC0 {
     pub fn new(rom: Vec<u8>) -> Self {
-        MBC0 { rom, ram: [0xFF; EXTERNAL_RAM_SIZE] }
+        MBC0 {
+            rom,
+            ram: [0xFF; EXTERNAL_RAM_SIZE],
+        }
     }
 }
 
@@ -43,7 +46,9 @@ impl MBC for MBC0 {
 
     fn write_byte(&mut self, address: u16, value: u8) {
         match address {
-            EXTERNAL_RAM_START..=EXTERNAL_RAM_END => self.ram[(address - EXTERNAL_RAM_START) as usize] = value,
+            EXTERNAL_RAM_START..=EXTERNAL_RAM_END => {
+                self.ram[(address - EXTERNAL_RAM_START) as usize] = value
+            }
             _ => return,
         }
     }
@@ -51,6 +56,7 @@ impl MBC for MBC0 {
 
 pub struct MBC1 {
     ram_enabled: bool,
+    has_battery: bool,
     banking_mode_select: bool,
     rom_bank: u8,
     ram_bank: u8,
@@ -60,7 +66,15 @@ pub struct MBC1 {
 
 impl MBC1 {
     pub fn new(rom: Vec<u8>) -> Self {
-        MBC1 { ram_enabled: false, banking_mode_select: false, rom_bank: 1, ram_bank: 0, rom, ram: [0xFF; EXTERNAL_RAM_SIZE*4] }
+        MBC1 {
+            ram_enabled: false,
+            has_battery: false,
+            banking_mode_select: false,
+            rom_bank: 1,
+            ram_bank: 0,
+            rom,
+            ram: [0xFF; EXTERNAL_RAM_SIZE * 4],
+        }
     }
 
     #[inline]
@@ -82,14 +96,14 @@ impl MBC1 {
 
     #[inline]
     fn set_higher_rom_bank(&mut self, value: u8) {
-        if !self.banking_mode_select{
+        if !self.banking_mode_select {
             // ROM Banking
-            let rom_bank = value<<5; // Move bits into correct location.
+            let rom_bank = value << 5; // Move bits into correct location.
             self.rom_bank &= 0x60; // Turn off bits 5 and 6.
             self.rom_bank |= rom_bank; // Set bits 5 and 6.
         } else {
             // RAM Banking
-            self.ram_bank = value&0x03;
+            self.ram_bank = value & 0x03;
         }
     }
 
@@ -98,7 +112,7 @@ impl MBC1 {
             let true_address = (address - EXTERNAL_RAM_START) as usize;
             if !self.banking_mode_select {
                 self.ram[true_address] = value;
-            }else {
+            } else {
                 let offset = self.ram_bank as usize * EXTERNAL_RAM_SIZE;
                 self.ram[true_address + offset] = value;
             }

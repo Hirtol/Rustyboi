@@ -2,9 +2,7 @@
 //! as I couldn't glean from the docs how the Joypad was implemented
 //! with games writing to the Joypad register.
 
-
 use bitflags::*;
-
 
 pub const JOYPAD_REGISTER: u16 = 0xFF00;
 
@@ -71,7 +69,8 @@ impl JoyPad {
 
     fn update_flags(&mut self) {
         // Discard any writes that may have been made to the lower nibble.
-        self.selected_mode = JoypadFlags::from_bits_truncate(self.selected_mode.bits() & 0b0011_0000);
+        self.selected_mode =
+            JoypadFlags::from_bits_truncate(self.selected_mode.bits() & 0b0011_0000);
         if self.selected_mode.contains(JoypadFlags::BUTTON_KEYS) {
             self.selected_mode.insert(self.pressed_buttons);
         }
@@ -84,14 +83,13 @@ impl JoyPad {
 impl InputKey {
     fn get_flag_value(&self) -> JoypadFlags {
         match self {
-            InputKey::START  | InputKey::DOWN  => JoypadFlags::DOWN_START,
-            InputKey::SELECT | InputKey::UP    => JoypadFlags::UP_SELECT,
-            InputKey::B      | InputKey::LEFT  => JoypadFlags::LEFT_B,
-            InputKey::A      | InputKey::RIGHT => JoypadFlags::RIGHT_A,
+            InputKey::START | InputKey::DOWN => JoypadFlags::DOWN_START,
+            InputKey::SELECT | InputKey::UP => JoypadFlags::UP_SELECT,
+            InputKey::B | InputKey::LEFT => JoypadFlags::LEFT_B,
+            InputKey::A | InputKey::RIGHT => JoypadFlags::RIGHT_A,
         }
     }
 }
-
 
 bitflags! {
     #[derive(Default)]

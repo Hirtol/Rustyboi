@@ -2,13 +2,11 @@ use std::rc::Rc;
 
 use bitflags::_core::cell::RefCell;
 
-
 use crate::hardware::cpu::CPU;
 
-use crate::hardware::memory::{Memory};
-use crate::hardware::ppu::palette::{DmgColor};
+use crate::hardware::memory::Memory;
+use crate::hardware::ppu::palette::DmgColor;
 use crate::hardware::ppu::{FRAMEBUFFER_SIZE, PPU};
-
 
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::io::joypad::*;
@@ -110,11 +108,11 @@ impl Emulator {
 
         if !self.cpu.ime {
             // While we have interrupts pending we can't enter halt mode again.
-            if !interrupt_flags.is_empty(){
+            if !interrupt_flags.is_empty() {
                 self.cpu.halted = false;
             }
             return;
-        }else if interrupt_flags.is_empty() {
+        } else if interrupt_flags.is_empty() {
             return;
         }
 

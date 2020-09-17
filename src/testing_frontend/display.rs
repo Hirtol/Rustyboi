@@ -1,5 +1,5 @@
-use rustyboi_core::hardware::ppu::palette::DmgColor::*;
 use rustyboi_core::hardware::ppu::palette::DmgColor;
+use rustyboi_core::hardware::ppu::palette::DmgColor::*;
 
 pub const TEST_COLOURS: DisplayColour = DisplayColour {
     white: RGB(255, 255, 255),

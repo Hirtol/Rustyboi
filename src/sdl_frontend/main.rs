@@ -2,12 +2,12 @@ use log::LevelFilter;
 use log::*;
 use rustyboi_core::emulator::{Emulator, CYCLES_PER_FRAME};
 
-use rustyboi_core::{DmgColor, InputKey, emulator};
+use rustyboi_core::{emulator, DmgColor, InputKey};
 use sdl2::keyboard::Keycode;
-use sdl2::pixels::{Color};
+use sdl2::pixels::Color;
 use sdl2::pixels::PixelFormatEnum::RGB24;
 use sdl2::render::{Canvas, Texture, WindowCanvas};
-use sdl2::video::{Window};
+use sdl2::video::Window;
 use sdl2::Sdl;
 use simplelog::{CombinedLogger, Config, ConfigBuilder, TermLogger, TerminalMode, WriteLogger};
 
@@ -16,12 +16,10 @@ use std::fs::{read, File};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-
-
 use crate::display::{DisplayColour, RGB};
 use sdl2::event::Event;
-use std::ops::Div;
 use std::io::BufWriter;
+use std::ops::Div;
 
 mod display;
 
@@ -57,7 +55,9 @@ fn main() {
     .unwrap();
 
     let sdl_context = sdl2::init().expect("Failed to initialise SDL context!");
-    let video_subsystem = sdl_context.video().expect("SDL context failed to initialise video!");
+    let video_subsystem = sdl_context
+        .video()
+        .expect("SDL context failed to initialise video!");
 
     let window = video_subsystem
         .window("RustyBoi", 800, 720)
@@ -88,7 +88,7 @@ fn main() {
 
     let mut cycles = 0;
     let mut loop_cycles = 0;
-    let mut delta_acc = Duration::new(0,0);
+    let mut delta_acc = Duration::new(0, 0);
 
     let mut event_pump = sdl_context.event_pump().unwrap();
 
@@ -110,7 +110,12 @@ fn main() {
 
         cycles -= CYCLES_PER_FRAME;
 
-        fill_texture_and_copy(&mut canvas, &mut screen_texture, &emulator.frame_buffer(), &DEFAULT_DISPLAY_COLOURS);
+        fill_texture_and_copy(
+            &mut canvas,
+            &mut screen_texture,
+            &emulator.frame_buffer(),
+            &DEFAULT_DISPLAY_COLOURS,
+        );
 
         canvas.present();
 
@@ -120,7 +125,8 @@ fn main() {
 
         if FRAME_DELAY.as_millis() as i32 > frame_time {
             let sleeptime = (FRAME_DELAY.as_millis() as i32 - frame_time) as u64;
-            delta_acc += Duration::from_millis((FRAME_DELAY.as_millis() as i32 - frame_time) as u64);
+            delta_acc +=
+                Duration::from_millis((FRAME_DELAY.as_millis() as i32 - frame_time) as u64);
             std::thread::sleep(Duration::from_millis(sleeptime));
         }
 
@@ -131,41 +137,49 @@ fn main() {
             loop_cycles = 0;
             delta_acc = Duration::default();
             canvas.window_mut().set_title(
-                format!(
-                    "RustyBoi - {:.2} FPS",
-                    1.0 / average_delta.as_secs_f64()
-                ).as_str());
+                format!("RustyBoi - {:.2} FPS", 1.0 / average_delta.as_secs_f64()).as_str(),
+            );
         }
 
         last_update_time = frame_start;
     }
 }
 
-fn handle_events(event: Event, emulator: &mut Emulator) -> bool{
+fn handle_events(event: Event, emulator: &mut Emulator) -> bool {
     match event {
-        Event::Quit { .. } | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+        Event::Quit { .. }
+        | Event::KeyDown {
+            keycode: Some(Keycode::Escape),
+            ..
+        } => {
             return false;
-        },
+        }
         Event::DropFile { filename, .. } => {
             if filename.ends_with(".gb") {
                 debug!("Opening file: {}", filename);
-                let new_cartridge =
-                    read(filename).expect("Could not open the provided file!");
+                let new_cartridge = read(filename).expect("Could not open the provided file!");
                 *emulator = Emulator::new(Option::None, &new_cartridge);
             } else {
-                warn!("Attempted opening of file: {} which is not a GameBoy rom!", filename);
+                warn!(
+                    "Attempted opening of file: {} which is not a GameBoy rom!",
+                    filename
+                );
             }
-        },
-        Event::KeyDown {keycode: Some(key), ..} => {
+        }
+        Event::KeyDown {
+            keycode: Some(key), ..
+        } => {
             if let Some(input_key) = keycode_to_input(key) {
                 emulator.handle_input(input_key, true);
             }
-        },
-        Event::KeyUp {keycode: Some(key), ..} => {
+        }
+        Event::KeyUp {
+            keycode: Some(key), ..
+        } => {
             if let Some(input_key) = keycode_to_input(key) {
                 emulator.handle_input(input_key, false);
             }
-        },
+        }
         _ => {}
     }
 
@@ -182,7 +196,7 @@ fn keycode_to_input(key: Keycode) -> Option<InputKey> {
         Keycode::B => Some(InputKey::B),
         Keycode::S => Some(InputKey::SELECT),
         Keycode::T => Some(InputKey::START),
-        _ => None
+        _ => None,
     }
 }
 
@@ -200,12 +214,17 @@ fn setup_sdl(canvas: &mut WindowCanvas) -> Texture {
 }
 
 /// This function assumes pixel_buffer size * 3 == texture buffer size, otherwise panic
-fn fill_texture_and_copy(canvas: &mut WindowCanvas, texture: &mut Texture, pixel_buffer: &[DmgColor], colorizer: &DisplayColour) {
+fn fill_texture_and_copy(
+    canvas: &mut WindowCanvas,
+    texture: &mut Texture,
+    pixel_buffer: &[DmgColor],
+    colorizer: &DisplayColour,
+) {
     texture.with_lock(Option::None, |arr, _pitch| {
         for (i, colour) in pixel_buffer.iter().enumerate() {
             let colour = colorizer.get_color(colour);
             let offset = i * 3;
-            arr[offset]     = colour.0;
+            arr[offset] = colour.0;
             arr[offset + 1] = colour.1;
             arr[offset + 2] = colour.2;
         }
@@ -223,7 +242,12 @@ fn vec_to_bootrom(vec: &Vec<u8>) -> [u8; 256] {
     result
 }
 
-fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_texture: &mut Texture, cpu_test: &Vec<u8>) {
+fn test_fast(
+    sdl_context: Sdl,
+    mut canvas: &mut Canvas<Window>,
+    mut screen_texture: &mut Texture,
+    cpu_test: &Vec<u8>,
+) {
     let mut emulator = Emulator::new(Option::None, &cpu_test);
     let mut count: u128 = 0;
 
@@ -275,7 +299,12 @@ fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_textu
             }
         }
 
-        fill_texture_and_copy(&mut canvas, &mut screen_texture, &emulator.frame_buffer(), &DEFAULT_DISPLAY_COLOURS);
+        fill_texture_and_copy(
+            &mut canvas,
+            &mut screen_texture,
+            &emulator.frame_buffer(),
+            &DEFAULT_DISPLAY_COLOURS,
+        );
 
         canvas.present();
 
@@ -284,11 +313,8 @@ fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_textu
                 "RustyBoi - {} FPS",
                 1.0 / last_update_time.elapsed().as_secs_f64()
             )
-                .as_str(),
+            .as_str(),
         );
         last_update_time = frame_start;
     }
 }
-
-
-

@@ -148,7 +148,6 @@ impl LcdStatus {
 mod tests {
     use crate::hardware::ppu::register_flags::LcdStatus;
     use crate::hardware::ppu::Mode::{HBlank, OamSearch};
-    
 
     #[test]
     fn status_tests() {

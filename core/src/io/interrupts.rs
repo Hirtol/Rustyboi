@@ -1,4 +1,3 @@
-
 use bitflags::*;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
@@ -41,8 +40,15 @@ impl InterruptFlags {
     }
 
     pub fn iter() -> impl Iterator<Item = InterruptFlags> {
-        [InterruptFlags::VBLANK, InterruptFlags::LCD,
-            InterruptFlags::TIMER, InterruptFlags::SERIAL, InterruptFlags::JOYPAD].iter().copied()
+        [
+            InterruptFlags::VBLANK,
+            InterruptFlags::LCD,
+            InterruptFlags::TIMER,
+            InterruptFlags::SERIAL,
+            InterruptFlags::JOYPAD,
+        ]
+        .iter()
+        .copied()
     }
 }
 

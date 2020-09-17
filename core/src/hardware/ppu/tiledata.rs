@@ -15,8 +15,6 @@ use bitflags::_core::fmt::Formatter;
 use std::fmt;
 use std::fmt::Debug;
 
-
-
 // 128 tiles each of 16 bytes each.
 pub const TILE_BLOCK_0_START: u16 = 0x8000;
 pub const TILE_BLOCK_0_END: u16 = 0x87FF;

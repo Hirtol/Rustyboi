@@ -1,6 +1,6 @@
 use crate::hardware::cartridge::Cartridge;
 use crate::hardware::ppu::tiledata::*;
-use crate::hardware::ppu::{PPU, DMA_TRANSFER};
+use crate::hardware::ppu::{DMA_TRANSFER, PPU};
 use crate::io::bootrom::BootRom;
 use crate::io::interrupts::InterruptFlags;
 
@@ -87,7 +87,7 @@ impl Memory {
             joypad_register: JoyPad::new(),
             timers: Default::default(),
             interrupts_enable: Default::default(),
-            interrupts_flag: Default::default()
+            interrupts_flag: Default::default(),
         }
     }
 
@@ -110,7 +110,7 @@ impl Memory {
             INTERRUPTS_ENABLE => {
                 //log::info!("Reading interrupt enable {:?}", self.interrupts_enable);
                 self.interrupts_enable.bits()
-            },
+            }
             _ => self.memory[address as usize],
         }
     }
@@ -131,15 +131,19 @@ impl Memory {
             EXTERNAL_RAM_START..=EXTERNAL_RAM_END => self.cartridge.write_byte(address, value),
             WRAM_BANK_00_START..=WRAM_BANK_00_END => self.memory[usize_address] = value,
             WRAM_BANK_NN_START..=WRAM_BANK_NN_END => self.memory[usize_address] = value,
-            ECHO_RAM_START..=ECHO_RAM_END => self.memory[(address - ECHO_RAM_OFFSET) as usize] = value,
+            ECHO_RAM_START..=ECHO_RAM_END => {
+                self.memory[(address - ECHO_RAM_OFFSET) as usize] = value
+            }
             OAM_ATTRIBUTE_START..=OAM_ATTRIBUTE_END => self.ppu.set_oam_byte(address, value),
-            NOT_USABLE_START..=NOT_USABLE_END => log::trace!("ROM Writing to Non-usable memory: {:04X}", address),
+            NOT_USABLE_START..=NOT_USABLE_END => {
+                log::trace!("ROM Writing to Non-usable memory: {:04X}", address)
+            }
             IO_START..=IO_END => self.write_io_byte(address, value),
             HRAM_START..=HRAM_END => self.memory[usize_address] = value,
             INTERRUPTS_ENABLE => {
                 //log::info!("Writing Interrupt Enable: {:?}", InterruptFlags::from_bits_truncate(value));
                 self.interrupts_enable = InterruptFlags::from_bits_truncate(value)
-            },
+            }
             _ => self.memory[usize_address] = value,
         }
     }
@@ -157,7 +161,7 @@ impl Memory {
             INTERRUPTS_FLAG => {
                 //log::info!("Reading interrupt flag {:?}", self.interrupts_flag);
                 self.interrupts_flag.bits()
-            },
+            }
             LCD_CONTROL_REGISTER => self.ppu.get_lcd_control(),
             LCD_STATUS_REGISTER => self.ppu.get_lcd_status(),
             SCY_REGISTER => self.ppu.get_scy(),
@@ -186,7 +190,7 @@ impl Memory {
             INTERRUPTS_FLAG => {
                 self.interrupts_flag = InterruptFlags::from_bits_truncate(value);
                 //log::info!("Writing interrupt flag {:?}", self.interrupts_flag);
-            },
+            }
             LCD_CONTROL_REGISTER => self.ppu.set_lcd_control(value),
             LCD_STATUS_REGISTER => self.ppu.set_lcd_status(value),
             SCY_REGISTER => self.ppu.set_scy(value),

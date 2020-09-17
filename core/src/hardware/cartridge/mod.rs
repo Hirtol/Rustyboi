@@ -1,7 +1,7 @@
 use crate::hardware::cartridge::header::CartridgeHeader;
+use crate::hardware::cartridge::mbc::{MBC0, MBC1};
 use bitflags::_core::fmt::{Debug, Formatter};
 use std::fmt;
-use crate::hardware::cartridge::mbc::{MBC0, MBC1};
 
 mod header;
 mod mbc;
@@ -22,10 +22,7 @@ impl Cartridge {
     pub fn new(rom: &[u8]) -> Self {
         let header = CartridgeHeader::new(rom);
         let mbc = create_mbc(&header, rom);
-        Self {
-            header,
-            mbc,
-        }
+        Cartridge { header, mbc }
     }
 
     pub fn read_0000_3fff(&self, address: u16) -> u8 {
@@ -41,8 +38,11 @@ impl Cartridge {
     }
 
     pub fn write_byte(&mut self, address: u16, value: u8) {
-        //log::debug!("Writing to ROM address: 0x{:04X}", address);
         self.mbc.write_byte(address, value);
+    }
+
+    pub fn cartridge_header(&self) -> &CartridgeHeader {
+        &self.cartridge_header()
     }
 }
 
@@ -63,7 +63,9 @@ fn create_mbc(header: &CartridgeHeader, rom: &[u8]) -> Box<dyn MBC> {
         // Potentially need to specify RAM + Battery for MBC1.
         0x2 => Box::new(MBC1::new(rom_vec)),
         0x3 => Box::new(MBC1::new(rom_vec)),
-        _ => panic!("Unsupported cartridge type, please add support for: 0x{:02X}", header.cartridge_type)
+        _ => panic!(
+            "Unsupported cartridge type, please add support for: 0x{:02X}",
+            header.cartridge_type
+        ),
     }
-
 }

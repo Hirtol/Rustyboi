@@ -11,9 +11,9 @@ use crate::hardware::registers::Reg8::A;
 use crate::hardware::registers::{Flags, Reg16, Registers};
 use crate::io::interrupts::Interrupts;
 
+use crate::hardware::cpu::instructions::get_assembly_from_opcode;
 use log::*;
 use std::fmt::*;
-use crate::hardware::cpu::instructions::get_assembly_from_opcode;
 
 #[cfg(test)]
 mod tests;
@@ -379,12 +379,17 @@ impl<M: MemoryMapper> CPU<M> {
     {
         let value = self.read_u8_value(target);
         let carry_flag = self.registers.cf() as u8;
-        let new_value = self.registers.a.wrapping_add(value).wrapping_add(carry_flag);
+        let new_value = self
+            .registers
+            .a
+            .wrapping_add(value)
+            .wrapping_add(carry_flag);
         self.registers.set_zf(new_value == 0);
         self.registers.set_n(false);
-        self.registers.set_h((self.registers.a & 0xF) + (value & 0xF) + carry_flag > 0xF);
-        self.registers.set_cf((self.registers.a as u16) + (value as u16) + carry_flag as u16 > 0xFF);
-
+        self.registers
+            .set_h((self.registers.a & 0xF) + (value & 0xF) + carry_flag > 0xF);
+        self.registers
+            .set_cf((self.registers.a as u16) + (value as u16) + carry_flag as u16 > 0xFF);
 
         self.registers.a = new_value;
     }
@@ -400,7 +405,8 @@ impl<M: MemoryMapper> CPU<M> {
         let new_value = self.registers.a.wrapping_sub(value);
         self.registers.set_zf(new_value == 0);
         self.registers.set_n(true);
-        self.registers.set_h((self.registers.a & 0xF).wrapping_sub(value & 0xF) & (0x10) != 0);
+        self.registers
+            .set_h((self.registers.a & 0xF).wrapping_sub(value & 0xF) & (0x10) != 0);
         self.registers.set_cf(value > self.registers.a);
 
         self.registers.a = new_value;
@@ -415,12 +421,23 @@ impl<M: MemoryMapper> CPU<M> {
     {
         let value = self.read_u8_value(target);
         let carry_flag = self.registers.cf() as u8;
-        let new_value = self.registers.a.wrapping_sub(value).wrapping_sub(carry_flag);
+        let new_value = self
+            .registers
+            .a
+            .wrapping_sub(value)
+            .wrapping_sub(carry_flag);
 
         self.registers.set_zf(new_value == 0);
         self.registers.set_n(true);
-        self.registers.set_h((self.registers.a & 0xF).wrapping_sub(value & 0xF).wrapping_sub(carry_flag) & (0x10) != 0);
-        self.registers.set_cf((value as u16 + carry_flag as u16) > self.registers.a as u16);
+        self.registers.set_h(
+            (self.registers.a & 0xF)
+                .wrapping_sub(value & 0xF)
+                .wrapping_sub(carry_flag)
+                & (0x10)
+                != 0,
+        );
+        self.registers
+            .set_cf((value as u16 + carry_flag as u16) > self.registers.a as u16);
 
         self.registers.a = new_value;
     }
@@ -483,7 +500,8 @@ impl<M: MemoryMapper> CPU<M> {
         self.registers.set_zf(new_value == 0);
         self.registers.set_n(true);
         self.registers.set_cf(value > self.registers.a);
-        self.registers.set_h((self.registers.a & 0xF).wrapping_sub(value & 0xF) & (0x10) != 0);
+        self.registers
+            .set_h((self.registers.a & 0xF).wrapping_sub(value & 0xF) & (0x10) != 0);
     }
 
     /// Return from subroutine.
@@ -601,8 +619,10 @@ impl<M: MemoryMapper> CPU<M> {
 
         self.registers.set_zf(false);
         self.registers.set_n(false);
-        self.registers.set_h((self.registers.sp & 0xF) + (value & 0xF) > 0xF);
-        self.registers.set_cf((self.registers.sp & 0xFF) + (value & 0xFF) > 0xFF);
+        self.registers
+            .set_h((self.registers.sp & 0xF) + (value & 0xF) > 0xF);
+        self.registers
+            .set_cf((self.registers.sp & 0xFF) + (value & 0xFF) > 0xFF);
 
         self.registers.sp = new_value;
 
@@ -631,9 +651,11 @@ impl<M: MemoryMapper> CPU<M> {
         self.registers.set_hl(new_value);
         self.registers.set_zf(false);
         self.registers.set_n(false);
-        self.registers.set_h((self.registers.sp & 0xF) + (value & 0xF) > 0xF);
+        self.registers
+            .set_h((self.registers.sp & 0xF) + (value & 0xF) > 0xF);
         // Test if overflow on 7th bit.
-        self.registers.set_cf((self.registers.sp & 0xFF) + (value & 0xFF) > 0xFF);
+        self.registers
+            .set_cf((self.registers.sp & 0xFF) + (value & 0xFF) > 0xFF);
 
         self.add_cycles();
     }

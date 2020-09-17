@@ -1,12 +1,10 @@
-
-
 use itertools::Itertools;
 use num_integer::Integer;
 
-use crate::emulator::{CYCLES_PER_FRAME};
+use crate::emulator::CYCLES_PER_FRAME;
 
-use crate::hardware::ppu::Mode::{HBlank, LcdTransfer, OamSearch, VBlank};
 use crate::hardware::ppu::palette::{DmgColor, Palette};
+use crate::hardware::ppu::Mode::{HBlank, LcdTransfer, OamSearch, VBlank};
 
 use crate::hardware::ppu::register_flags::*;
 use crate::hardware::ppu::tiledata::*;
@@ -244,7 +242,11 @@ impl PPU {
             }
         }
 
-        if !pending_interrupts.is_empty() { Some(pending_interrupts) } else { None }
+        if !pending_interrupts.is_empty() {
+            Some(pending_interrupts)
+        } else {
+            None
+        }
     }
 
     fn draw_scanline(&mut self) {
@@ -305,7 +307,8 @@ impl PPU {
                 i -= 32;
             }
             // Modulo for the y-wraparound if scroll_y > 111
-            let mut tile_relative_address = self.get_tile_address_bg(i % BACKGROUND_TILE_SIZE as u16) as usize;
+            let mut tile_relative_address =
+                self.get_tile_address_bg(i % BACKGROUND_TILE_SIZE as u16) as usize;
 
             if !self.lcd_control.contains(LcdControl::BG_WINDOW_TILE_SELECT) {
                 tile_relative_address = (tile_relative_address as i8) as usize;
@@ -322,7 +325,12 @@ impl PPU {
 
             let (top_pixel_data, bottom_pixel_data) = tile.get_pixel_line(tile_line_y);
 
-            self.bg_window_render_pixels(&mut pixel_counter, &mut x_remainder, top_pixel_data, bottom_pixel_data);
+            self.bg_window_render_pixels(
+                &mut pixel_counter,
+                &mut x_remainder,
+                top_pixel_data,
+                bottom_pixel_data,
+            );
         }
     }
     //TODO: Look at BG again as it's slightly broken.
@@ -340,7 +348,8 @@ impl PPU {
         let tile_lower_bound = (self.window_counter / 8) as u16 * 32;
         // We need as many tiles as there are to the end of the current scanline, even if they're
         // partial, therefore we need a ceiling divide.
-        let tile_higher_bound = (tile_lower_bound as u16 + (160 - window_x as u16).div_ceil(&8)) as u16;
+        let tile_higher_bound =
+            (tile_lower_bound as u16 + (160 - window_x as u16).div_ceil(&8)) as u16;
 
         let tile_pixel_y = self.current_y % 8;
         let mut pixel_counter = window_x as usize;
@@ -366,7 +375,12 @@ impl PPU {
 
             let (top_pixel_data, bottom_pixel_data) = tile.get_pixel_line(tile_pixel_y);
 
-            self.bg_window_render_pixels(&mut pixel_counter, &mut x_remainder, top_pixel_data, bottom_pixel_data);
+            self.bg_window_render_pixels(
+                &mut pixel_counter,
+                &mut x_remainder,
+                top_pixel_data,
+                bottom_pixel_data,
+            );
         }
     }
 
@@ -375,12 +389,13 @@ impl PPU {
         let y_size: u8 = if tall_sprites { 16 } else { 8 };
 
         // Sort by x such that a lower x-pos will always overwrite a higher x-pos sprite.
-        let sprites_to_draw = self.oam.iter()
-            .filter(|sprite|
-                {
-                    let screen_y_pos = sprite.y_pos as i16 - 16;
-                    is_sprite_on_scanline(self.current_y as i16, screen_y_pos, y_size as i16)
-                })
+        let sprites_to_draw = self
+            .oam
+            .iter()
+            .filter(|sprite| {
+                let screen_y_pos = sprite.y_pos as i16 - 16;
+                is_sprite_on_scanline(self.current_y as i16, screen_y_pos, y_size as i16)
+            })
             .take(10) // Max 10 sprites per scanline
             .sorted_by_key(|x| x.x_pos)
             .rev();
@@ -437,12 +452,18 @@ impl PPU {
                 // is color_0, otherwise the background takes precedence.
                 if (pixel < 0)
                     || (pixel > 159)
-                    || (is_background_sprite && self.scanline_buffer[pixel as usize] != self.bg_window_palette.color_0())
+                    || (is_background_sprite
+                        && self.scanline_buffer[pixel as usize] != self.bg_window_palette.color_0())
                 {
                     continue;
                 }
 
-                let colour = self.get_pixel_colour(j as u8, top_pixel_data, bottom_pixel_data, self.get_sprite_palette(sprite));
+                let colour = self.get_pixel_colour(
+                    j as u8,
+                    top_pixel_data,
+                    bottom_pixel_data,
+                    self.get_sprite_palette(sprite),
+                );
 
                 // The colour 0 should be transparent for sprites, therefore we don't draw it.
                 if colour != self.get_sprite_palette(sprite).color_0() {
@@ -452,20 +473,33 @@ impl PPU {
         }
     }
 
-    fn bg_window_render_pixels(&mut self, pixel_counter: &mut usize, x_remainder: &mut i8, top_pixel_data: u8, bottom_pixel_data: u8) {
+    fn bg_window_render_pixels(
+        &mut self,
+        pixel_counter: &mut usize,
+        x_remainder: &mut i8,
+        top_pixel_data: u8,
+        bottom_pixel_data: u8,
+    ) {
         for j in (0..=7).rev() {
             if *x_remainder > 0 || *pixel_counter > 159 {
                 *x_remainder -= 1;
                 continue;
             }
 
-            self.scanline_buffer[*pixel_counter] = self.get_pixel_colour(j, top_pixel_data, bottom_pixel_data, self.bg_window_palette);
+            self.scanline_buffer[*pixel_counter] =
+                self.get_pixel_colour(j, top_pixel_data, bottom_pixel_data, self.bg_window_palette);
 
             *pixel_counter += 1;
         }
     }
 
-    fn get_pixel_colour(&self, bit_offset: u8, top_pixel_data: u8, bottom_pixel_data: u8, palette: Palette) -> DmgColor {
+    fn get_pixel_colour(
+        &self,
+        bit_offset: u8,
+        top_pixel_data: u8,
+        bottom_pixel_data: u8,
+        palette: Palette,
+    ) -> DmgColor {
         let bit1 = (top_pixel_data & (0x1 << bit_offset)) >> bit_offset;
         let bit2 = (bottom_pixel_data & (0x1 << bit_offset)) >> bit_offset;
         let current_pixel = bit1 | (bit2 << 1);
@@ -474,7 +508,10 @@ impl PPU {
     }
 
     fn get_sprite_palette(&self, sprite: &SpriteAttribute) -> Palette {
-        if !sprite.attribute_flags.contains(AttributeFlags::PALETTE_NUMBER) {
+        if !sprite
+            .attribute_flags
+            .contains(AttributeFlags::PALETTE_NUMBER)
+        {
             self.oam_palette_0
         } else {
             self.oam_palette_1

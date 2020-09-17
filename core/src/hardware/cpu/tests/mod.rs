@@ -50,8 +50,6 @@ pub fn read_short<T: MemoryMapper>(cpu: &CPU<T>, address: u16) -> u16 {
 }
 
 pub fn set_short<T: MemoryMapper>(cpu: &mut CPU<T>, address: u16, value: u16) {
-    cpu.mmu
-        .write_byte(address, (value & 0xFF) as u8); // Least significant byte first.
-    cpu.mmu
-        .write_byte(address.wrapping_add(1), ((value & 0xFF00) >> 8) as u8);
+    cpu.mmu.write_byte(address, (value & 0xFF) as u8); // Least significant byte first.
+    cpu.mmu.write_byte(address.wrapping_add(1), ((value & 0xFF00) >> 8) as u8);
 }
