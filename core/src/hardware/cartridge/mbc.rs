@@ -55,25 +55,32 @@ impl MBC for MBC0 {
 }
 
 pub struct MBC1 {
-    ram_enabled: bool,
     has_battery: bool,
+    ram_enabled: bool,
     banking_mode_select: bool,
     rom_bank: u8,
     ram_bank: u8,
+    bank1: u8,
+    bank2: u8,
     rom: Vec<u8>,
+    effective_banks: u8,
     ram: [u8; EXTERNAL_RAM_SIZE * 4],
 }
 
 impl MBC1 {
-    pub fn new(rom: Vec<u8>) -> Self {
+    pub fn new(rom: Vec<u8>, has_battery: bool) -> Self {
+        log::info!("Size: {} - Result calc: {}", rom.len(), (rom.len() % (EXTERNAL_RAM_SIZE * 2)));
         MBC1 {
             ram_enabled: false,
-            has_battery: false,
+            has_battery,
             banking_mode_select: false,
             rom_bank: 1,
             ram_bank: 0,
+            bank1: 0,
+            effective_banks: (rom.len() / (EXTERNAL_RAM_SIZE * 2)) as u8,
             rom,
-            ram: [0xFF; EXTERNAL_RAM_SIZE * 4],
+            ram: [INVALID_READ; EXTERNAL_RAM_SIZE * 4],
+            bank2: 0
         }
     }
 
@@ -85,25 +92,27 @@ impl MBC1 {
     #[inline]
     fn set_lower_rom_bank(&mut self, value: u8) {
         // Mask first 5 bits. May need to base this off actual cartridge size according to docs.
-        let rom_bank = value & 0x1F;
+        self.bank1 = value & 0x1F;
         self.rom_bank &= 0xE0;
-        self.rom_bank |= rom_bank;
-        if self.rom_bank == 0 {
+
+        if self.bank1 == 0 {
             // Can't ever select ROM bank 0 directly.
-            self.rom_bank = 1;
+            self.bank1 = 0x1;
         }
+
+        self.rom_bank |= self.bank1;
     }
 
     #[inline]
     fn set_higher_rom_bank(&mut self, value: u8) {
+        // Preemptively shift the bank 2 bits 5 bits to the left.
+        // Done because every operation after this will have them as such anyway.
+        self.bank2 = (value & 0x03) << 5;
+
         if !self.banking_mode_select {
             // ROM Banking
-            let rom_bank = value << 5; // Move bits into correct location.
-            self.rom_bank &= 0x60; // Turn off bits 5 and 6.
-            self.rom_bank |= rom_bank; // Set bits 5 and 6.
-        } else {
-            // RAM Banking
-            self.ram_bank = value & 0x03;
+            self.rom_bank &= 0x1F; // Turn off bits 5 and 6.
+            self.rom_bank |= self.bank2; // Set bits 5 and 6.
         }
     }
 
@@ -122,7 +131,13 @@ impl MBC1 {
 //TODO: Fix this implementation with proper masks etc.
 impl MBC for MBC1 {
     fn read_3fff(&self, address: u16) -> u8 {
-        self.rom[address as usize]
+        if !self.banking_mode_select {
+            self.rom[address as usize]
+        } else {
+            let mut effective_address = (address as usize) & 0x3FFF;
+            //effective_address = effective_address | ((self.bank2 as usize) << 14);
+            self.rom[effective_address]
+        }
     }
 
     fn read_7fff(&self, address: u16) -> u8 {
@@ -146,4 +161,40 @@ impl MBC for MBC1 {
             _ => return,
         }
     }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use crate::hardware::cartridge::mbc::{MBC1, EXTERNAL_RAM_SIZE};
+    use crate::hardware::cartridge::MBC;
+
+    #[test]
+    fn basic_mbc_1_test() {
+        // 64KB rom, 4 banks
+        let mut rom = vec![0x0_u8; EXTERNAL_RAM_SIZE*8];
+        // Set the upper 2 banks to something different.
+        set_rom_bank_to_value(&mut rom, 1, 0x1);
+        set_rom_bank_to_value(&mut rom, 2, 0x2);
+        set_rom_bank_to_value(&mut rom, 3, 0x3);
+
+        let mut mbc = MBC1::new(rom, false);
+
+        assert_eq!(mbc.read_3fff(0x500), 0x0);
+        assert_eq!(mbc.read_7fff(0x4500), 0x1);
+
+        mbc.write_byte(0x2000, 0b101_0_0010);
+
+        assert_eq!(mbc.read_7fff(0x4500), 0x2);
+
+
+    }
+
+
+    fn set_rom_bank_to_value(rom: &mut [u8], rom_bank: usize, value: u8) {
+        for i in (EXTERNAL_RAM_SIZE*2*(rom_bank))..(EXTERNAL_RAM_SIZE*2*(rom_bank)+EXTERNAL_RAM_SIZE*2) {
+            rom[i] = value;
+        }
+    }
+
 }

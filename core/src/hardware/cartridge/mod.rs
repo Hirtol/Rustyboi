@@ -59,10 +59,10 @@ fn create_mbc(header: &CartridgeHeader, rom: &[u8]) -> Box<dyn MBC> {
 
     match header.cartridge_type {
         0x0 => Box::new(MBC0::new(rom_vec)),
-        0x1 => Box::new(MBC1::new(rom_vec)),
+        0x1 => Box::new(MBC1::new(rom_vec, false)),
         // Potentially need to specify RAM + Battery for MBC1.
-        0x2 => Box::new(MBC1::new(rom_vec)),
-        0x3 => Box::new(MBC1::new(rom_vec)),
+        0x2 => Box::new(MBC1::new(rom_vec, false)),
+        0x3 => Box::new(MBC1::new(rom_vec, true)),
         _ => panic!(
             "Unsupported cartridge type, please add support for: 0x{:02X}",
             header.cartridge_type
