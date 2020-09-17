@@ -120,12 +120,11 @@ impl MBC1 {
 
     fn write_ram(&mut self, address: u16, value: u8) {
         if self.ram_enabled {
-            let true_address = (address - EXTERNAL_RAM_START) as usize;
+            let result_address = (address & 0x1FFF) as usize;
             if !self.banking_mode_select {
-                self.ram[true_address] = value;
-            } else {
-                let offset = self.ram_bank as usize * EXTERNAL_RAM_SIZE;
-                self.ram[true_address + offset] = value;
+                self.ram[result_address] = value
+            }else {
+                self.ram[result_address | ((self.bank2 as usize) << 8)] = value;
             }
         }
     }
@@ -153,8 +152,13 @@ impl MBC for MBC1 {
     fn read_ex_ram(&self, address: u16) -> u8 {
         // Currently we do no check that the cartridge actually has ram..
         if self.ram_enabled {
-            let offset = EXTERNAL_RAM_SIZE * self.ram_bank as usize;
-            self.ram[(address - EXTERNAL_RAM_START) as usize + offset]
+            let result_address = (address & 0x1FFF) as usize;
+            if !self.banking_mode_select {
+                self.ram[result_address]
+            }else {
+                //TODO: 7 or 8?
+                self.ram[result_address | ((self.bank2 as usize) << 8)]
+            }
         }else {
             INVALID_READ
         }
@@ -232,6 +236,29 @@ mod tests {
         assert_eq!(mbc.read_7fff(0x72A7), 68);
     }
 
+    #[test]
+    fn test_mooneye_ram_example_mbc1() {
+        // 256 banks
+        let mut mbc = get_basic_mbc1(EXTERNAL_RAM_SIZE*256);
+
+        set_ram_bank_to_value(&mut mbc.ram, 0, 0);
+        set_ram_bank_to_value(&mut mbc.ram, 1, 1);
+        set_ram_bank_to_value(&mut mbc.ram, 2, 2);
+        // Enable ram
+        mbc.write_byte(0x1000, 0xA);
+        // Bank 2 write
+        mbc.write_byte(0x4500, 0b1111_0010);
+        // Ensure we're reading from the 0th ram bank
+        assert_eq!(mbc.read_ex_ram(0xA300), 0);
+        assert_eq!(mbc.read_ex_ram(0xB123), 0);
+        // Turn on bank mode
+        mbc.write_byte(0x6000, 0x1);
+
+        //println!("{:?}", mbc.ram.to_vec());
+
+        assert_eq!(mbc.read_ex_ram(0xB123), 2);
+    }
+
     fn get_basic_mbc1(size: usize) -> MBC1 {
         let mut rom = vec![0x0_u8; size];
         // Set the upper 2 banks to something different.
@@ -244,6 +271,12 @@ mod tests {
 
     fn set_rom_bank_to_value(rom: &mut [u8], rom_bank: usize, value: u8) {
         for i in (EXTERNAL_RAM_SIZE*2*(rom_bank))..(EXTERNAL_RAM_SIZE*2*(rom_bank)+EXTERNAL_RAM_SIZE*2) {
+            rom[i] = value;
+        }
+    }
+
+    fn set_ram_bank_to_value(rom: &mut [u8], rom_bank: usize, value: u8) {
+        for i in (EXTERNAL_RAM_SIZE*(rom_bank))..(EXTERNAL_RAM_SIZE*(rom_bank)+EXTERNAL_RAM_SIZE) {
             rom[i] = value;
         }
     }
