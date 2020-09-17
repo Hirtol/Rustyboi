@@ -10,6 +10,7 @@
 //     HuC1,
 // }
 
+use crate::hardware::cartridge::header::RamSizes;
 use crate::hardware::cartridge::MBC;
 use crate::hardware::memory::*;
 
@@ -59,28 +60,26 @@ pub struct MBC1 {
     ram_enabled: bool,
     banking_mode_select: bool,
     rom_bank: u8,
-    ram_bank: u8,
     bank1: u8,
     bank2: u8,
     rom: Vec<u8>,
     effective_banks: u8,
-    ram: [u8; EXTERNAL_RAM_SIZE * 4],
+    ram: Vec<u8>,
 }
 
 impl MBC1 {
-    pub fn new(rom: Vec<u8>, has_battery: bool) -> Self {
+    pub fn new(rom: Vec<u8>, has_battery: bool, ram_size: &RamSizes) -> Self {
         log::info!("Size: {} - Effective banks: {}", rom.len(), (rom.len() / (EXTERNAL_RAM_SIZE * 2)));
         MBC1 {
             ram_enabled: false,
             has_battery,
             banking_mode_select: false,
             rom_bank: 1,
-            ram_bank: 0,
             bank1: 0,
             effective_banks: (rom.len() / (EXTERNAL_RAM_SIZE * 2)) as u8,
             rom,
-            ram: [INVALID_READ; EXTERNAL_RAM_SIZE * 4],
-            bank2: 0
+            ram: vec![INVALID_READ; ram_size.to_usize()],
+            bank2: 0,
         }
     }
 
@@ -123,8 +122,13 @@ impl MBC1 {
             let result_address = (address & 0x1FFF) as usize;
             if !self.banking_mode_select {
                 self.ram[result_address] = value
-            }else {
-                self.ram[result_address | ((self.bank2 as usize) << 8)] = value;
+            } else {
+                // If we only have enough bytes for one bank we ignore any bank switching.
+                if self.ram.len() > 8192 {
+                    self.ram[result_address | ((self.bank2 as usize) << 8)] = value;
+                } else {
+                    self.ram[result_address] = value
+                }
             }
         }
     }
@@ -150,16 +154,19 @@ impl MBC for MBC1 {
     }
 
     fn read_ex_ram(&self, address: u16) -> u8 {
-        // Currently we do no check that the cartridge actually has ram..
         if self.ram_enabled {
+            // Only the lower 13 bits are relevant for RAM addressing.
             let result_address = (address & 0x1FFF) as usize;
             if !self.banking_mode_select {
                 self.ram[result_address]
-            }else {
-                //TODO: 7 or 8?
-                self.ram[result_address | ((self.bank2 as usize) << 8)]
+            } else {
+                if self.ram.len() > 8192 {
+                    self.ram[result_address | ((self.bank2 as usize) << 8)]
+                }else {
+                    self.ram[result_address]
+                }
             }
-        }else {
+        } else {
             INVALID_READ
         }
     }
@@ -179,13 +186,14 @@ impl MBC for MBC1 {
 
 #[cfg(test)]
 mod tests {
-    use crate::hardware::cartridge::mbc::{MBC1, EXTERNAL_RAM_SIZE};
+    use crate::hardware::cartridge::header::RamSizes::KB32;
+    use crate::hardware::cartridge::mbc::{EXTERNAL_RAM_SIZE, MBC1};
     use crate::hardware::cartridge::MBC;
 
     #[test]
     fn basic_mbc_1_test() {
         // 64 KB, 4 banks
-        let mut mbc = get_basic_mbc1(EXTERNAL_RAM_SIZE*8);
+        let mut mbc = get_basic_mbc1(EXTERNAL_RAM_SIZE * 8);
 
         assert_eq!(mbc.read_3fff(0x500), 0x0);
         assert_eq!(mbc.read_7fff(0x4500), 0x1);
@@ -197,7 +205,7 @@ mod tests {
 
     #[test]
     fn test_effective_rom_bank_mbc1() {
-        let mut mbc = get_basic_mbc1(EXTERNAL_RAM_SIZE*8);
+        let mut mbc = get_basic_mbc1(EXTERNAL_RAM_SIZE * 8);
         // Bank 1 write
         mbc.write_byte(0x2000, 0b101_1_0010);
         // Bank 2 write
@@ -211,7 +219,7 @@ mod tests {
     #[test]
     fn test_bank_mode_mbc1() {
         // 64 banks
-        let mut mbc = get_basic_mbc1(EXTERNAL_RAM_SIZE*128);
+        let mut mbc = get_basic_mbc1(EXTERNAL_RAM_SIZE * 128);
         // Bank 1 write
         mbc.write_byte(0x2000, 0b101_1_0010);
         // Bank 2 write
@@ -225,7 +233,7 @@ mod tests {
     #[test]
     fn test_mooneye_example_mbc1() {
         // 256 banks
-        let mut mbc = get_basic_mbc1(EXTERNAL_RAM_SIZE*256);
+        let mut mbc = get_basic_mbc1(EXTERNAL_RAM_SIZE * 256);
         // Bank 1 write
         mbc.write_byte(0x2000, 0b101_0_0100);
         // Bank 2 write
@@ -239,7 +247,7 @@ mod tests {
     #[test]
     fn test_mooneye_ram_example_mbc1() {
         // 256 banks
-        let mut mbc = get_basic_mbc1(EXTERNAL_RAM_SIZE*256);
+        let mut mbc = get_basic_mbc1(EXTERNAL_RAM_SIZE * 256);
 
         set_ram_bank_to_value(&mut mbc.ram, 0, 0);
         set_ram_bank_to_value(&mut mbc.ram, 1, 1);
@@ -262,23 +270,22 @@ mod tests {
     fn get_basic_mbc1(size: usize) -> MBC1 {
         let mut rom = vec![0x0_u8; size];
         // Set the upper 2 banks to something different.
-        for i in 0..(size/(EXTERNAL_RAM_SIZE * 2)) {
+        for i in 0..(size / (EXTERNAL_RAM_SIZE * 2)) {
             set_rom_bank_to_value(&mut rom, i, i as u8);
         }
 
-        MBC1::new(rom, false)
+        MBC1::new(rom, false, KB32)
     }
 
     fn set_rom_bank_to_value(rom: &mut [u8], rom_bank: usize, value: u8) {
-        for i in (EXTERNAL_RAM_SIZE*2*(rom_bank))..(EXTERNAL_RAM_SIZE*2*(rom_bank)+EXTERNAL_RAM_SIZE*2) {
+        for i in (EXTERNAL_RAM_SIZE * 2 * (rom_bank))..(EXTERNAL_RAM_SIZE * 2 * (rom_bank) + EXTERNAL_RAM_SIZE * 2) {
             rom[i] = value;
         }
     }
 
     fn set_ram_bank_to_value(rom: &mut [u8], rom_bank: usize, value: u8) {
-        for i in (EXTERNAL_RAM_SIZE*(rom_bank))..(EXTERNAL_RAM_SIZE*(rom_bank)+EXTERNAL_RAM_SIZE) {
+        for i in (EXTERNAL_RAM_SIZE * (rom_bank))..(EXTERNAL_RAM_SIZE * (rom_bank) + EXTERNAL_RAM_SIZE) {
             rom[i] = value;
         }
     }
-
 }

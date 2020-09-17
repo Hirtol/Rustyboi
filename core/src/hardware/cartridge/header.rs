@@ -1,9 +1,20 @@
 use bitflags::_core::str::from_utf8;
+use crate::hardware::cartridge::header::RamSizes::{NONE, KB2, KB8, KB32, KB128, KB64};
 
 pub const HEADER_START: u16 = 0x0100;
 pub const HEADER_END: u16 = 0x014F;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
+pub enum RamSizes {
+    NONE  = 0x0,
+    KB2   = 0x1,
+    KB8   = 0x2,
+    KB32  = 0x3,
+    KB64  = 0x5,
+    KB128 = 0x4,
+}
+
+#[derive(Debug)]
 pub struct CartridgeHeader {
     /// Upper case ASCII, 16 characters in DMG, zero filled if less than that.
     /// In CGB it's either 15 or 11 characters instead
@@ -21,7 +32,7 @@ pub struct CartridgeHeader {
     /// Specifies the ROM Size of the cartridge. Typically calculated as "32KB shl N".
     pub rom_size: u8,
     /// Specifies the size of the external RAM in the cartridge (if any).
-    pub ram_size: u8,
+    pub ram_size: RamSizes,
     /// Specifies if this version of the game is supposed to be sold in Japan,
     /// or anywhere else. Only two values are defined.
     pub is_japanese: bool,
@@ -107,10 +118,18 @@ fn read_rom_size(rom: &[u8]) -> u8 {
     r_size
 }
 
-fn read_ram_size(rom: &[u8]) -> u8 {
+fn read_ram_size(rom: &[u8]) -> RamSizes {
     let r_size = rom[0x149];
     //TODO: Make properly functional.
-    r_size
+    match r_size {
+        0x0 => NONE,
+        0x1 => KB2,
+        0x2 => KB8,
+        0x3 => KB32,
+        0x4 => KB128,
+        0x5 => KB64,
+        _ => panic!("Unrecognized memory size ({}) specified in ROM header, aborting!", r_size)
+    }
 }
 
 fn read_dest_code(rom: &[u8]) -> bool {
@@ -133,6 +152,19 @@ fn read_header_checksum(rom: &[u8]) -> u8 {
 
 fn read_global_checksum(rom: &[u8]) -> u16 {
     ((rom[0x14E] as u16) << 8) | rom[0x14F] as u16
+}
+
+impl RamSizes {
+    pub fn to_usize(&self) -> usize {
+        match self {
+            NONE => 0,
+            KB2 => 2048,
+            KB8 => 8192,
+            KB32 => 32768,
+            KB64 => 65536,
+            KB128 => 131072,
+        }
+    }
 }
 
 #[cfg(test)]
