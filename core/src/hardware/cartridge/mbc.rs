@@ -101,6 +101,7 @@ impl MBC1 {
         }
 
         self.rom_bank |= self.bank1;
+        self.rom_bank %= self.effective_banks;
     }
 
     #[inline]
@@ -113,6 +114,7 @@ impl MBC1 {
             // ROM Banking
             self.rom_bank &= 0x1F; // Turn off bits 5 and 6.
             self.rom_bank |= self.bank2; // Set bits 5 and 6.
+            self.rom_bank %= self.effective_banks;
         }
     }
 
@@ -134,17 +136,18 @@ impl MBC for MBC1 {
         if !self.banking_mode_select {
             self.rom[address as usize]
         } else {
-            let mut effective_address = (address - ROM_BANK_00_START) as usize;
-            //effective_address = effective_address | ((self.bank2 as usize) << 14);
-            let offset = ROM_BANK_NN_START as usize * ((self.rom_bank & 0x60) % self.effective_banks) as usize;
-            self.rom[effective_address + offset]
+            // first 14 bits of the address, and then the rom bank shifted onto the upper 6 bits.
+            // This results in a total address space of 20 bits.
+            let mut result_address = (address & 0x3FFF) as usize | ((self.rom_bank & 0x60) as usize) << 14;
+            self.rom[result_address]
         }
     }
 
     fn read_7fff(&self, address: u16) -> u8 {
-        let offset = ROM_BANK_NN_START as usize * ((self.rom_bank % self.effective_banks) as usize);
-        let address = ((address - ROM_BANK_NN_START) as usize + offset);
-        self.rom[address]
+        // first 14 bits of the address, and then the rom bank shifted onto it.
+        let result_address = (address & 0x3FFF) as usize | (self.rom_bank as usize) << 14;
+
+        self.rom[result_address]
     }
 
     fn read_ex_ram(&self, address: u16) -> u8 {
@@ -196,8 +199,8 @@ mod tests {
         // Bank 2 write
         mbc.write_byte(0x4500, 0b1111_0001);
 
-        assert_eq!(mbc.rom_bank, 0b0110010);
         // Ensure we wrap around properly.
+        assert_eq!(mbc.rom_bank, 0b10);
         assert_eq!(mbc.read_7fff(0x4500), 2);
     }
 
@@ -213,6 +216,20 @@ mod tests {
         mbc.write_byte(0x6000, 0x1);
 
         assert_eq!(mbc.read_3fff(0x2000), 32);
+    }
+
+    #[test]
+    fn test_mooneye_example_mbc1() {
+        // 256 banks
+        let mut mbc = get_basic_mbc1(EXTERNAL_RAM_SIZE*256);
+        // Bank 1 write
+        mbc.write_byte(0x2000, 0b101_0_0100);
+        // Bank 2 write
+        mbc.write_byte(0x4500, 0b1111_0010);
+        // Should be the 68th rom bank.
+        assert_eq!(mbc.rom_bank, 0b1000100);
+        // Ensure we're reading from the 68th rom bank
+        assert_eq!(mbc.read_7fff(0x72A7), 68);
     }
 
     fn get_basic_mbc1(size: usize) -> MBC1 {
