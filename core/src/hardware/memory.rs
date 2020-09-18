@@ -64,6 +64,10 @@ pub trait MemoryMapper: Debug {
     fn read_byte(&self, address: u16) -> u8;
     fn write_byte(&mut self, address: u16, value: u8);
     fn boot_rom_finished(&self) -> bool;
+    /// Returns, if the current ROM has a battery, the contents of the External Ram.
+    ///
+    /// Should be used for saving functionality.
+    fn cartridge(&self) -> Option<&Cartridge>;
 }
 
 pub struct Memory {
@@ -78,12 +82,12 @@ pub struct Memory {
 }
 
 impl Memory {
-    pub fn new(boot_rom: Option<[u8; 0x100]>, cartridge: &[u8], ppu: PPU) -> Self {
+    pub fn new(boot_rom: Option<[u8; 0x100]>, cartridge: &[u8], saved_ram: Option<Vec<u8>>) -> Self {
         Memory {
             memory: vec![0xFFu8; MEMORY_SIZE],
             boot_rom: BootRom::new(boot_rom),
-            cartridge: Cartridge::new(cartridge),
-            ppu,
+            cartridge: Cartridge::new(cartridge, saved_ram),
+            ppu: PPU::new(),
             joypad_register: JoyPad::new(),
             timers: Default::default(),
             interrupts_enable: Default::default(),
@@ -242,6 +246,10 @@ impl MemoryMapper for Memory {
 
     fn boot_rom_finished(&self) -> bool {
         self.boot_rom.is_finished
+    }
+
+    fn cartridge(&self) -> Option<&Cartridge> {
+        Some(&self.cartridge)
     }
 }
 

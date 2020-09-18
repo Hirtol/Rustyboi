@@ -11,15 +11,17 @@ use sdl2::video::Window;
 use sdl2::Sdl;
 use simplelog::{CombinedLogger, Config, ConfigBuilder, TermLogger, TerminalMode, WriteLogger};
 
-use std::fs::{read, File};
+use std::fs::{read, File, create_dir_all};
 
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
 use crate::display::{DisplayColour, RGB};
 use sdl2::event::Event;
-use std::io::BufWriter;
+use std::io::{BufWriter, Write};
 use std::ops::Div;
+use directories::ProjectDirs;
+use rustyboi_core::hardware::cartridge::Cartridge;
 
 mod display;
 
@@ -84,7 +86,9 @@ fn main() {
 
     let mut timer = sdl_context.timer().unwrap();
 
-    let mut emulator = Emulator::new(Option::None, &cpu_test2);
+    let saved_ram = find_saved_rom(&Cartridge::new(&cpu_test2, None).cartridge_header().title);
+
+    let mut emulator = Emulator::new(Option::None, &cpu_test2, saved_ram);
 
     let mut cycles = 0;
     let mut loop_cycles = 0;
@@ -104,11 +108,11 @@ fn main() {
             }
         }
         // Emulate exactly one frame's worth.
-        while cycles < CYCLES_PER_FRAME {
+        while cycles < CYCLES_PER_FRAME*6 {
             cycles += emulator.emulate_cycle() as u32;
         }
 
-        cycles -= CYCLES_PER_FRAME;
+        cycles -= CYCLES_PER_FRAME*6;
 
         fill_texture_and_copy(
             &mut canvas,
@@ -152,13 +156,18 @@ fn handle_events(event: Event, emulator: &mut Emulator) -> bool {
             keycode: Some(Keycode::Escape),
             ..
         } => {
+            save_rom(emulator);
             return false;
         }
         Event::DropFile { filename, .. } => {
-            if filename.ends_with(".gb") {
+            // GBC games are not guaranteed to work
+            if filename.ends_with(".gb") || filename.ends_with(".gbc"){
                 debug!("Opening file: {}", filename);
+                save_rom(emulator);
                 let new_cartridge = read(filename).expect("Could not open the provided file!");
-                *emulator = Emulator::new(Option::None, &new_cartridge);
+                let old_ram = find_saved_rom(&Cartridge::new(&new_cartridge, None).cartridge_header().title);
+
+                *emulator = Emulator::new(Option::None, &new_cartridge, old_ram);
             } else {
                 warn!(
                     "Attempted opening of file: {} which is not a GameBoy rom!",
@@ -242,13 +251,39 @@ fn vec_to_bootrom(vec: &Vec<u8>) -> [u8; 256] {
     result
 }
 
+/// Function to call in order to save external ram (in case it's present)
+/// as well as any additional cleanup as required.
+fn save_rom(emulator: &Emulator) {
+    if let Some(ram) = emulator.battery_ram() {
+        let save_dir = ProjectDirs::from("", "Hirtol",  "Rustyboi")
+            .expect("Could not get access to data dir for saving!").data_dir().join("saves");
+        create_dir_all(&save_dir);
+        // Really, this expect case shouldn't ever be reached.
+        let title = emulator.game_title().expect("No cartridge loaded, can't save!");
+
+        let mut save_file = File::create(save_dir.join(format!("{}.save", title)))
+            .expect("Could not create the save file");
+        save_file.write(ram);
+
+        log::debug!("Finished saving the external ram with size: {} successfully!", ram.len());
+    }
+}
+
+fn find_saved_rom<'a>(name: impl AsRef<str>) -> Option<Vec<u8>> {
+    let save_dir = ProjectDirs::from("", "Hirtol",  "Rustyboi")
+        .expect("Could not get access to data dir for saving!").data_dir().join("saves");
+    create_dir_all(&save_dir);
+
+    read(save_dir.join(format!("{}.save", name.as_ref()))).ok()
+}
+
 fn test_fast(
     sdl_context: Sdl,
     mut canvas: &mut Canvas<Window>,
     mut screen_texture: &mut Texture,
     cpu_test: &Vec<u8>,
 ) {
-    let mut emulator = Emulator::new(Option::None, &cpu_test);
+    let mut emulator = Emulator::new(Option::None, &cpu_test, None);
     let mut count: u128 = 0;
 
     let mut event_pump = sdl_context.event_pump().unwrap();

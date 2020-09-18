@@ -1,17 +1,10 @@
 use crate::hardware::cartridge::header::CartridgeHeader;
-use crate::hardware::cartridge::mbc::{MBC0, MBC1, MBC5};
+use crate::hardware::cartridge::mbc::{MBC0, MBC1, MBC5, MBC};
 use bitflags::_core::fmt::{Debug, Formatter};
 use std::fmt;
 
 mod header;
 mod mbc;
-
-pub trait MBC {
-    fn read_3fff(&self, address: u16) -> u8;
-    fn read_7fff(&self, address: u16) -> u8;
-    fn read_ex_ram(&self, address: u16) -> u8;
-    fn write_byte(&mut self, address: u16, value: u8);
-}
 
 pub struct Cartridge {
     header: CartridgeHeader,
@@ -19,9 +12,9 @@ pub struct Cartridge {
 }
 
 impl Cartridge {
-    pub fn new(rom: &[u8]) -> Self {
+    pub fn new(rom: &[u8], saved_ram: Option<Vec<u8>>) -> Self {
         let header = CartridgeHeader::new(rom);
-        let mbc = create_mbc(&header, rom);
+        let mbc = create_mbc(&header, rom, saved_ram);
         Cartridge { header, mbc }
     }
 
@@ -42,7 +35,11 @@ impl Cartridge {
     }
 
     pub fn cartridge_header(&self) -> &CartridgeHeader {
-        &self.cartridge_header()
+        &self.header
+    }
+
+    pub fn mbc(&self) -> &dyn MBC {
+        self.mbc.as_ref()
     }
 }
 
@@ -52,24 +49,24 @@ impl Debug for Cartridge {
     }
 }
 
-fn create_mbc(header: &CartridgeHeader, rom: &[u8]) -> Box<dyn MBC> {
+fn create_mbc(header: &CartridgeHeader, rom: &[u8], saved_ram: Option<Vec<u8>>) -> Box<dyn MBC> {
     let rom_vec = rom.to_vec();
 
     log::debug!("Loading ROM with type: 0x{:02X}", header.cartridge_type);
 
     match header.cartridge_type {
         0x0 => Box::new(MBC0::new(rom_vec)),
-        0x1 => Box::new(MBC1::new(rom_vec, false, &header.ram_size)),
+        0x1 => Box::new(MBC1::new(rom_vec, false, &header.ram_size, None)),
         // Potentially need to specify RAM + Battery for MBC1.
-        0x2 => Box::new(MBC1::new(rom_vec, false, &header.ram_size)),
-        0x3 => Box::new(MBC1::new(rom_vec, true, &header.ram_size)),
-        0x19 => Box::new(MBC5::new(rom_vec, false, &header.ram_size)),
-        0x1A => Box::new(MBC5::new(rom_vec, false, &header.ram_size)),
-        0x1B => Box::new(MBC5::new(rom_vec, true, &header.ram_size)),
+        0x2 => Box::new(MBC1::new(rom_vec, false, &header.ram_size, None)),
+        0x3 => Box::new(MBC1::new(rom_vec, true, &header.ram_size, saved_ram)),
+        0x19 => Box::new(MBC5::new(rom_vec, false, &header.ram_size, None)),
+        0x1A => Box::new(MBC5::new(rom_vec, false, &header.ram_size, None)),
+        0x1B => Box::new(MBC5::new(rom_vec, true, &header.ram_size, saved_ram)),
         // These three technically contain a rumble feature, to be implemented.
-        0x1C => Box::new(MBC5::new(rom_vec, false, &header.ram_size)),
-        0x1D => Box::new(MBC5::new(rom_vec, false, &header.ram_size)),
-        0x1E => Box::new(MBC5::new(rom_vec, true, &header.ram_size)),
+        0x1C => Box::new(MBC5::new(rom_vec, false, &header.ram_size, None)),
+        0x1D => Box::new(MBC5::new(rom_vec, false, &header.ram_size, None)),
+        0x1E => Box::new(MBC5::new(rom_vec, true, &header.ram_size, saved_ram)),
         _ => panic!(
             "Unsupported cartridge type, please add support for: 0x{:02X}",
             header.cartridge_type

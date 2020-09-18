@@ -4,7 +4,7 @@ use bitflags::_core::cell::RefCell;
 
 use crate::hardware::cpu::CPU;
 
-use crate::hardware::memory::Memory;
+use crate::hardware::memory::{Memory, MemoryMapper};
 use crate::hardware::ppu::palette::DmgColor;
 use crate::hardware::ppu::{FRAMEBUFFER_SIZE, PPU};
 
@@ -22,9 +22,9 @@ pub struct Emulator {
 }
 
 impl Emulator {
-    pub fn new(boot_rom: Option<[u8; 256]>, cartridge: &[u8]) -> Self {
+    pub fn new(boot_rom: Option<[u8; 256]>, cartridge: &[u8], saved_ram: Option<Vec<u8>>) -> Self {
         Emulator {
-            cpu: CPU::new(Memory::new(boot_rom, cartridge, PPU::new())),
+            cpu: CPU::new(Memory::new(boot_rom, cartridge, saved_ram)),
         }
     }
 
@@ -41,6 +41,17 @@ impl Emulator {
     /// otherwise the data will be only partially complete.
     pub fn frame_buffer(&self) -> [DmgColor; FRAMEBUFFER_SIZE] {
         self.cpu.mmu.ppu.frame_buffer().clone()
+    }
+
+    /// Returns, if the current `ROM` has a battery, the contents of the External Ram.
+    ///
+    /// Should be used for saving functionality.
+    pub fn battery_ram(&self) -> Option<&[u8]> {
+        self.cpu.mmu.cartridge()?.mbc().get_battery_ram()
+    }
+
+    pub fn game_title(&self) -> Option<&str> {
+        Some(self.cpu.mmu.cartridge()?.cartridge_header().title.as_str())
     }
 
     /// Emulate one CPU cycle, and any other things that need to happen.
