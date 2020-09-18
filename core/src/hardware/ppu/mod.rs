@@ -226,7 +226,11 @@ impl PPU {
                     self.vblank_cycles -= 456;
 
                     if self.current_y == 154 {
-                        self.current_cycles -= CYCLES_PER_FRAME;
+                        // This should be -= CYCLES_PER_FRAME, but in debug mode that
+                        // seemed to cause a wrapping subtract.
+                        // Makes sense considering the condition we set < CYCLES_PER_FRAME.
+                        // TODO: Overhaul
+                        self.current_cycles = 0;
                         self.current_y = 0;
                         self.ly_lyc_compare(&mut pending_interrupts);
                     } else {
@@ -318,16 +322,17 @@ impl PPU {
             };
             let tile_address: usize = offset.wrapping_add(tile_relative_address);
 
-            let tile: Tile = self.tiles[tile_address];
+            let (top_pixel_data, bottom_pixel_data) = self.tiles[tile_address].get_pixel_line(tile_line_y);
 
-            let (top_pixel_data, bottom_pixel_data) = tile.get_pixel_line(tile_line_y);
-
-            self.bg_window_render_pixels(
-                &mut pixel_counter,
-                &mut x_remainder,
-                top_pixel_data,
-                bottom_pixel_data,
-            );
+            for j in (0..=7).rev() {
+                if x_remainder > 0 || pixel_counter > 159 {
+                    x_remainder -= 1;
+                    continue;
+                }
+                let colour = self.get_pixel_colour(j, top_pixel_data, bottom_pixel_data);
+                self.scanline_buffer[pixel_counter as usize] = self.bg_window_palette.colour(colour);
+                pixel_counter += 1;
+            }
         }
     }
 
@@ -352,7 +357,10 @@ impl PPU {
         let tile_pixel_y = self.current_y % 8;
 
         let mut pixel_counter = window_x;
-        let mut x_remainder = (window_x % 8) as i8;
+
+        // Normally I'd have an x-remainder here, but the window doesn't seem to need
+        // to be able to draw partial tiles. In fact, it caused a few rendering glitches.
+
         // Increment the window counter for future cycles.
         self.window_counter += 1;
 
@@ -367,16 +375,17 @@ impl PPU {
             };
             let tile_address: usize = offset.wrapping_add(tile_relative_address);
 
-            let tile: Tile = self.tiles[tile_address];
+            let (top_pixel_data, bottom_pixel_data) = self.tiles[tile_address].get_pixel_line(tile_pixel_y);
 
-            let (top_pixel_data, bottom_pixel_data) = tile.get_pixel_line(tile_pixel_y);
-
-            self.bg_window_render_pixels(
-                &mut pixel_counter,
-                &mut x_remainder,
-                top_pixel_data,
-                bottom_pixel_data,
-            );
+            for j in (0..=7).rev() {
+                if pixel_counter < 0 || pixel_counter > 159 {
+                    pixel_counter += 1;
+                    continue;
+                }
+                let colour = self.get_pixel_colour(j, top_pixel_data, bottom_pixel_data);
+                self.scanline_buffer[pixel_counter as usize] = self.bg_window_palette.colour(colour);
+                pixel_counter += 1;
+            }
         }
     }
 
@@ -461,27 +470,6 @@ impl PPU {
                     self.scanline_buffer[pixel as usize] = self.get_sprite_palette(sprite).colour(colour);
                 }
             }
-        }
-    }
-
-    fn bg_window_render_pixels(&mut self, pixel_counter: &mut i16,
-                               x_remainder: &mut i8, top_pixel_data: u8, bottom_pixel_data: u8, ) {
-        for j in (0..=7).rev() {
-            if *pixel_counter < 0 || *pixel_counter > 159 {
-                *pixel_counter += 1;
-                continue;
-            }
-
-            if *x_remainder > 0 {
-                *x_remainder -= 1;
-                continue;
-            }
-
-            let colour = self.get_pixel_colour(j, top_pixel_data, bottom_pixel_data);
-
-            self.scanline_buffer[*pixel_counter as usize] = self.bg_window_palette.colour(colour);
-
-            *pixel_counter += 1;
         }
     }
 
