@@ -1,4 +1,4 @@
-# Various Notes on poorly/undocumented cases
+# Various Notes On Poorly/Undocumented Cases
 This list is a compilation of certain nuances that took me a while to understand, or just plain undocumented cases.
 
 ## CPU
@@ -9,7 +9,7 @@ This list is a compilation of certain nuances that took me a while to understand
 ## PPU
 * The Window's tile selection is not at all based on the BG/sprites. Instead, it always starts on the top left (0x00) of it's selected tilemap + offset as set by LCD Control.
 It keeps track of how many lines it has drawn, and when it has become > 8 it will switch over to the (current tile ypos)+1 line of tiles.
-* When WX is 0 ScrollX will start having effects on the window - the gameboy accidentally switches to the window tiles before it performs the fine scroll adjustment - so when WX=0 the window gets scrolled by SCX. Fun!
+* When WX is 0, ScrollX will start having effects on the window - the gameboy accidentally switches to the window tiles before it performs the fine scroll adjustment - so when WX=0 the window gets scrolled by SCX. Fun!
 
 
 ## Joypad

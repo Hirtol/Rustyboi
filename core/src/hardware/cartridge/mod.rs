@@ -1,5 +1,5 @@
 use crate::hardware::cartridge::header::CartridgeHeader;
-use crate::hardware::cartridge::mbc::{MBC0, MBC1};
+use crate::hardware::cartridge::mbc::{MBC0, MBC1, MBC5};
 use bitflags::_core::fmt::{Debug, Formatter};
 use std::fmt;
 
@@ -63,6 +63,13 @@ fn create_mbc(header: &CartridgeHeader, rom: &[u8]) -> Box<dyn MBC> {
         // Potentially need to specify RAM + Battery for MBC1.
         0x2 => Box::new(MBC1::new(rom_vec, false, &header.ram_size)),
         0x3 => Box::new(MBC1::new(rom_vec, true, &header.ram_size)),
+        0x19 => Box::new(MBC5::new(rom_vec, false, &header.ram_size)),
+        0x1A => Box::new(MBC5::new(rom_vec, false, &header.ram_size)),
+        0x1B => Box::new(MBC5::new(rom_vec, true, &header.ram_size)),
+        // These three technically contain a rumble feature, to be implemented.
+        0x1C => Box::new(MBC5::new(rom_vec, false, &header.ram_size)),
+        0x1D => Box::new(MBC5::new(rom_vec, false, &header.ram_size)),
+        0x1E => Box::new(MBC5::new(rom_vec, true, &header.ram_size)),
         _ => panic!(
             "Unsupported cartridge type, please add support for: 0x{:02X}",
             header.cartridge_type

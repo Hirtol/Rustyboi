@@ -16,6 +16,7 @@ use crate::hardware::memory::*;
 
 // 8 KB
 const EXTERNAL_RAM_SIZE: usize = 8192;
+const ROM_BANK_SIZE: usize = 16384;
 
 /// Struct representing No MBC
 pub struct MBC0 {
@@ -69,14 +70,14 @@ pub struct MBC1 {
 
 impl MBC1 {
     pub fn new(rom: Vec<u8>, has_battery: bool, ram_size: &RamSizes) -> Self {
-        log::info!("Size: {} - Effective banks: {}", rom.len(), (rom.len() / (EXTERNAL_RAM_SIZE * 2)));
+        log::info!("MBC1 ROM Size: {} - Effective banks: {}", rom.len(), (rom.len() / ROM_BANK_SIZE));
         MBC1 {
             ram_enabled: false,
             has_battery,
             banking_mode_select: false,
             rom_bank: 1,
             bank1: 1,
-            effective_banks: (rom.len() / (EXTERNAL_RAM_SIZE * 2)) as u8,
+            effective_banks: (rom.len() / ROM_BANK_SIZE) as u8,
             rom,
             ram: vec![INVALID_READ; ram_size.to_usize()],
             bank2: 0,
@@ -178,17 +179,93 @@ impl MBC for MBC1 {
     }
 }
 
+pub struct MBC5 {
+    has_battery: bool,
+    ram_enabled: bool,
+    rom_bank: u16,
+    ram_bank: u8,
+    lower_bank: u8,
+    higher_bank: u8,
+    effective_banks: u16,
+    rom: Vec<u8>,
+    ram: Vec<u8>,
+}
+
+impl MBC5 {
+    pub fn new(rom: Vec<u8>, has_battery: bool, ram_size: &RamSizes) -> Self {
+        log::info!("MBC5 ROM Size: {} - Effective banks: {}", rom.len(), (rom.len() / ROM_BANK_SIZE));
+        MBC5 {
+            ram_enabled: false,
+            has_battery,
+            rom_bank: 1,
+            ram_bank: 0,
+            lower_bank: 0,
+            effective_banks: (rom.len() / ROM_BANK_SIZE) as u16,
+            rom,
+            ram: vec![INVALID_READ; ram_size.to_usize()],
+            higher_bank: 0,
+        }
+    }
+}
+
+impl MBC for MBC5 {
+    fn read_3fff(&self, address: u16) -> u8 {
+        // MBC5 will always have the first 16KB of the rom mapped to the lower range \o/
+        self.rom[address as usize]
+    }
+
+    fn read_7fff(&self, address: u16) -> u8 {
+        // first 14 bits of the address, and then the rom bank shifted onto it.
+        let result_address = (address & 0x3FFF) as usize | (self.rom_bank as usize) << 14;
+        self.rom[result_address]
+    }
+
+    fn read_ex_ram(&self, address: u16) -> u8 {
+        if self.ram_enabled {
+            let true_address = (address - EXTERNAL_RAM_START) as usize + EXTERNAL_RAM_SIZE*self.ram_bank as usize;
+            self.ram[true_address]
+        } else {
+            INVALID_READ
+        }
+    }
+
+    fn write_byte(&mut self, address: u16, value: u8) {
+        match address {
+            0x0000..=0x1FFF => self.ram_enabled = value == 0b0000_1010,
+            0x2000..=0x2FFF => {
+                self.lower_bank = value;
+                self.rom_bank = ((self.higher_bank as u16) << 8) | self.lower_bank as u16;
+                self.rom_bank %= self.effective_banks;
+            },
+            0x3000..=0x3FFF => {
+                self.higher_bank = value & 0x1;
+                self.rom_bank = ((self.higher_bank as u16) << 8) | self.lower_bank as u16;
+                self.rom_bank %= self.effective_banks;
+            },
+            0x4000..=0x5FFF => self.ram_bank = value & 0xF,
+            EXTERNAL_RAM_START..=EXTERNAL_RAM_END => {
+                if self.ram_enabled {
+                    let true_address = (address - EXTERNAL_RAM_START) as usize;
+                    let offset = EXTERNAL_RAM_SIZE*self.ram_bank as usize;
+                    self.ram[offset + true_address] = value;
+                }
+            }
+            _ => return,
+        }
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
     use crate::hardware::cartridge::header::RamSizes::KB32;
-    use crate::hardware::cartridge::mbc::{EXTERNAL_RAM_SIZE, MBC1};
+    use crate::hardware::cartridge::mbc::{EXTERNAL_RAM_SIZE, MBC1, ROM_BANK_SIZE};
     use crate::hardware::cartridge::MBC;
 
     #[test]
     fn basic_mbc_1_test() {
         // 64 KB, 4 banks
-        let mut mbc = get_basic_mbc1(EXTERNAL_RAM_SIZE * 8);
+        let mut mbc = get_basic_mbc1(ROM_BANK_SIZE * 4);
 
         assert_eq!(mbc.read_3fff(0x500), 0x0);
         assert_eq!(mbc.read_7fff(0x4500), 0x1);
@@ -200,7 +277,7 @@ mod tests {
 
     #[test]
     fn test_effective_rom_bank_mbc1() {
-        let mut mbc = get_basic_mbc1(EXTERNAL_RAM_SIZE * 8);
+        let mut mbc = get_basic_mbc1(ROM_BANK_SIZE * 4);
         // Bank 1 write
         mbc.write_byte(0x2000, 0b101_1_0010);
         // Bank 2 write
@@ -214,7 +291,7 @@ mod tests {
     #[test]
     fn test_bank_mode_mbc1() {
         // 64 banks
-        let mut mbc = get_basic_mbc1(EXTERNAL_RAM_SIZE * 128);
+        let mut mbc = get_basic_mbc1(ROM_BANK_SIZE * 64);
         // Bank 1 write
         mbc.write_byte(0x2000, 0b101_1_0010);
         // Bank 2 write
@@ -228,7 +305,7 @@ mod tests {
     #[test]
     fn test_mooneye_example_mbc1() {
         // 256 banks
-        let mut mbc = get_basic_mbc1(EXTERNAL_RAM_SIZE * 256);
+        let mut mbc = get_basic_mbc1(ROM_BANK_SIZE * 128);
         // Bank 1 write
         mbc.write_byte(0x2000, 0b101_0_0100);
         // Bank 2 write
@@ -242,7 +319,7 @@ mod tests {
     #[test]
     fn test_mooneye_ram_example_mbc1() {
         // 256 banks
-        let mut mbc = get_basic_mbc1(EXTERNAL_RAM_SIZE * 256);
+        let mut mbc = get_basic_mbc1(ROM_BANK_SIZE * 128);
 
         set_ram_bank_to_value(&mut mbc.ram, 0, 0);
         set_ram_bank_to_value(&mut mbc.ram, 1, 1);
@@ -265,7 +342,7 @@ mod tests {
     fn get_basic_mbc1(size: usize) -> MBC1 {
         let mut rom = vec![0x0_u8; size];
         // Set the upper 2 banks to something different.
-        for i in 0..(size / (EXTERNAL_RAM_SIZE * 2)) {
+        for i in 0..(size / ROM_BANK_SIZE) {
             set_rom_bank_to_value(&mut rom, i, i as u8);
         }
 
@@ -273,7 +350,7 @@ mod tests {
     }
 
     fn set_rom_bank_to_value(rom: &mut [u8], rom_bank: usize, value: u8) {
-        for i in (EXTERNAL_RAM_SIZE * 2 * (rom_bank))..(EXTERNAL_RAM_SIZE * 2 * (rom_bank) + EXTERNAL_RAM_SIZE * 2) {
+        for i in (ROM_BANK_SIZE * rom_bank)..(ROM_BANK_SIZE * rom_bank + ROM_BANK_SIZE) {
             rom[i] = value;
         }
     }

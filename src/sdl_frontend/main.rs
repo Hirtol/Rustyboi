@@ -74,7 +74,7 @@ fn main() {
 
     let cartridge = read("roms\\Zelda.gb").unwrap();
     let cpu_test = read("test roms/blargg/cpu_instrs/individual/02-interrupts.gb").unwrap();
-    let cpu_test2 = read("test roms/mooneye/tests/emulator-only/mbc1/mbc1_rom_8Mb.gb").unwrap();
+    let cpu_test2 = read("test roms/mooneye/tests/emulator-only/mbc5/mbc5_rom_512kb.gb").unwrap();
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
@@ -84,7 +84,7 @@ fn main() {
 
     let mut timer = sdl_context.timer().unwrap();
 
-    let mut emulator = Emulator::new(Option::None, &cartridge);
+    let mut emulator = Emulator::new(Option::None, &cpu_test2);
 
     let mut cycles = 0;
     let mut loop_cycles = 0;
