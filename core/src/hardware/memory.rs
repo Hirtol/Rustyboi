@@ -184,7 +184,7 @@ impl Memory {
         match address {
             JOYPAD_REGISTER => self.joypad_register.set_register(value),
             DIVIDER_REGISTER => self.timers.set_divider(),
-            TIMER_COUNTER => self.timers.set_timer_counter(value), //TODO: This should have some restrictions with when you can write to this.
+            TIMER_COUNTER => self.timers.set_timer_counter(value),
             TIMER_MODULO => self.timers.set_tma(value),
             TIMER_CONTROL => self.timers.set_timer_control(value),
             INTERRUPTS_FLAG => {

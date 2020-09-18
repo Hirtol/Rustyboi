@@ -84,7 +84,7 @@ fn main() {
 
     let mut timer = sdl_context.timer().unwrap();
 
-    let mut emulator = Emulator::new(Option::None, &cpu_test2);
+    let mut emulator = Emulator::new(Option::None, &cartridge);
 
     let mut cycles = 0;
     let mut loop_cycles = 0;

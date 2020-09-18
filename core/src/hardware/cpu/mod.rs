@@ -344,7 +344,7 @@ impl<M: MemoryMapper> CPU<M> {
 
     /// `halt until interrupt occurs (low power)`
     fn halt(&mut self) {
-        log::info!("Entering halt");
+        log::trace!("Entering halt");
         self.halted = true;
     }
 

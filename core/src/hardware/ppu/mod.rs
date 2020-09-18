@@ -289,7 +289,7 @@ impl PPU {
         // Which particular y coordinate to use from an 8x8 or 16x8 tile.
         let tile_line_y = scanline_to_be_rendered % 8;
         // How many pixels we've drawn so far on this scanline.
-        let mut pixel_counter: usize = 0;
+        let mut pixel_counter: i16 = 0;
         // The amount of pixels to partially render from the first tile in the sequence
         // (for cases where self.scroll_x % 8 != 0, and thus not nicely aligned on tile boundaries)
         let mut x_remainder = (self.scroll_x % 8) as i8;
@@ -310,13 +310,10 @@ impl PPU {
             let mut tile_relative_address =
                 self.get_tile_address_bg(i % BACKGROUND_TILE_SIZE as u16) as usize;
 
-            if !self.lcd_control.contains(LcdControl::BG_WINDOW_TILE_SELECT) {
-                tile_relative_address = (tile_relative_address as i8) as usize;
-            }
-
             let offset: usize = if self.lcd_control.bg_window_tile_address() == TILE_BLOCK_0_START {
                 0
             } else {
+                tile_relative_address = (tile_relative_address as i8) as usize;
                 256
             };
             let tile_address: usize = offset.wrapping_add(tile_relative_address);
@@ -333,11 +330,12 @@ impl PPU {
             );
         }
     }
-    //TODO: Look at BG again as it's slightly broken.
 
     fn draw_window_scanline(&mut self) {
         // -7 is apparently necessary for some reason
-        let window_x = self.window_x.wrapping_sub(7);
+        // We need the i16 cast as there are games (like Aladdin) which have a wx < 7, but still
+        // want their windows to be rendered.
+        let mut window_x = (self.window_x as i16).wrapping_sub(7);
         // If it's not on our current y or if the window x is out of scope, don't bother rendering.
         if self.current_y < self.window_y || window_x >= 160 {
             return;
@@ -345,14 +343,15 @@ impl PPU {
 
         // The window always start to pick tiles from the top left of its BG tile map,
         // and has a separate line counter for its
-        let tile_lower_bound = (self.window_counter / 8) as u16 * 32;
+        let tile_lower_bound = ((self.window_counter / 8) as u16) * 32;
         // We need as many tiles as there are to the end of the current scanline, even if they're
         // partial, therefore we need a ceiling divide.
         let tile_higher_bound =
-            (tile_lower_bound as u16 + (160 - window_x as u16).div_ceil(&8)) as u16;
+            (tile_lower_bound as u16 + ((160 - window_x) as u16).div_ceil(&8)) as u16;
 
         let tile_pixel_y = self.current_y % 8;
-        let mut pixel_counter = window_x as usize;
+
+        let mut pixel_counter = window_x;
         let mut x_remainder = (window_x % 8) as i8;
         // Increment the window counter for future cycles.
         self.window_counter += 1;
@@ -360,13 +359,10 @@ impl PPU {
         for i in tile_lower_bound..tile_higher_bound {
             let mut tile_relative_address = self.get_tile_address_window(i) as usize;
 
-            if self.lcd_control.bg_window_tile_address() == TILE_BLOCK_1_START {
-                tile_relative_address = (tile_relative_address as i8) as usize;
-            }
-
             let offset: usize = if self.lcd_control.bg_window_tile_address() == TILE_BLOCK_0_START {
                 0
             } else {
+                tile_relative_address = (tile_relative_address as i8) as usize;
                 256
             };
             let tile_address: usize = offset.wrapping_add(tile_relative_address);
@@ -468,17 +464,22 @@ impl PPU {
         }
     }
 
-    fn bg_window_render_pixels(&mut self, pixel_counter: &mut usize,
+    fn bg_window_render_pixels(&mut self, pixel_counter: &mut i16,
                                x_remainder: &mut i8, top_pixel_data: u8, bottom_pixel_data: u8, ) {
         for j in (0..=7).rev() {
-            if *x_remainder > 0 || *pixel_counter > 159 {
+            if *pixel_counter < 0 || *pixel_counter > 159 {
+                *pixel_counter += 1;
+                continue;
+            }
+
+            if *x_remainder > 0 {
                 *x_remainder -= 1;
                 continue;
             }
 
             let colour = self.get_pixel_colour(j, top_pixel_data, bottom_pixel_data);
 
-            self.scanline_buffer[*pixel_counter] = self.bg_window_palette.colour(colour);
+            self.scanline_buffer[*pixel_counter as usize] = self.bg_window_palette.colour(colour);
 
             *pixel_counter += 1;
         }
