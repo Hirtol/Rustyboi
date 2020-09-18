@@ -62,8 +62,8 @@ pub struct MBC1 {
     rom_bank: u8,
     bank1: u8,
     bank2: u8,
-    rom: Vec<u8>,
     effective_banks: u8,
+    rom: Vec<u8>,
     ram: Vec<u8>,
 }
 
@@ -75,7 +75,7 @@ impl MBC1 {
             has_battery,
             banking_mode_select: false,
             rom_bank: 1,
-            bank1: 0,
+            bank1: 1,
             effective_banks: (rom.len() / (EXTERNAL_RAM_SIZE * 2)) as u8,
             rom,
             ram: vec![INVALID_READ; ram_size.to_usize()],
@@ -92,14 +92,13 @@ impl MBC1 {
     fn set_lower_rom_bank(&mut self, value: u8) {
         // Mask first 5 bits. May need to base this off actual cartridge size according to docs.
         self.bank1 = value & 0x1F;
-        self.rom_bank &= 0xE0;
 
         if self.bank1 == 0 {
             // Can't ever select ROM bank 0 directly.
             self.bank1 = 0x1;
         }
 
-        self.rom_bank |= self.bank1;
+        self.rom_bank = self.bank2 | self.bank1;
         self.rom_bank %= self.effective_banks;
     }
 
@@ -108,13 +107,8 @@ impl MBC1 {
         // Preemptively shift the bank 2 bits 5 bits to the left.
         // Done because every operation after this will have them as such anyway.
         self.bank2 = (value & 0x03) << 5;
-
-        if !self.banking_mode_select {
-            // ROM Banking
-            self.rom_bank &= 0x1F; // Turn off bits 5 and 6.
-            self.rom_bank |= self.bank2; // Set bits 5 and 6.
-            self.rom_bank %= self.effective_banks;
-        }
+        self.rom_bank = self.bank2 | self.bank1;
+        self.rom_bank %= self.effective_banks;
     }
 
     fn write_ram(&mut self, address: u16, value: u8) {
@@ -139,9 +133,10 @@ impl MBC for MBC1 {
         if !self.banking_mode_select {
             self.rom[address as usize]
         } else {
-            // first 14 bits of the address, and then the rom bank shifted onto the upper 6 bits.
-            // This results in a total address space of 20 bits.
-            let mut result_address = (address & 0x3FFF) as usize | ((self.rom_bank & 0x60) as usize) << 14;
+            // first 14 bits of the address, and then the rom bank shifted onto the upper 7 bits.
+            // This results in a total address space of 21 bits.
+            let result_address = (address & 0x3FFF) as usize | ((self.bank2 % self.effective_banks) as usize) << 14;
+
             self.rom[result_address]
         }
     }
@@ -149,7 +144,6 @@ impl MBC for MBC1 {
     fn read_7fff(&self, address: u16) -> u8 {
         // first 14 bits of the address, and then the rom bank shifted onto it.
         let result_address = (address & 0x3FFF) as usize | (self.rom_bank as usize) << 14;
-
         self.rom[result_address]
     }
 
@@ -160,6 +154,7 @@ impl MBC for MBC1 {
             if !self.banking_mode_select {
                 self.ram[result_address]
             } else {
+                // If we only have 8KB we don't need banking.
                 if self.ram.len() > 8192 {
                     self.ram[result_address | ((self.bank2 as usize) << 8)]
                 }else {

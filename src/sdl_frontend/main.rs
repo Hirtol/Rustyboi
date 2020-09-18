@@ -74,7 +74,7 @@ fn main() {
 
     let cartridge = read("roms\\Zelda.gb").unwrap();
     let cpu_test = read("test roms/blargg/cpu_instrs/individual/02-interrupts.gb").unwrap();
-    let cpu_test2 = read("test roms/mooneye/tests/emulator-only/mbc1/mbc1_ram_64kb.gb").unwrap();
+    let cpu_test2 = read("test roms/mooneye/tests/emulator-only/mbc1/mbc1_rom_8Mb.gb").unwrap();
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
