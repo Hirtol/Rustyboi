@@ -66,6 +66,11 @@ impl Emulator {
         self.handle_interrupts();
 
         //TODO: Consider ticking PPU/timers here since interrupts do tick timers.?
+        // For example, ticking timers here actually makes instr_timing.gb pass, but causes
+        // a few of the MoonEye timing tests to fail.
+
+        // Could consider moving PPU and timer ticks into the cpu.add_cycles() function (since
+        // it owns the MMU anyway) and query the interrupts that are raised after an instruction.
 
         self.cpu.step_cycle();
 

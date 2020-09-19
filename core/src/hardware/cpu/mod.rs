@@ -82,22 +82,22 @@ impl<M: MemoryMapper> CPU<M> {
 
         self.opcode = self.get_instr_u8();
 
-        // trace!(
+        // info!(
         //     "Executing opcode: {:04X} - registers: {}",
         //     self.opcode,
         //     self.registers,
         // );
         // let ie = self.mmu.read_byte(INTERRUPTS_ENABLE);
         // let if_flag = self.mmu.read_byte(INTERRUPTS_FLAG);
-        // // trace!(
-        // //     "Executing opcode: {:04X} - name: {:<22}\n----------- registers: {} - IE: {:02X} - IF: {:02X} - ime: {}",
-        // //     self.opcode,
-        // //     get_assembly_from_opcode(self.opcode),
-        // //     self.registers,
-        // //     ie,
-        // //     if_flag,
-        // //     self.ime
-        // // );
+        // trace!(
+        //     "Executing opcode: {:04X} - name: {:<22}\n----------- registers: {} - IE: {:02X} - IF: {:02X} - ime: {}",
+        //     self.opcode,
+        //     get_assembly_from_opcode(self.opcode),
+        //     self.registers,
+        //     ie,
+        //     if_flag,
+        //     self.ime
+        // );
 
         self.execute(self.opcode);
     }

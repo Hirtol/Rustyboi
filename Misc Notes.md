@@ -17,3 +17,7 @@ It keeps track of how many lines it has drawn, and when it has become > 8 it wil
 Instead, they manually poll the Joypad register by setting the select mode.
 This means that you do not have to set the select bits yourself! In fact, that will probably break things.
 It's therefore easiest to just keep 2 separate lists with the current button inputs and serve the correct one depending on the current mode, as selected by the game.
+
+## Timer
+* Blargg's instr_timing test relies on the timer being ticked after
+ an interrupt check, which could potentially tick clocks, otherwise it will fail at #255.
