@@ -16,7 +16,7 @@ fn test_load_16bit() {
     cpu.registers.sp = 0x200;
     cpu.registers.set_hl(0x500);
 
-    cpu.load_16bit(SP, HL);
+    cpu.load_16(SP, HL);
 
     assert_eq!(cpu.registers.sp, 0x500);
 
@@ -25,7 +25,7 @@ fn test_load_16bit() {
     cpu.registers.pc = 1;
     set_short(&mut cpu, 1, 0x0105);
 
-    cpu.load_16bit(BC, DIRECT);
+    cpu.load_16(BC, DIRECT);
 
     assert_eq!(cpu.registers.bc(), 0x0105);
 
@@ -50,17 +50,17 @@ fn test_load_8bit() {
     cpu.mmu.write_byte(0x4000, 30);
 
     // Basic test
-    cpu.load_8bit(B, C);
+    cpu.load_8(B, C);
 
     assert_eq!(cpu.registers.b, 40);
 
     // Test from memory
-    cpu.load_8bit(D, InstructionAddress::HLI);
+    cpu.load_8(D, InstructionAddress::HLI);
 
     assert_eq!(cpu.registers.d, 30);
 
     // Test to memory
-    cpu.load_8bit(InstructionAddress::HLI, C);
+    cpu.load_8(InstructionAddress::HLI, C);
 
     assert_eq!(cpu.mmu.read_byte(cpu.registers.hl()), 40);
 

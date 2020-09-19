@@ -68,6 +68,6 @@ impl<M: MemoryMapper> CPU<M> {
     /// Set a `short` in the `MMU` and increment the cycle counter by 8.
     pub fn write_short_cycle(&mut self, address: u16, value: u16) {
         self.write_byte_cycle(address, (value & 0xFF) as u8); // Least significant byte first.
-        self.write_byte_cycle(address.wrapping_add(1), ((value & 0xFF00) >> 8) as u8);
+        self.write_byte_cycle(address.wrapping_add(1), (value >> 8) as u8);
     }
 }

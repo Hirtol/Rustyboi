@@ -4,6 +4,7 @@ use std::fs::{create_dir_all, read, File};
 use std::io::Write;
 use std::path::Path;
 use rustyboi_core::hardware::cartridge::Cartridge;
+use rustyboi_core::hardware::cartridge::header::CartridgeHeader;
 
 /// Function to call in order to save external ram (in case it's present)
 /// as well as any additional cleanup as required.
@@ -13,7 +14,7 @@ pub fn save_rom(emulator: &Emulator) {
             .expect("Could not get access to data dir for saving!").data_dir().join("saves");
         create_dir_all(&save_dir);
         // Really, this expect case shouldn't ever be reached.
-        let title = emulator.game_title().expect("No cartridge loaded, can't save!");
+        let title = emulator.game_title().expect("No cartridge loaded, can't save!").trim();
 
         let mut save_file = File::create(save_dir.join(format!("{}.save", title)))
             .expect("Could not create the save file");
@@ -36,7 +37,7 @@ pub fn create_emulator(rom_path: impl AsRef<Path>, boot_rom: Option<[u8; 256]>) 
     Emulator::new(boot_rom, &rom, saved_ram)
 }
 
-pub fn find_saved_ram<'a>(name: impl AsRef<str>) -> Option<Vec<u8>> {
+pub fn find_saved_ram(name: impl AsRef<str>) -> Option<Vec<u8>> {
     let save_dir = ProjectDirs::from("", "Hirtol",  "Rustyboi")
         .expect("Could not get access to data dir for saving!").data_dir().join("saves");
     create_dir_all(&save_dir);
@@ -45,7 +46,7 @@ pub fn find_saved_ram<'a>(name: impl AsRef<str>) -> Option<Vec<u8>> {
 }
 
 pub fn find_rom_name(rom: &[u8]) -> String {
-    Cartridge::new(rom, None).cartridge_header().title.clone()
+    CartridgeHeader::new(rom).title.trim().to_owned()
 }
 
 pub fn vec_to_bootrom(vec: &Vec<u8>) -> [u8; 256] {

@@ -3,7 +3,7 @@ use crate::hardware::cartridge::mbc::{MBC0, MBC1, MBC5, MBC};
 use bitflags::_core::fmt::{Debug, Formatter};
 use std::fmt;
 
-mod header;
+pub mod header;
 mod mbc;
 
 pub struct Cartridge {

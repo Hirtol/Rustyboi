@@ -131,7 +131,7 @@ impl<M: MemoryMapper> CPU<M> {
     /// `ld   rr,nn       x1 nn nn  12 ---- rr=nn (rr may be BC,DE,HL or SP)`
     /// OR
     /// `ld   SP,HL       F9         8 ---- SP=HL`
-    fn load_16bit<T: Copy, U: Copy>(&mut self, destination: T, source: U)
+    fn load_16<T: Copy, U: Copy>(&mut self, destination: T, source: U)
     where
         Self: SetU16<T>,
         Self: ToU16<U>,
@@ -142,7 +142,7 @@ impl<M: MemoryMapper> CPU<M> {
     }
 
     /// `ld` never sets any flags.
-    fn load_8bit<T: Copy, U: Copy>(&mut self, destination: T, source: U)
+    fn load_8<T: Copy, U: Copy>(&mut self, destination: T, source: U)
     where
         T: Debug,
         Self: SetU8<T>,
@@ -198,10 +198,10 @@ impl<M: MemoryMapper> CPU<M> {
     fn add16(&mut self, target: Reg16) {
         let old_value = self.read_u16_value(target);
         let (result, overflowed) = old_value.overflowing_add(self.registers.hl());
+
         self.registers.set_n(false);
         self.registers.set_cf(overflowed);
-        self.registers
-            .set_h((old_value & 0x0FFF) + (self.registers.hl() & 0x0FFF) > 0x0FFF);
+        self.registers.set_h((old_value & 0x0FFF) + (self.registers.hl() & 0x0FFF) > 0x0FFF);
 
         self.registers.set_hl(result);
         // Special increment as this function doesn't do any direct memory access.
@@ -268,8 +268,6 @@ impl<M: MemoryMapper> CPU<M> {
     fn relative_jump(&mut self, condition: JumpModifier) {
         let offset = self.get_instr_u8() as i8;
         if self.matches_jmp_condition(condition) {
-            // No idea why this works, but wrapping_sub/add depending on negative/positive value
-            // always caused an addition even when casting to u16.
             self.registers.pc = self.registers.pc.wrapping_add(offset as u16);
             self.add_cycles();
         }
@@ -381,17 +379,12 @@ impl<M: MemoryMapper> CPU<M> {
     {
         let value = self.read_u8_value(target);
         let carry_flag = self.registers.cf() as u8;
-        let new_value = self
-            .registers
-            .a
-            .wrapping_add(value)
-            .wrapping_add(carry_flag);
+        let new_value = self.registers.a.wrapping_add(value).wrapping_add(carry_flag);
+
         self.registers.set_zf(new_value == 0);
         self.registers.set_n(false);
-        self.registers
-            .set_h((self.registers.a & 0xF) + (value & 0xF) + carry_flag > 0xF);
-        self.registers
-            .set_cf((self.registers.a as u16) + (value as u16) + carry_flag as u16 > 0xFF);
+        self.registers.set_h((self.registers.a & 0xF) + (value & 0xF) + carry_flag > 0xF);
+        self.registers.set_cf((self.registers.a as u16) + (value as u16) + carry_flag as u16 > 0xFF);
 
         self.registers.a = new_value;
     }
@@ -571,7 +564,7 @@ impl<M: MemoryMapper> CPU<M> {
         }
     }
 
-    /// Push register `target` into the stack.
+    /// Push register `target` onto the stack.
     ///
     /// Flags: `----`
     fn push(&mut self, target: Reg16) {
@@ -624,10 +617,8 @@ impl<M: MemoryMapper> CPU<M> {
 
         self.registers.set_zf(false);
         self.registers.set_n(false);
-        self.registers
-            .set_h((self.registers.sp & 0xF) + (value & 0xF) > 0xF);
-        self.registers
-            .set_cf((self.registers.sp & 0xFF) + (value & 0xFF) > 0xFF);
+        self.registers.set_h((self.registers.sp & 0xF) + (value & 0xF) > 0xF);
+        self.registers.set_cf((self.registers.sp & 0xFF) + (value & 0xFF) > 0xFF);
 
         self.registers.sp = new_value;
 
@@ -654,13 +645,12 @@ impl<M: MemoryMapper> CPU<M> {
         let new_value = self.registers.sp.wrapping_add(value);
 
         self.registers.set_hl(new_value);
+
         self.registers.set_zf(false);
         self.registers.set_n(false);
-        self.registers
-            .set_h((self.registers.sp & 0xF) + (value & 0xF) > 0xF);
+        self.registers.set_h((self.registers.sp & 0xF) + (value & 0xF) > 0xF);
         // Test if overflow on 7th bit.
-        self.registers
-            .set_cf((self.registers.sp & 0xFF) + (value & 0xFF) > 0xFF);
+        self.registers.set_cf((self.registers.sp & 0xFF) + (value & 0xFF) > 0xFF);
 
         self.add_cycles();
     }
@@ -678,7 +668,6 @@ impl<M: MemoryMapper> CPU<M> {
     /// Enable Interrupts by setting the IME flag.
     /// The flag is only set after the instruction following EI.
     fn ei(&mut self) {
-        //TODO: Actually do this properly
         self.delayed_ime = true;
     }
 
