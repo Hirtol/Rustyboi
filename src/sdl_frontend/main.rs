@@ -22,8 +22,10 @@ use std::io::{BufWriter, Write};
 use std::ops::Div;
 use directories::ProjectDirs;
 use rustyboi_core::hardware::cartridge::Cartridge;
+use crate::actions::*;
 
 mod display;
+mod actions;
 
 const KIRBY_DISPLAY_COLOURS: DisplayColour = DisplayColour {
     white: RGB(44, 44, 150),
@@ -74,9 +76,9 @@ fn main() {
 
     let bootrom_file = read("roms\\DMG_ROM.bin").unwrap();
 
-    let cartridge = read("roms\\Zelda.gb").unwrap();
-    let cpu_test = read("test roms/blargg/cpu_instrs/individual/02-interrupts.gb").unwrap();
-    let cpu_test2 = read("test roms/mooneye/tests/emulator-only/mbc5/mbc5_rom_512kb.gb").unwrap();
+    let cartridge = "roms\\Zelda.gb";
+    let cpu_test = "test roms/blargg/cpu_instrs/individual/02-interrupts.gb";
+    let cpu_test2 = "test roms/mooneye/tests/emulator-only/mbc5/mbc5_rom_512kb.gb";
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
@@ -86,9 +88,7 @@ fn main() {
 
     let mut timer = sdl_context.timer().unwrap();
 
-    let saved_ram = find_saved_rom(&Cartridge::new(&cpu_test2, None).cartridge_header().title);
-
-    let mut emulator = Emulator::new(Option::None, &cpu_test2, saved_ram);
+    let mut emulator = create_emulator(cpu_test2, None);
 
     let mut cycles = 0;
     let mut loop_cycles = 0;
@@ -152,10 +152,7 @@ fn main() {
 fn handle_events(event: Event, emulator: &mut Emulator) -> bool {
     match event {
         Event::Quit { .. }
-        | Event::KeyDown {
-            keycode: Some(Keycode::Escape),
-            ..
-        } => {
+        | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
             save_rom(emulator);
             return false;
         }
@@ -164,27 +161,18 @@ fn handle_events(event: Event, emulator: &mut Emulator) -> bool {
             if filename.ends_with(".gb") || filename.ends_with(".gbc"){
                 debug!("Opening file: {}", filename);
                 save_rom(emulator);
-                let new_cartridge = read(filename).expect("Could not open the provided file!");
-                let old_ram = find_saved_rom(&Cartridge::new(&new_cartridge, None).cartridge_header().title);
 
-                *emulator = Emulator::new(Option::None, &new_cartridge, old_ram);
+                *emulator = create_emulator(&filename, None);
             } else {
-                warn!(
-                    "Attempted opening of file: {} which is not a GameBoy rom!",
-                    filename
-                );
+                warn!("Attempted opening of file: {} which is not a GameBoy rom!", filename);
             }
         }
-        Event::KeyDown {
-            keycode: Some(key), ..
-        } => {
+        Event::KeyDown { keycode: Some(key), .. } => {
             if let Some(input_key) = keycode_to_input(key) {
                 emulator.handle_input(input_key, true);
             }
         }
-        Event::KeyUp {
-            keycode: Some(key), ..
-        } => {
+        Event::KeyUp { keycode: Some(key), .. } => {
             if let Some(input_key) = keycode_to_input(key) {
                 emulator.handle_input(input_key, false);
             }
@@ -239,42 +227,6 @@ fn fill_texture_and_copy(
         }
     });
     canvas.copy(&texture, None, None);
-}
-
-fn vec_to_bootrom(vec: &Vec<u8>) -> [u8; 256] {
-    let mut result = [0u8; 256];
-
-    for (i, instr) in vec.iter().enumerate() {
-        result[i] = *instr;
-    }
-
-    result
-}
-
-/// Function to call in order to save external ram (in case it's present)
-/// as well as any additional cleanup as required.
-fn save_rom(emulator: &Emulator) {
-    if let Some(ram) = emulator.battery_ram() {
-        let save_dir = ProjectDirs::from("", "Hirtol",  "Rustyboi")
-            .expect("Could not get access to data dir for saving!").data_dir().join("saves");
-        create_dir_all(&save_dir);
-        // Really, this expect case shouldn't ever be reached.
-        let title = emulator.game_title().expect("No cartridge loaded, can't save!");
-
-        let mut save_file = File::create(save_dir.join(format!("{}.save", title)))
-            .expect("Could not create the save file");
-        save_file.write(ram);
-
-        log::debug!("Finished saving the external ram with size: {} successfully!", ram.len());
-    }
-}
-
-fn find_saved_rom<'a>(name: impl AsRef<str>) -> Option<Vec<u8>> {
-    let save_dir = ProjectDirs::from("", "Hirtol",  "Rustyboi")
-        .expect("Could not get access to data dir for saving!").data_dir().join("saves");
-    create_dir_all(&save_dir);
-
-    read(save_dir.join(format!("{}.save", name.as_ref()))).ok()
 }
 
 fn test_fast(
