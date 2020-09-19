@@ -138,7 +138,7 @@ pub fn get_assembly_from_opcode(opcode: u8) -> String {
         0xE6 => format!("and {:?}", InstructionAddress::DIRECT),
         0xE7 => format!("rst {:?}", 0x20),
         0xE8 => "add SP i8".to_string(),
-        0xE9 => format!("jump {:?}", JumpModifier::HL),
+        0xE9 => format!("jump HL"),
         0xEA => format!("load_8bit {:?} {:?}", InstructionAddress::DirectMem, A),
         0xEB..=0xED => "unknown".to_string(),
         0xEE => format!("xor {:?}", InstructionAddress::DIRECT),

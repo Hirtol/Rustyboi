@@ -14,6 +14,7 @@ use crate::io::interrupts::Interrupts;
 use crate::hardware::cpu::instructions::get_assembly_from_opcode;
 use log::*;
 use std::fmt::*;
+use crate::hardware::cpu::execute::JumpModifier::Always;
 
 #[cfg(test)]
 mod tests;
@@ -512,7 +513,9 @@ impl<M: MemoryMapper> CPU<M> {
         if self.matches_jmp_condition(target) {
             self.registers.pc = self.read_short_cycle(self.registers.sp);
             self.registers.sp = self.registers.sp.wrapping_add(2);
-            self.add_cycles();
+            if target != Always {
+                self.add_cycles();
+            }
         }
     }
 
@@ -531,15 +534,17 @@ impl<M: MemoryMapper> CPU<M> {
         let value = self.get_instr_u16();
 
         if self.matches_jmp_condition(condition) {
-            self.registers.pc = if let JumpModifier::HL = condition {
-                //TODO: Consider moving to separate function to clean up enum.
-                self.registers.hl()
-            } else {
-                value
-            };
+            self.registers.pc = value;
 
             self.add_cycles();
         }
+    }
+
+    /// Jump to address in HL; effectively, load PC with value in register HL.
+    ///
+    /// Flags: `----`
+    fn jump_hl(&mut self) {
+        self.registers.pc = self.registers.hl();
     }
 
     fn matches_jmp_condition(&self, condition: JumpModifier) -> bool {
@@ -549,7 +554,6 @@ impl<M: MemoryMapper> CPU<M> {
             JumpModifier::NotCarry => !self.registers.cf(),
             JumpModifier::Carry => self.registers.cf(),
             JumpModifier::Always => true,
-            JumpModifier::HL => true,
         }
     }
 

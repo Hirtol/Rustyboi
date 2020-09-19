@@ -122,7 +122,7 @@ impl<M: MemoryMapper> CPU<M> {
             0xE6 => self.and(InstructionAddress::DIRECT),
             0xE7 => self.rst(0x20),
             0xE8 => self.add_sp(),
-            0xE9 => self.jump(JumpModifier::HL),
+            0xE9 => self.jump_hl(),
             0xEA => self.load_8bit(InstructionAddress::DirectMem, A),
             0xEB..=0xED => self.unknown(),
             0xEE => self.xor(InstructionAddress::DIRECT),
@@ -235,12 +235,11 @@ pub fn vertical_decode(opcode: u8) -> WrapperEnum {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
 pub enum JumpModifier {
     NotZero,
     Zero,
     NotCarry,
     Carry,
     Always,
-    HL,
 }

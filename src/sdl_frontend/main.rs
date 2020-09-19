@@ -28,10 +28,10 @@ mod display;
 mod actions;
 
 const KIRBY_DISPLAY_COLOURS: DisplayColour = DisplayColour {
-    white: RGB(44, 44, 150),
-    light_grey: RGB(119, 51, 231),
-    dark_grey: RGB(231, 134, 134),
-    black: RGB(247, 190, 247),
+    black: RGB(44, 44, 150),
+    dark_grey: RGB(119, 51, 231),
+    light_grey: RGB(231, 134, 134),
+    white: RGB(247, 190, 247),
 };
 
 const GBC_UNR_DISPLAY_COLOURS: DisplayColour = DisplayColour {
@@ -108,17 +108,17 @@ fn main() {
             }
         }
         // Emulate exactly one frame's worth.
-        while cycles < CYCLES_PER_FRAME*6 {
+        while cycles < CYCLES_PER_FRAME {
             cycles += emulator.emulate_cycle() as u32;
         }
 
-        cycles -= CYCLES_PER_FRAME*6;
+        cycles -= CYCLES_PER_FRAME;
 
         fill_texture_and_copy(
             &mut canvas,
             &mut screen_texture,
             &emulator.frame_buffer(),
-            &DEFAULT_DISPLAY_COLOURS,
+            &KIRBY_DISPLAY_COLOURS,
         );
 
         canvas.present();
