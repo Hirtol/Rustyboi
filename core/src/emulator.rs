@@ -119,8 +119,9 @@ impl Emulator {
 
         if !self.cpu.ime {
             // While we have interrupts pending we can't enter halt mode again.
-            if !interrupt_flags.is_empty() {
+            if !(interrupt_flags & self.cpu.mmu.interrupts_enable).is_empty() {
                 self.cpu.halted = false;
+                self.cpu.add_cycles();
             }
             return;
         } else if interrupt_flags.is_empty() {

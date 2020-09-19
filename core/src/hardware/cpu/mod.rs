@@ -346,6 +346,7 @@ impl<M: MemoryMapper> CPU<M> {
     fn halt(&mut self) {
         log::trace!("Entering halt");
         self.halted = true;
+        self.add_cycles();
     }
 
     /// `A=A+r` OR `A=A+n` OR `A=A+(HL)`

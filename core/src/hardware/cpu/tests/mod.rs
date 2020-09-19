@@ -3,6 +3,7 @@ use crate::hardware::memory::MemoryMapper;
 use crate::hardware::registers::Registers;
 use std::cell::RefCell;
 use std::rc::Rc;
+use crate::hardware::cartridge::Cartridge;
 
 mod cycle_tests;
 mod instruction_tests;
@@ -25,6 +26,10 @@ impl MemoryMapper for TestMemory {
 
     fn boot_rom_finished(&self) -> bool {
         false
+    }
+
+    fn cartridge(&self) -> Option<&Cartridge> {
+        None
     }
 }
 

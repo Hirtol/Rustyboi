@@ -296,7 +296,6 @@ impl MBC for MBC5 {
 mod tests {
     use crate::hardware::cartridge::header::RamSizes::KB32;
     use crate::hardware::cartridge::mbc::{EXTERNAL_RAM_SIZE, MBC1, ROM_BANK_SIZE, MBC};
-    use crate::hardware::cartridge::MBC;
 
     #[test]
     fn basic_mbc_1_test() {
@@ -382,7 +381,7 @@ mod tests {
             set_rom_bank_to_value(&mut rom, i, i as u8);
         }
 
-        MBC1::new(rom, false, &KB32)
+        MBC1::new(rom, false, &KB32, None)
     }
 
     fn set_rom_bank_to_value(rom: &mut [u8], rom_bank: usize, value: u8) {
