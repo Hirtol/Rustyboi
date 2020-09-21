@@ -3,3 +3,4 @@ pub mod cpu;
 pub mod memory;
 pub mod ppu;
 pub mod registers;
+pub mod apu;
