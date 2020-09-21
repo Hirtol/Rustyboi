@@ -52,7 +52,7 @@ fn main() -> anyhow::Result<()> {
 
     let old_hashes = calculate_hashes(TESTING_PATH_OLD).unwrap_or_default();
 
-    run_test_roms(options.blargg_path, options.mooneye_path);
+    run_test_roms(options.blargg_path, options.mooneye_path, options.boot_rom);
 
     let new_hashes = calculate_hashes(TESTING_PATH_NEW).unwrap_or_default();
 
@@ -68,21 +68,35 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn run_test_roms(blargg_path: impl AsRef<str>, mooneye_path: impl AsRef<str>) {
+fn run_test_roms(blargg_path: impl AsRef<str>, mooneye_path: impl AsRef<str>, bootrom: impl AsRef<Path>) {
+
+    let boot_file = if bootrom.as_ref().exists() { read(bootrom.as_ref()).ok() } else { None };
+
     if !blargg_path.as_ref().is_empty() {
-        run_path(blargg_path.as_ref());
+        run_path(blargg_path.as_ref(), boot_file.clone());
     }
 
     if !mooneye_path.as_ref().is_empty() {
-        run_path(mooneye_path.as_ref());
+        run_path(mooneye_path.as_ref(), boot_file);
     }
+}
+
+pub fn vec_to_bootrom(vec: &Vec<u8>) -> [u8; 256] {
+    let mut result = [0u8; 256];
+
+    for (i, instr) in vec.iter().enumerate() {
+        result[i] = *instr;
+    }
+
+    result
 }
 
 /// An incredibly naive way of doing this, by just spawning as many threads as possible for
 /// all test roms and running them for ~2 million iterations, or a custom amount if set via config.
 ///
 /// But it works!
-fn run_path(path: impl AsRef<str>) {
+fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>) {
+    let boot_rom = boot_rom_vec.and_then(|rom| Some(vec_to_bootrom(&rom)));
     let tests = list_files_with_extensions(path.as_ref(), ".gb").unwrap();
     let custom_list = Arc::new(get_custom_list("custom_test_cycles.txt"));
     let mut threads = Vec::with_capacity(100);
@@ -91,8 +105,8 @@ fn run_path(path: impl AsRef<str>) {
         let list_copy = custom_list.clone();
         threads.push(spawn(move || {
             let file_stem = path.file_stem().unwrap().to_owned();
-            let mut cycles_to_do = 2_000_000;
-            let mut emu = Emulator::new(Option::None, &read(path).unwrap(), None);
+            let mut cycles_to_do = 4_000_000;
+            let mut emu = Emulator::new(boot_rom, &read(path).unwrap(), None);
 
             if let Some(cycles) = list_copy.get(file_stem.to_str().unwrap_or_default()) {
                 cycles_to_do = *cycles;

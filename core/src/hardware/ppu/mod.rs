@@ -353,12 +353,10 @@ impl PPU {
         // We need the i16 cast as there are games (like Aladdin) which have a wx < 7, but still
         // want their windows to be rendered.
         let mut window_x = (self.window_x as i16).wrapping_sub(7);
-
-        // If it's not on our current y or if the window x is out of scope, don't bother rendering.
+        // If the window x is out of scope, don't bother rendering.
         if !self.window_triggered  || window_x >= 160 {
             return;
         }
-
         // The window always start to pick tiles from the top left of its BG tile map,
         // and has a separate line counter for its
         let tile_lower_bound = ((self.window_counter / 8) as u16) * 32;

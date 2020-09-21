@@ -11,4 +11,6 @@ pub struct AppOptions {
     /// The path to the folder with all MoonEyeGB tests.
     #[options(default = "test roms/mooneye/")]
     pub mooneye_path: String,
+    #[options(default = "roms/DMG_ROM.bin")]
+    pub boot_rom: String,
 }

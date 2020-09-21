@@ -59,8 +59,6 @@ impl<M: MemoryMapper> CPU<M> {
             result.registers.set_de(0x00D8);
             result.registers.set_hl(0x014D);
             result.registers.sp = 0xFFFE;
-            // Initialise the DIV register to the value it would have had we run the bootrom.
-            result.mmu.write_byte(0xFF04, 0xAB);
         }
 
         result

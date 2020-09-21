@@ -88,7 +88,7 @@ fn main() {
 
     let mut timer = sdl_context.timer().unwrap();
 
-    let mut emulator = create_emulator(cpu_test, Option::Some(vec_to_bootrom(&bootrom_file)));
+    let mut emulator = create_emulator(cpu_test, None);
 
     let mut cycles = 0;
     let mut loop_cycles = 0;

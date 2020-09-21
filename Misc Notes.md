@@ -3,6 +3,9 @@ This list is a compilation of certain nuances that took me a while to understand
 
 ## CPU
 * Don't reset the IE register upon executing the DI instruction, this will cause issues. Only disable IME instead.
+* Apparently we fetch an opcode THEN check for interrupts, and if so discard the opcode (and decrement PC?) and launch into 
+an interrupt routine. This would have effects on timing. ie_push.gb is a good test for this apparently.
+* Ensure you run the Blargg instr_timing.gb test WITH bootrom, it seems to rely on some particular state in order to pass.
 
 ## MMU
 
