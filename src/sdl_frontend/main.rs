@@ -50,6 +50,7 @@ const DEFAULT_DISPLAY_COLOURS: DisplayColour = DisplayColour {
 
 const FPS: u64 = 60;
 const FRAME_DELAY: Duration = Duration::from_nanos(1_000_000_000u64 / FPS);
+const FAST_FORWARD_MULTIPLIER: u32 = 4;
 
 fn main() {
     CombinedLogger::init(vec![
@@ -59,9 +60,8 @@ fn main() {
     .unwrap();
 
     let sdl_context = sdl2::init().expect("Failed to initialise SDL context!");
-    let video_subsystem = sdl_context
-        .video()
-        .expect("SDL context failed to initialise video!");
+    let audio_subsystem = sdl_context.audio().expect("SDL context failed to initialise audio!");
+    let video_subsystem = sdl_context.video().expect("SDL context failed to initialise video!");
 
     let window = video_subsystem
         .window("RustyBoi", 800, 720)
@@ -82,13 +82,13 @@ fn main() {
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
-    // test_fast(sdl_context, &mut canvas, &mut screen_texture, &cpu_test);
+    // test_fast(sdl_context, &mut canvas, &mut screen_texture, &read(cpu_test).unwrap());
     //
     // return;
 
     let mut timer = sdl_context.timer().unwrap();
 
-    let mut emulator = create_emulator(cpu_test, None);
+    let mut emulator = create_emulator(cpu_test, Option::Some(vec_to_bootrom(&bootrom_file)));
 
     let mut cycles = 0;
     let mut loop_cycles = 0;
@@ -98,21 +98,23 @@ fn main() {
 
     let mut last_update_time: Instant = Instant::now();
 
+    let mut fast_forward = false;
+
     'mainloop: loop {
         let frame_start = Instant::now();
         let ticks = timer.ticks() as i32;
 
         for event in event_pump.poll_iter() {
-            if !handle_events(event, &mut emulator) {
+            if !handle_events(event, &mut emulator, &mut fast_forward) {
                 break 'mainloop;
             }
         }
         // Emulate exactly one frame's worth.
-        while cycles < CYCLES_PER_FRAME {
+        while cycles < CYCLES_PER_FRAME * if fast_forward { FAST_FORWARD_MULTIPLIER } else { 1 } {
             cycles += emulator.emulate_cycle() as u32;
         }
 
-        cycles -= CYCLES_PER_FRAME;
+        cycles -= CYCLES_PER_FRAME * if fast_forward { FAST_FORWARD_MULTIPLIER } else { 1 };
 
         fill_texture_and_copy(
             &mut canvas,
@@ -149,7 +151,7 @@ fn main() {
     }
 }
 
-fn handle_events(event: Event, emulator: &mut Emulator) -> bool {
+fn handle_events(event: Event, emulator: &mut Emulator, fast_forward: &mut bool) -> bool {
     match event {
         Event::Quit { .. }
         | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
@@ -170,11 +172,15 @@ fn handle_events(event: Event, emulator: &mut Emulator) -> bool {
         Event::KeyDown { keycode: Some(key), .. } => {
             if let Some(input_key) = keycode_to_input(key) {
                 emulator.handle_input(input_key, true);
+            }else if key == Keycode::LShift {
+                *fast_forward = true;
             }
         }
         Event::KeyUp { keycode: Some(key), .. } => {
             if let Some(input_key) = keycode_to_input(key) {
                 emulator.handle_input(input_key, false);
+            }else if key == Keycode::LShift {
+                *fast_forward = false;
             }
         }
         _ => {}

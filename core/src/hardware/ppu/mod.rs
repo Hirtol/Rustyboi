@@ -115,6 +115,8 @@ pub struct PPU {
     window_x: u8,
     window_y: u8,
     window_counter: u8,
+    window_triggered: bool,
+
     current_cycles: u32,
     vblank_cycles: u32,
 }
@@ -140,6 +142,7 @@ impl PPU {
             window_x: 0,
             window_y: 0,
             window_counter: 0,
+            window_triggered: false,
             current_cycles: 0,
             vblank_cycles: 0,
         }
@@ -214,6 +217,7 @@ impl PPU {
                 // A rather hacky way (also taken from GBE Plus) but it'll suffice for now.
                 self.vblank_cycles = self.current_cycles - 65664;
                 self.window_counter = 0;
+                self.window_triggered = false;
 
                 if self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT) {
                     pending_interrupts.insert(InterruptFlags::LCD);
@@ -254,6 +258,14 @@ impl PPU {
     }
 
     fn draw_scanline(&mut self) {
+        // As soon as wy == yc ANYWHERE in the frame, the window will be considered
+        // triggered for the remainder of the frame, and thus can only be disabled
+        // if LCD Control WINDOW_DISPlAY is reset.
+        // This trigger can happen even if the WINDOW_DISPLAY bit is not set.
+        if !self.window_triggered {
+            self.window_triggered = self.current_y == self.window_y;
+        }
+
         if self.lcd_control.contains(LcdControl::BG_WINDOW_PRIORITY) {
             self.draw_bg_scanline();
 
@@ -341,8 +353,9 @@ impl PPU {
         // We need the i16 cast as there are games (like Aladdin) which have a wx < 7, but still
         // want their windows to be rendered.
         let mut window_x = (self.window_x as i16).wrapping_sub(7);
+
         // If it's not on our current y or if the window x is out of scope, don't bother rendering.
-        if self.current_y < self.window_y || window_x >= 160 {
+        if !self.window_triggered  || window_x >= 160 {
             return;
         }
 
