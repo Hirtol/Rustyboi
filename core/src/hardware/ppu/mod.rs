@@ -365,7 +365,7 @@ impl PPU {
         let tile_higher_bound =
             (tile_lower_bound as u16 + ((160 - window_x) as u16).div_ceil(&8)) as u16;
 
-        let tile_pixel_y = self.current_y % 8;
+        let tile_pixel_y = self.window_counter % 8;
 
         let mut pixel_counter = window_x;
 

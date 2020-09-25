@@ -4,15 +4,16 @@ pub trait AudioVoice {
 
 pub struct Voice1 {
     /// 0xFF10 -PPP NSSS  Sweep period, negate, shift
-    nr10: u8,
+    pub nr10: u8,
     /// 0xFF11 DDLL LLLL  Duty, Length load (64-L)
-    nr11: u8,
+    pub nr11: u8,
     /// 0xFF12 VVVV APPP  Starting volume, Envelope add mode, period
-    nr12: u8,
+    pub nr12: u8,
     /// 0xFF13 FFFF FFFF  Frequency LSB
-    nr13: u8,
+    /// Write only.
+    pub nr13: u8,
     /// 0xFF14 TL-- -FFF  Trigger, Length enable, Frequency MSB
-    nr14: u8,
+    pub nr14: u8,
 }
 
 /// Relevant for voice 1 and 2 for the DMG.
