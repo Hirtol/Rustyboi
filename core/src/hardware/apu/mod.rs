@@ -42,7 +42,8 @@ pub struct APU {
     ///  Bit 2 - Sound 3 ON flag (Read Only)
     ///  Bit 1 - Sound 2 ON flag (Read Only)
     ///  Bit 0 - Sound 1 ON flag (Read Only)```
-    nr52: u8,
+    /// All sound on/off  (0: stop all sound circuits) (Read/Write)
+    all_sound_enable: bool,
 
     left_enable: bool,
     right_enable: bool,
@@ -64,7 +65,6 @@ impl APU {
             voice1: Default::default(),
             nr50: 0x77,
             nr51: 0xF3,
-            nr52: 0xF1,
             left_enable: false,
             right_enable: false,
             left_volume: 7,
@@ -74,7 +74,8 @@ impl APU {
             // Start the APU with 2 frames of audio buffered
             output_buffer: vec![0f32; SAMPLE_SIZE_BUFFER*2],
             frame_sequencer: 0,
-            sampling_handler: 95
+            sampling_handler: 95,
+            all_sound_enable: true
         }
     }
     
@@ -115,12 +116,27 @@ impl APU {
 
     pub fn read_register(&self, address: u16) -> u8 {
         let address = address & 0xFF;
+        // It's not possible to access any registers beside 0x26 while the sound is disabled.
+        if !self.all_sound_enable && address != 0x26 {
+            return 0xFF;
+        }
+
         match address {
             0x10..=0x14 => self.voice1.read_register(address),
             // APU registers
             0x24 => self.nr50,
             0x25 => self.nr51,
-            0x26 => self.nr52,
+            0x26 => {
+                let mut output = 0u8;
+                set_bit( output, 7, self.all_sound_enable);
+                //TODO: These three voices enable flags.
+                set_bit( output, 3, true);
+                set_bit( output, 2, true);
+                set_bit( output, 1, true);
+
+                set_bit( output, 0, self.voice1.enabled());
+                output
+            },
             //TODO: Once all voices are implemented bring back panic.
             _ => 0xFF//panic!("Attempt to read an unknown audio register: 0xFF{:02X}", address),
         }
@@ -128,6 +144,12 @@ impl APU {
 
     pub fn write_register(&mut self, address: u16, value: u8) {
         let address = address & 0xFF;
+
+        // It's not possible to access any registers beside 0x26 while the sound is disabled.
+        if !self.all_sound_enable && address != 0x26 {
+            return;
+        }
+
         match address {
             0x10..=0x14 => self.voice1.write_register(address, value),
             0x24 => {
@@ -146,6 +168,10 @@ impl APU {
                 for i in 4..8 {
                     self.left_channel_enable[i] = test_bit(value, i as u8);
                 }
+            }
+            0x26 => {
+                self.all_sound_enable = (value & 0b1000_0000) == 0b1000_0000;
+                //TODO: Reset all voices.
             }
             //TODO: Once all voices are implemented bring back panic.
             _ => {}//panic!("Attempt to write to an unknown audio register: 0xFF{:02X} with val: {}", address, value),
@@ -173,6 +199,9 @@ impl APU {
 
         self.output_buffer.push(result);
     }
+}
+fn set_bit(&mut output: u8, bit: u8, set: bool) {
+    *output = if set { 1 } else { 0 } << bit;
 }
 
 fn test_bit(value: u8, bit: u8) -> bool {

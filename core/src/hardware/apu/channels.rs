@@ -99,7 +99,11 @@ impl Voice1 {
         self._volume_true
     }
 
-    pub fn enable(&mut self) {
+    pub fn enabled(&self) -> bool {
+        self._triggered
+    }
+
+    fn enable(&mut self) {
         self.write_register(0x10, 0x80);
         self.write_register(0x11, 0xBF);
         self.write_register(0x12, 0xF3);
