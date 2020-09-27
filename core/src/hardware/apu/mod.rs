@@ -48,9 +48,6 @@ pub struct APU {
     /// All sound on/off  (0: stop all sound circuits) (Read/Write)
     all_sound_enable: bool,
 
-    left_enable: bool,
-    right_enable: bool,
-
     left_volume: u8,
     right_volume: u8,
     // 0-3 will represent voice 1-4 enable respectively.
@@ -68,8 +65,6 @@ impl APU {
             voice1: Default::default(),
             nr50: 0x77,
             nr51: 0xF3,
-            left_enable: false,
-            right_enable: false,
             left_volume: 7,
             right_volume: 7,
             left_channel_enable: [true; 4],
@@ -83,8 +78,9 @@ impl APU {
     }
 
     pub fn tick(&mut self, mut delta_cycles: u64) {
-        let left_final_volume = ((128 * self.left_volume as u16) / 7) as f32;
-        let right_final_volume = ((128 * self.right_volume as u16) / 7) as f32;
+        //TODO: Adjust these volumes to our liking.
+        let left_final_volume = self.left_volume as f32 / 50.0;
+        let right_final_volume = self.right_volume as f32 / 50.0;
         while delta_cycles > 0 {
             self.voice1.tick_timer();
 
@@ -96,13 +92,9 @@ impl APU {
                 self.sampling_handler = 95;
 
                 // Left Audio
-                if self.left_enable {
-                    self.generate_audio(self.left_channel_enable, left_final_volume);
-                }
+                self.generate_audio(self.left_channel_enable, left_final_volume);
                 // Right Audio
-                if self.right_enable {
-                    self.generate_audio(self.right_channel_enable, right_final_volume);
-                }
+                self.generate_audio(self.right_channel_enable, right_final_volume);
             }
 
             delta_cycles -= 1;
@@ -121,6 +113,7 @@ impl APU {
         let address = address & 0xFF;
         // It's not possible to access any registers beside 0x26 while the sound is disabled.
         if !self.all_sound_enable && address != 0x26 {
+            log::warn!("Tried to read APU while inaccessible");
             return 0xFF;
         }
 
@@ -150,17 +143,17 @@ impl APU {
 
         // It's not possible to access any registers beside 0x26 while the sound is disabled.
         if !self.all_sound_enable && address != 0x26 {
+            log::warn!("Tried to write APU while inaccessible");
             return;
         }
 
         match address {
             0x10..=0x14 => self.voice1.write_register(address, value),
             0x24 => {
+                log::warn!("Write to NR50 with value : 0x{:02X}", value);
                 self.nr50 = value;
-                self.left_enable = (value & 0x80) == 0x80;
                 self.left_volume = (value & 0x70) >> 4;
 
-                self.right_enable = (value & 0x08) == 0x08;
                 self.left_volume = value & 0x07;
             }
             0x25 => {

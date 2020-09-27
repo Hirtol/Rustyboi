@@ -24,6 +24,7 @@ use sdl2::event::Event;
 use std::io::{BufWriter, Write};
 use std::ops::Div;
 use sdl2::audio::{AudioSpecDesired, AudioQueue};
+use hound::{WavSpec, SampleFormat};
 
 mod actions;
 mod display;
@@ -83,7 +84,7 @@ fn main() {
 
     let bootrom_file = read("roms\\DMG_ROM.bin").unwrap();
 
-    let cartridge = "roms\\Zelda.gb";
+    let cartridge = "roms\\Kirby's Dream Land.gb";
     let cpu_test = "test roms/blargg/instr_timing/instr_timing.gb";
     let cpu_test2 = "test roms/mooneye/tests/emulator-only/mbc5/mbc5_rom_512kb.gb";
 
@@ -95,7 +96,7 @@ fn main() {
 
     let mut timer = sdl_context.timer().unwrap();
 
-    let mut emulator = create_emulator(cpu_test, Option::Some(vec_to_bootrom(&bootrom_file)));
+    let mut emulator = create_emulator(cartridge, Option::Some(vec_to_bootrom(&bootrom_file)));
 
     let mut cycles = 0;
     let mut loop_cycles = 0;
@@ -111,7 +112,7 @@ fn main() {
 
     'mainloop: loop {
         let audio_buffer = emulator.audio_buffer();
-        debug!("Status: {:?} - Size: {} - SUM: {}", audio_queue.status(), audio_queue.size(), audio_buffer.iter().sum::<f32>());
+        //debug!("Status: {:?} - Size: {} - SUM: {}", audio_queue.status(), audio_queue.size(), audio_buffer.iter().sum::<f32>());
         audio_queue.queue(audio_buffer);
         emulator.clear_audio_buffer();
 
@@ -162,6 +163,22 @@ fn main() {
 
         last_update_time = frame_start;
     }
+
+    let mut out_file = File::create("output.wav").unwrap();
+
+    let mut writer = hound::WavWriter::new(out_file, WavSpec {
+        channels: 1,
+        sample_rate: 44100,
+        bits_per_sample: 32,
+        sample_format: SampleFormat::Float
+    }).unwrap();
+
+    // Temp audio stuff to save to WAV file for testing.
+    emulator.audio_buffer().iter().for_each(|f| {
+        writer.write_sample(*f);
+    });
+
+    writer.flush();
 }
 
 fn handle_events(event: Event, emulator: &mut Emulator, fast_forward: &mut bool) -> bool {
