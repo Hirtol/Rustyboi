@@ -10,7 +10,7 @@ use std::fmt;
 
 use crate::io::joypad::*;
 use crate::io::timer::*;
-use crate::hardware::apu::APU;
+use crate::hardware::apu::{APU, APU_MEM_START, APU_MEM_END};
 
 pub const MEMORY_SIZE: usize = 0x10000;
 /// 16 KB ROM bank, usually 00. From Cartridge, read-only
@@ -165,6 +165,7 @@ impl Memory {
                 //log::info!("Reading interrupt flag {:?}", self.interrupts_flag);
                 self.interrupts_flag.bits()
             }
+            APU_MEM_START..=APU_MEM_END => self.apu.read_register(address),
             LCD_CONTROL_REGISTER => self.ppu.get_lcd_control(),
             LCD_STATUS_REGISTER => self.ppu.get_lcd_status(),
             SCY_REGISTER => self.ppu.get_scy(),
@@ -194,6 +195,7 @@ impl Memory {
                 self.interrupts_flag = InterruptFlags::from_bits_truncate(value);
                 //log::info!("Writing interrupt flag {:?}", self.interrupts_flag);
             }
+            APU_MEM_START..=APU_MEM_END => self.apu.write_register(address, value),
             LCD_CONTROL_REGISTER => self.ppu.set_lcd_control(value),
             LCD_STATUS_REGISTER => self.ppu.set_lcd_status(value),
             SCY_REGISTER => self.ppu.set_scy(value),

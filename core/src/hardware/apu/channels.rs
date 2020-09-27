@@ -109,7 +109,7 @@ impl Voice1 {
         self.write_register(0x12, 0xF3);
         // nr13 is purposefully skipped. Refer to:
         // https://github.com/AntonioND/giibiiadvance/blob/master/docs/other_docs/GBSOUND.txt
-        self.write_register(0x14, 0xBF);
+        self._triggered = true;
         self._duty_select = 0x2;
 
     }

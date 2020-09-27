@@ -7,6 +7,9 @@ mod memory_binds;
 // In all likelihood this will cause issues due to scheduling delays so this should go up probably.
 pub const SAMPLE_SIZE_BUFFER: usize = 735;
 
+pub const APU_MEM_START: u16 = 0xFF10;
+pub const APU_MEM_END: u16 = 0xFF26;
+
 pub struct APU {
     voice1: Voice1,
     /// The volume bits specify the "Master Volume" for Left/Right sound output.
@@ -165,8 +168,8 @@ impl APU {
                 for i in 0..4 {
                     self.right_channel_enable[i] = test_bit(value, i as u8);
                 }
-                for i in 4..8 {
-                    self.left_channel_enable[i] = test_bit(value, i as u8);
+                for i in 0..4 {
+                    self.left_channel_enable[i] = test_bit(value, i as u8 + 4);
                 }
             }
             0x26 => {

@@ -43,6 +43,14 @@ impl Emulator {
         self.cpu.mmu.ppu.frame_buffer().clone()
     }
 
+    pub fn audio_buffer(&self) -> &[f32] {
+        self.cpu.mmu.apu.get_audio_buffer()
+    }
+
+    pub fn clear_audio_buffer(&mut self) {
+        self.cpu.mmu.apu.clear_audio_buffer();
+    }
+
     /// Returns, if the current `ROM` has a battery, the contents of the External Ram.
     ///
     /// Should be used for saving functionality.
@@ -81,6 +89,8 @@ impl Emulator {
 
         interrupt = self.cpu.mmu.timers.tick_timers(delta_cycles);
         self.add_new_interrupts(interrupt);
+
+        self.cpu.mmu.apu.tick(delta_cycles);
 
         // For PPU timing, maybe see how many cycles the cpu did, pass this to the PPU,
         // and have the PPU run until it has done all those, OR reaches an interrupt.

@@ -23,6 +23,7 @@ use rustyboi_core::hardware::cartridge::Cartridge;
 use sdl2::event::Event;
 use std::io::{BufWriter, Write};
 use std::ops::Div;
+use sdl2::audio::{AudioSpecDesired, AudioQueue};
 
 mod actions;
 mod display;
@@ -63,6 +64,12 @@ fn main() {
     let audio_subsystem = sdl_context.audio().expect("SDL context failed to initialise audio!");
     let video_subsystem = sdl_context.video().expect("SDL context failed to initialise video!");
 
+    let audio_queue: AudioQueue<f32> = audio_subsystem.open_queue(None, &AudioSpecDesired {
+        freq: Some(44100),
+        channels: Some(2),
+        samples: None,
+    }).unwrap();
+
     let window = video_subsystem
         .window("RustyBoi", 800, 720)
         .position_centered()
@@ -88,7 +95,7 @@ fn main() {
 
     let mut timer = sdl_context.timer().unwrap();
 
-    let mut emulator = create_emulator(cpu_test, None);
+    let mut emulator = create_emulator(cpu_test, Option::Some(vec_to_bootrom(&bootrom_file)));
 
     let mut cycles = 0;
     let mut loop_cycles = 0;
@@ -100,7 +107,14 @@ fn main() {
 
     let mut fast_forward = false;
 
+    audio_queue.resume();
+
     'mainloop: loop {
+        let audio_buffer = emulator.audio_buffer();
+        debug!("Status: {:?} - Size: {} - SUM: {}", audio_queue.status(), audio_queue.size(), audio_buffer.iter().sum::<f32>());
+        audio_queue.queue(audio_buffer);
+        emulator.clear_audio_buffer();
+
         let frame_start = Instant::now();
         let ticks = timer.ticks() as i32;
 
