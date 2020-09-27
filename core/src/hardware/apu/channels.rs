@@ -60,7 +60,7 @@ impl Voice1 {
 
         if overflowed {
             // I got this from Reddit, lord only knows why specifically 2048.
-            self._timer = (2048 - self.get_frequency()) * 4;
+            self._timer = (2048 - self._frequency) * 4;
             // Selects which sample we should select in our chosen duty cycle.
             // Refer to SQUARE_WAVE_TABLE constant.
             self._wave_table_pointer = (self._wave_table_pointer + 1) % 8;
@@ -76,6 +76,8 @@ impl Voice1 {
     }
 
     pub fn tick_length(&mut self) {
+        // Not sure whether to have length_load become a separate timer, and use the
+        // length_load field as a load_value instead like we've done with envelop/sweep.
         if self.length_enable && self.length_load > 0 {
             self.length_load = self.length_load.saturating_sub(1);
 
@@ -86,7 +88,16 @@ impl Voice1 {
     }
 
     pub fn tick_sweep(&mut self) {
-        //unimplemented!()
+        if self.sweep_enabled && self.sweep_period != 0 {
+            let temp_freq = self.sweep_calculations();
+            // Duplicate overflow check, but this gets called, at most 128 times per second so, eh.
+            if temp_freq < 2048 && self.sweep_shift != 0 {
+                self.sweep_frequency_shadow = temp_freq;
+                self._frequency = temp_freq;
+                self.sweep_calculations();
+            }
+        }
+
     }
 
     pub fn tick_envelop(&mut self) {
@@ -156,6 +167,7 @@ impl Voice1 {
                 self.nr14 = value;
                 self.enabled = (value & 0x80) != 0;
                 self.length_enable = (value & 0x4) == 0x4;
+                self._frequency = (self._frequency & 0xFF) | (((value & 0x07) as u16) << 8);
                 // TODO: Check if this occurs always, or only if the previous _triggered == false
                 if self.enabled {
                     self.enable();
@@ -174,11 +186,6 @@ impl Voice1 {
     }
 
     fn enable(&mut self) {
-        self.write_register(0x10, 0x80);
-        self.write_register(0x11, 0xBF);
-        self.write_register(0x12, 0xF3);
-        // nr13 is purposefully skipped. Refer to:
-        // https://github.com/AntonioND/giibiiadvance/blob/master/docs/other_docs/GBSOUND.txt
         // Values taken from: https://gist.github.com/drhelius/3652407
         self.enabled = true;
         self._duty_select = 0x2;
@@ -186,7 +193,33 @@ impl Voice1 {
             self.length_load = 64;
         }
         self.envelope_enabled = true;
-        //self._timer = (2048 - self._frequency) * 4;
+        self.envelope_period = self.envelope_period_load_value;
+
+        self._timer = (2048 - self._frequency) * 4;
+
+        self.sweep_frequency_shadow = self._frequency;
+        self.sweep_timer = self.sweep_period; // Not sure if it's the period?
+        self.sweep_enabled = self.sweep_period != 0 && self.sweep_shift != 0;
+        // If sweep shift != 0, question is if sweep_enable is OR or AND, because docs are ambiguous.
+        if self.sweep_enabled {
+            self.sweep_calculations();
+        }
+    }
+
+    fn sweep_calculations(&mut self) -> u16{
+        let mut temp_shadow = (self.sweep_frequency_shadow >> self.sweep_shift);
+        if self.sweep_negate {
+            // Not sure if we should take 2's complement here, TODO: Verify.
+            temp_shadow = !temp_shadow;
+        }
+        temp_shadow += self.sweep_frequency_shadow;
+
+        if temp_shadow > 2047 {
+            self.enabled = false;
+            self.sweep_enabled = false;
+        }
+
+        temp_shadow
     }
 
     fn get_frequency(&self) -> u16 {
