@@ -107,7 +107,6 @@ impl Voice1 {
         // https://github.com/AntonioND/giibiiadvance/blob/master/docs/other_docs/GBSOUND.txt
         self.write_register(0x14, 0xBF);
         self._duty_select = 0x2;
-        self.sampling_handler = 95;
 
     }
 
