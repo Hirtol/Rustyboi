@@ -24,3 +24,6 @@ one would best refer to another fully working emulator, e.g [PyBoy](https://gith
 * http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf
 * https://github.com/Gekkio/mooneye-gb
 * https://gekkio.fi/files/gb-docs/gbctr.pdf
+* http://emudev.de/gameboy-emulator/bleeding-ears-time-to-add-audio/
+* https://github.com/AntonioND/giibiiadvance/blob/master/docs/other_docs/GBSOUND.txt
+* https://gist.github.com/drhelius/3652407

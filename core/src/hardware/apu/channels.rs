@@ -14,15 +14,30 @@ pub struct Voice1 {
     pub nr13: u8,
     /// 0xFF14 TL-- -FFF  Trigger, Length enable, Frequency MSB
     pub nr14: u8,
+    // Sweep
+    sweep_period: u8,
+    sweep_negate: bool,
+    sweep_shift: u8,
+
+    // Length
+    length_load: u8,
+    length_enable: bool,
+
+    // Envelope
+    envelope_enabled: bool,
+    envelope_add_mode: bool,
+    envelope_period_load_value: u8,
+    envelope_period: u8,
+
     // Timer stuff
     _frequency: u16,
     _timer: u16,
 
-    _triggered: bool,
+    enabled: bool,
     // Maybe use if we do the while loops inside the APU instead of channels, then
     // we wouldn't need a sample buffer (how about down sampling?).
     volume: u8,
-    _volume_true: u8,
+    output_volume: u8,
     // Relevant for wave table indexing
     _wave_table_pointer: usize,
     _duty_select: usize,
@@ -49,11 +64,51 @@ impl Voice1 {
             self._timer = new_val;
         }
 
-        self._volume_true = if Self::SQUARE_WAVE_TABLE[self._duty_select][self._wave_table_pointer] == 1 {
+        self.output_volume = if Self::SQUARE_WAVE_TABLE[self._duty_select][self._wave_table_pointer] == 1 {
             self.volume
         } else {
             0
         };
+    }
+
+    pub fn tick_length(&mut self) {
+        if self.length_enable && self.length_load > 0 {
+            self.length_load = self.length_load.saturating_sub(1);
+
+            if self.length_load == 0 {
+                self.enabled = false;
+            }
+        }
+    }
+
+    pub fn tick_sweep(&mut self) {
+        //unimplemented!()
+    }
+
+    pub fn tick_envelop(&mut self) {
+        if self.envelope_enabled && self.envelope_period_load_value > 0 {
+            self.envelope_period_load_value = self.envelope_period_load_value.saturating_sub(1);
+
+            if self.envelope_period_load_value == 0 {
+                if self.envelope_add_mode {
+                    let new_val = self.volume + 1;
+                    if new_val <= 15 {
+                        self.volume = new_val;
+                        self.envelope_period = self.envelope_period_load_value;
+                    } else {
+                        self.envelope_enabled = false;
+                    }
+                } else {
+                    let (new_val, overflow) = self.volume.overflowing_sub(1);
+                    if !overflow {
+                        self.volume = new_val;
+                        self.envelope_period = self.envelope_period_load_value;
+                    } else {
+                        self.envelope_enabled = false;
+                    }
+                }
+            }
+        }
     }
 
     pub fn read_register(&self, address: u16) -> u8 {
@@ -71,36 +126,47 @@ impl Voice1 {
     pub fn write_register(&mut self, address: u16, value: u8) {
         // Expect the address to already have had an & 0xFF
         match address {
-            0x10 => self.nr10 = value,
+            0x10 => {
+                self.nr10 = value;
+                self.sweep_period = (value >> 4) & 0x7;
+                self.sweep_negate = (value & 0x8) == 0x8;
+                self.sweep_shift = value & 0x7;
+            }
             0x11 => {
                 self.nr11 = value;
                 self._duty_select = ((value & 0b1100_0000) >> 6) as usize;
-            },
+                self.length_load = 64 - (value & 0x3F);
+            }
             0x12 => {
                 self.nr12 = value;
                 self.volume = (value & 0xF0) >> 4;
-            },
+                self.envelope_add_mode = (value & 0x8) == 0x8;
+                self.envelope_period_load_value = value & 0x7;
+                self.envelope_period = self.envelope_period_load_value;
+            }
             0x13 => {
                 self.nr13 = value;
                 self._frequency = (self._frequency & 0x0700) | value as u16;
-            },
+            }
             0x14 => {
                 self.nr14 = value;
-                self._triggered = (value & 0x80) != 0;
-                if self._triggered {
+                self.enabled = (value & 0x80) != 0;
+                self.length_enable = (value & 0x4) == 0x4;
+                // TODO: Check if this occurs always, or only if the previous _triggered == false
+                if self.enabled {
                     self.enable();
                 }
-            },
+            }
             _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address)
         }
     }
 
     pub fn output_volume(&self) -> u8 {
-        self._volume_true
+        self.output_volume
     }
 
     pub fn enabled(&self) -> bool {
-        self._triggered
+        self.enabled
     }
 
     fn enable(&mut self) {
@@ -109,9 +175,14 @@ impl Voice1 {
         self.write_register(0x12, 0xF3);
         // nr13 is purposefully skipped. Refer to:
         // https://github.com/AntonioND/giibiiadvance/blob/master/docs/other_docs/GBSOUND.txt
-        self._triggered = true;
+        // Values taken from: https://gist.github.com/drhelius/3652407
+        self.enabled = true;
         self._duty_select = 0x2;
-
+        if self.length_load == 0 {
+            self.length_load = 64;
+        }
+        self.envelope_enabled = true;
+        //self._timer = (2048 - self._frequency) * 4;
     }
 
     fn get_frequency(&self) -> u16 {

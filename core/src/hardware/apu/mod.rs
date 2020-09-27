@@ -3,9 +3,9 @@ use crate::hardware::apu::channels::Voice1;
 mod channels;
 mod memory_binds;
 
-// Currently chose for 44100/60 = 735 samples per frame to make it 'kinda' sync up.
+// Currently chose for 44100/60 = 739 samples per frame to make it 'kinda' sync up.
 // In all likelihood this will cause issues due to scheduling delays so this should go up probably.
-pub const SAMPLE_SIZE_BUFFER: usize = 735;
+pub const SAMPLE_SIZE_BUFFER: usize = 739;
 
 pub const APU_MEM_START: u16 = 0xFF10;
 pub const APU_MEM_END: u16 = 0xFF26;
@@ -56,13 +56,15 @@ pub struct APU {
     right_channel_enable: [bool; 4],
 
     output_buffer: Vec<f32>,
-    frame_sequencer: u16,
+
     sampling_handler: u8,
+    frame_sequencer: u16,
+    frame_sequencer_step: u8,
 }
 
 impl APU {
     pub fn new() -> Self {
-        APU { 
+        APU {
             voice1: Default::default(),
             left_volume: 7,
             right_volume: 7,
@@ -73,16 +75,37 @@ impl APU {
             frame_sequencer: 0,
             sampling_handler: 95,
             all_sound_enable: true,
+            frame_sequencer_step: 0,
         }
     }
 
     pub fn tick(&mut self, mut delta_cycles: u64) {
         //TODO: Adjust these volumes to our liking.
-        let left_final_volume = self.left_volume as f32 / 50.0;
-        let right_final_volume = self.right_volume as f32 / 50.0;
+        let left_final_volume = self.left_volume as f32 / 20.0;
+        let right_final_volume = self.right_volume as f32 / 20.0;
+
         while delta_cycles > 0 {
             self.voice1.tick_timer();
 
+            self.frame_sequencer = self.frame_sequencer.wrapping_add(1);
+            if self.frame_sequencer >= 8192 {
+                // The frame sequencer component clocks at 512Hz apparently.
+                // 4194304/512 = 8192
+                self.frame_sequencer -= 8192;
+                match self.frame_sequencer_step {
+                    0 | 4 => self.tick_length(),
+                    2 | 6 => {
+                        self.tick_length();
+                        self.tick_sweep();
+                    }
+                    7 => self.tick_envelop(),
+                    _ => {}
+                }
+                self.frame_sequencer_step = (self.frame_sequencer_step + 1) % 8;
+            }
+
+            // This block is here such that we get ~44100 samples per second, otherwise we'd generate
+            // far more than we could consume.
             // TODO: Add actual downsampling instead of the selective audio pick.
             // Refer to: https://www.reddit.com/r/EmuDev/comments/g5czyf/sound_emulation/
             self.sampling_handler = self.sampling_handler.saturating_sub(1);
@@ -126,10 +149,10 @@ impl APU {
                     set_bit(&mut output, i as u8, self.right_channel_enable[i]);
                 }
                 for i in 0..4 {
-                    set_bit(&mut output,  i as u8 + 4, self.left_channel_enable[i]);
+                    set_bit(&mut output, i as u8 + 4, self.left_channel_enable[i]);
                 }
                 output
-            },
+            }
             0x26 => {
                 let mut output = 0u8;
                 set_bit(&mut output, 7, self.all_sound_enable);
@@ -193,10 +216,22 @@ impl APU {
 
         self.output_buffer.push(result);
     }
+
+    fn tick_length(&mut self) {
+        self.voice1.tick_length();
+    }
+
+    fn tick_envelop(&mut self) {
+        self.voice1.tick_envelop();
+    }
+
+    fn tick_sweep(&mut self) {
+        self.voice1.tick_sweep();
+    }
 }
 
 fn set_bit(output: &mut u8, bit: u8, set: bool) {
-    *output = if set { 1 } else { 0 } << bit;
+    *output = (*output & (!bit)) | if set { 1 } else { 0 } << bit;
 }
 
 fn test_bit(value: u8, bit: u8) -> bool {

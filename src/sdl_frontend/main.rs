@@ -84,7 +84,7 @@ fn main() {
 
     let bootrom_file = read("roms\\DMG_ROM.bin").unwrap();
 
-    let cartridge = "roms\\Kirby's Dream Land.gb";
+    let cartridge = "roms/Kirby's Dream Land.gb";
     let cpu_test = "test roms/blargg/instr_timing/instr_timing.gb";
     let cpu_test2 = "test roms/mooneye/tests/emulator-only/mbc5/mbc5_rom_512kb.gb";
 
@@ -96,7 +96,7 @@ fn main() {
 
     let mut timer = sdl_context.timer().unwrap();
 
-    let mut emulator = create_emulator(cartridge, Option::Some(vec_to_bootrom(&bootrom_file)));
+    let mut emulator = create_emulator(cartridge, None);
 
     let mut cycles = 0;
     let mut loop_cycles = 0;
@@ -173,7 +173,7 @@ fn main() {
     let mut out_file = File::create("output.wav").unwrap();
 
     let mut writer = hound::WavWriter::new(out_file, WavSpec {
-        channels: 1,
+        channels: 2,
         sample_rate: 44100,
         bits_per_sample: 32,
         sample_format: SampleFormat::Float
