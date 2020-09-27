@@ -18,6 +18,10 @@ pub struct Voice1 {
     sweep_period: u8,
     sweep_negate: bool,
     sweep_shift: u8,
+    // Internal Sweep
+    sweep_enabled: bool,
+    sweep_timer: u8,
+    sweep_frequency_shadow: u16,
 
     // Length
     length_load: u8,
@@ -86,10 +90,10 @@ impl Voice1 {
     }
 
     pub fn tick_envelop(&mut self) {
-        if self.envelope_enabled && self.envelope_period_load_value > 0 {
-            self.envelope_period_load_value = self.envelope_period_load_value.saturating_sub(1);
+        if self.envelope_enabled && self.envelope_period > 0 {
+            self.envelope_period = self.envelope_period.saturating_sub(1);
 
-            if self.envelope_period_load_value == 0 {
+            if self.envelope_period == 0 {
                 if self.envelope_add_mode {
                     let new_val = self.volume + 1;
                     if new_val <= 15 {
