@@ -26,6 +26,7 @@ pub struct Voice1 {
     // Length
     length_load: u8,
     length_enable: bool,
+    length_timer: u8,
 
     // Envelope
     envelope_enabled: bool,
@@ -67,8 +68,8 @@ impl Voice1 {
         } else {
             self._timer = new_val;
         }
-
-        self.output_volume = if Self::SQUARE_WAVE_TABLE[self._duty_select][self._wave_table_pointer] == 1 {
+        //TODO: Insert && self.enabled once we figure out why the early cutoff
+        self.output_volume = if Self::SQUARE_WAVE_TABLE[self._duty_select][self._wave_table_pointer] == 1 && self.enabled {
             self.volume
         } else {
             0
@@ -78,10 +79,10 @@ impl Voice1 {
     pub fn tick_length(&mut self) {
         // Not sure whether to have length_load become a separate timer, and use the
         // length_load field as a load_value instead like we've done with envelop/sweep.
-        if self.length_enable && self.length_load > 0 {
-            self.length_load = self.length_load.saturating_sub(1);
+        if self.length_enable && self.length_timer > 0 {
+            self.length_timer -= 1;
 
-            if self.length_load == 0 {
+            if self.length_timer == 0 {
                 self.enabled = false;
             }
         }
@@ -150,7 +151,9 @@ impl Voice1 {
             0x11 => {
                 self.nr11 = value;
                 self._duty_select = ((value & 0b1100_0000) >> 6) as usize;
-                self.length_load = 64 - (value & 0x3F);
+                self.length_load = value & 0x3F;
+                // I think this is correct, not sure.
+                self.length_timer = 64 - self.length_load;
             }
             0x12 => {
                 self.nr12 = value;
@@ -191,6 +194,8 @@ impl Voice1 {
         self._duty_select = 0x2;
         if self.length_load == 0 {
             self.length_load = 64;
+            // Not sure about this, but without it the Nintendo TRING gets cut off.
+            self.length_timer = 0;
         }
         self.envelope_enabled = true;
         self.envelope_period = self.envelope_period_load_value;
@@ -221,15 +226,6 @@ impl Voice1 {
 
         temp_shadow
     }
-
-    fn get_frequency(&self) -> u16 {
-        (((self.nr14 & 0x07) as u16) << 8) | self.nr13 as u16
-    }
-
-    fn set_frequency(&mut self, new_value: u16) {
-        self.nr13 = (new_value & 0x00FF) as u8;
-        self.nr14 = ((new_value >> 8) & 0x07) as u8;
-    }
 }
 
 /// Relevant for voice 1 and 2 for the DMG.
@@ -253,18 +249,3 @@ pub struct WaveformChannel {}
 /// # Properties:
 /// * Volume Envelope
 pub struct NoiseChannel {}
-
-#[cfg(test)]
-mod tests {
-    use crate::hardware::apu::channels::Voice1;
-
-    #[test]
-    fn test_voice_frequency() {
-        let mut voice1 = Voice1::default();
-        assert_eq!(voice1.get_frequency(), 0);
-        voice1.set_frequency(2000);
-        assert_eq!(voice1.get_frequency(), 2000);
-        voice1.set_frequency(248);
-        assert_eq!(voice1.get_frequency(), 248);
-    }
-}

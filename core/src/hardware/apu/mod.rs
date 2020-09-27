@@ -81,8 +81,8 @@ impl APU {
 
     pub fn tick(&mut self, mut delta_cycles: u64) {
         //TODO: Adjust these volumes to our liking.
-        let left_final_volume = self.left_volume as f32 / 20.0;
-        let right_final_volume = self.right_volume as f32 / 20.0;
+        let left_final_volume = self.left_volume as f32 / 6.0;
+        let right_final_volume = self.right_volume as f32 / 6.0;
 
         while delta_cycles > 0 {
             self.voice1.tick_timer();
@@ -194,6 +194,7 @@ impl APU {
             }
             0x26 => {
                 self.all_sound_enable = (value & 0b1000_0000) == 0b1000_0000;
+                self.voice1 = Voice1::default();
                 //TODO: Reset all voices.
             }
             //TODO: Once all voices are implemented bring back panic.
