@@ -3,7 +3,6 @@ use crate::hardware::apu::channels::Voice1;
 mod channels;
 mod memory_binds;
 
-
 pub struct APU {
     voice1: Voice1,
     /// The volume bits specify the "Master Volume" for Left/Right sound output.
@@ -44,6 +43,6 @@ pub struct APU {
 
 impl APU {
     pub fn tick(&mut self, delta_cycles: u64) {
-        
+
     }
 }

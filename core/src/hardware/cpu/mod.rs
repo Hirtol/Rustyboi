@@ -11,10 +11,10 @@ use crate::hardware::registers::Reg8::A;
 use crate::hardware::registers::{Flags, Reg16, Registers};
 use crate::io::interrupts::Interrupts;
 
+use crate::hardware::cpu::execute::JumpModifier::Always;
 use crate::hardware::cpu::instructions::get_assembly_from_opcode;
 use log::*;
 use std::fmt::*;
-use crate::hardware::cpu::execute::JumpModifier::Always;
 
 #[cfg(test)]
 mod tests;
@@ -199,7 +199,8 @@ impl<M: MemoryMapper> CPU<M> {
 
         self.registers.set_n(false);
         self.registers.set_cf(overflowed);
-        self.registers.set_h((old_value & 0x0FFF) + (self.registers.hl() & 0x0FFF) > 0x0FFF);
+        self.registers
+            .set_h((old_value & 0x0FFF) + (self.registers.hl() & 0x0FFF) > 0x0FFF);
 
         self.registers.set_hl(result);
         // Special increment as this function doesn't do any direct memory access.
@@ -362,8 +363,7 @@ impl<M: MemoryMapper> CPU<M> {
         // Half Carry is set if adding the lower nibbles of the value and register A
         // together result in a value bigger than 0xF. If the result is larger than 0xF
         // than the addition caused a carry from the lower nibble to the upper nibble.
-        self.registers
-            .set_h((self.registers.a & 0xF) + (value & 0xF) > 0xF);
+        self.registers.set_h((self.registers.a & 0xF) + (value & 0xF) > 0xF);
 
         self.registers.a = new_value;
     }
@@ -381,8 +381,10 @@ impl<M: MemoryMapper> CPU<M> {
 
         self.registers.set_zf(new_value == 0);
         self.registers.set_n(false);
-        self.registers.set_h((self.registers.a & 0xF) + (value & 0xF) + carry_flag > 0xF);
-        self.registers.set_cf((self.registers.a as u16) + (value as u16) + carry_flag as u16 > 0xFF);
+        self.registers
+            .set_h((self.registers.a & 0xF) + (value & 0xF) + carry_flag > 0xF);
+        self.registers
+            .set_cf((self.registers.a as u16) + (value as u16) + carry_flag as u16 > 0xFF);
 
         self.registers.a = new_value;
     }
@@ -414,11 +416,7 @@ impl<M: MemoryMapper> CPU<M> {
     {
         let value = self.read_u8_value(target);
         let carry_flag = self.registers.cf() as u8;
-        let new_value = self
-            .registers
-            .a
-            .wrapping_sub(value)
-            .wrapping_sub(carry_flag);
+        let new_value = self.registers.a.wrapping_sub(value).wrapping_sub(carry_flag);
 
         self.registers.set_zf(new_value == 0);
         self.registers.set_n(true);
@@ -616,7 +614,8 @@ impl<M: MemoryMapper> CPU<M> {
         self.registers.set_zf(false);
         self.registers.set_n(false);
         self.registers.set_h((self.registers.sp & 0xF) + (value & 0xF) > 0xF);
-        self.registers.set_cf((self.registers.sp & 0xFF) + (value & 0xFF) > 0xFF);
+        self.registers
+            .set_cf((self.registers.sp & 0xFF) + (value & 0xFF) > 0xFF);
 
         self.registers.sp = new_value;
 
@@ -648,7 +647,8 @@ impl<M: MemoryMapper> CPU<M> {
         self.registers.set_n(false);
         self.registers.set_h((self.registers.sp & 0xF) + (value & 0xF) > 0xF);
         // Test if overflow on 7th bit.
-        self.registers.set_cf((self.registers.sp & 0xFF) + (value & 0xFF) > 0xFF);
+        self.registers
+            .set_cf((self.registers.sp & 0xFF) + (value & 0xFF) > 0xFF);
 
         self.add_cycles();
     }

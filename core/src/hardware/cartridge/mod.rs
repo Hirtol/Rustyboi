@@ -1,5 +1,5 @@
 use crate::hardware::cartridge::header::CartridgeHeader;
-use crate::hardware::cartridge::mbc::{MBC0, MBC1, MBC5, MBC};
+use crate::hardware::cartridge::mbc::{MBC, MBC0, MBC1, MBC5};
 use bitflags::_core::fmt::{Debug, Formatter};
 use std::fmt;
 

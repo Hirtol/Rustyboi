@@ -21,9 +21,7 @@ impl PPU {
 
     pub fn get_tilemap_byte(&self, address: u16) -> u8 {
         match address {
-            TILEMAP_9800_START..=TILEMAP_9800_END => {
-                self.tile_map_9800.data[(address - TILEMAP_9800_START) as usize]
-            }
+            TILEMAP_9800_START..=TILEMAP_9800_END => self.tile_map_9800.data[(address - TILEMAP_9800_START) as usize],
             // 9C00, assuming no malicious calls
             _ => self.tile_map_9c00.data[(address - TILEMAP_9C00_START) as usize],
         }
@@ -118,18 +116,14 @@ impl PPU {
         let new_control = LcdControl::from_bits_truncate(value);
 
         // If we turn OFF the display
-        if !new_control.contains(LcdControl::LCD_DISPLAY)
-            && self.lcd_control.contains(LcdControl::LCD_DISPLAY)
-        {
+        if !new_control.contains(LcdControl::LCD_DISPLAY) && self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
             log::debug!("Turning off LCD");
             self.current_y = 0;
             self.window_counter = 0;
             self.lcd_status.set_mode_flag(Mode::HBlank);
         }
         // If we turn ON the display
-        if new_control.contains(LcdControl::LCD_DISPLAY)
-            && !self.lcd_control.contains(LcdControl::LCD_DISPLAY)
-        {
+        if new_control.contains(LcdControl::LCD_DISPLAY) && !self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
             log::debug!("Turning on LCD");
             self.lcd_status.set_mode_flag(Mode::HBlank);
         }

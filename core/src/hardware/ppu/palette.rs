@@ -57,9 +57,7 @@ impl Default for Palette {
 
 impl From<u8> for Palette {
     fn from(value: u8) -> Self {
-        Palette {
-            palette_byte: value,
-        }
+        Palette { palette_byte: value }
     }
 }
 
@@ -78,10 +76,7 @@ impl From<u8> for DmgColor {
             0x1 => LightGrey,
             0x2 => DarkGrey,
             0x3 => BLACK,
-            _ => panic!(
-                "From u8 for DMGCOLOR should not reach this value! {}",
-                value
-            ),
+            _ => panic!("From u8 for DMGCOLOR should not reach this value! {}", value),
         }
     }
 }

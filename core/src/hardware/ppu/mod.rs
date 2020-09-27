@@ -296,9 +296,8 @@ impl PPU {
         let scanline_to_be_rendered = self.current_y.wrapping_add(self.scroll_y);
         // scanline_to_be_rendered can be in range 0-255, where each tile is 8 in length.
         // As we'll want to use this variable to index on the TileMap (1 byte pointer to tile)
-        // We need to first divide by 8, to then multiply by 32 for our array with a 1d representation.
-        let tile_lower_bound =
-            ((scanline_to_be_rendered / 8) as u16 * 32) + (self.scroll_x / 8) as u16;
+        // We need to first divide by 8, to then multiply by 32 for our array (32*32) with a 1d representation.
+        let tile_lower_bound = ((scanline_to_be_rendered / 8) as u16 * 32) + (self.scroll_x / 8) as u16;
         // 20 since 20*8 = 160 pixels
         let mut tile_higher_bound = (tile_lower_bound + 20);
 
@@ -323,8 +322,7 @@ impl PPU {
                 i -= 32;
             }
             // Modulo for the y-wraparound if scroll_y > 111
-            let mut tile_relative_address =
-                self.get_tile_address_bg(i % BACKGROUND_TILE_SIZE as u16) as usize;
+            let mut tile_relative_address = self.get_tile_address_bg(i % BACKGROUND_TILE_SIZE as u16) as usize;
 
             let offset: usize = if self.lcd_control.bg_window_tile_address() == TILE_BLOCK_0_START {
                 0
@@ -354,7 +352,7 @@ impl PPU {
         // want their windows to be rendered.
         let mut window_x = (self.window_x as i16).wrapping_sub(7);
         // If the window x is out of scope, don't bother rendering.
-        if !self.window_triggered  || window_x >= 160 {
+        if !self.window_triggered || window_x >= 160 {
             return;
         }
         // The window always start to pick tiles from the top left of its BG tile map,
@@ -362,8 +360,7 @@ impl PPU {
         let tile_lower_bound = ((self.window_counter / 8) as u16) * 32;
         // We need as many tiles as there are to the end of the current scanline, even if they're
         // partial, therefore we need a ceiling divide.
-        let tile_higher_bound =
-            (tile_lower_bound as u16 + ((160 - window_x) as u16).div_ceil(&8)) as u16;
+        let tile_higher_bound = (tile_lower_bound as u16 + ((160 - window_x) as u16).div_ceil(&8)) as u16;
 
         let tile_pixel_y = self.window_counter % 8;
 
@@ -425,9 +422,7 @@ impl PPU {
 
             let x_flip = sprite.attribute_flags.contains(AttributeFlags::X_FLIP);
             let y_flip = sprite.attribute_flags.contains(AttributeFlags::Y_FLIP);
-            let is_background_sprite = sprite
-                .attribute_flags
-                .contains(AttributeFlags::OBJ_TO_BG_PRIORITY);
+            let is_background_sprite = sprite.attribute_flags.contains(AttributeFlags::OBJ_TO_BG_PRIORITY);
 
             let mut line = (self.current_y as i16 - screen_y_pos) as u8;
 
@@ -492,10 +487,7 @@ impl PPU {
     }
 
     fn get_sprite_palette(&self, sprite: &SpriteAttribute) -> Palette {
-        if !sprite
-            .attribute_flags
-            .contains(AttributeFlags::PALETTE_NUMBER)
-        {
+        if !sprite.attribute_flags.contains(AttributeFlags::PALETTE_NUMBER) {
             self.oam_palette_0
         } else {
             self.oam_palette_1

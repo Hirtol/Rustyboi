@@ -62,9 +62,7 @@ impl MBC for MBC0 {
 
     fn write_byte(&mut self, address: u16, value: u8) {
         match address {
-            EXTERNAL_RAM_START..=EXTERNAL_RAM_END => {
-                self.ram[(address - EXTERNAL_RAM_START) as usize] = value
-            }
+            EXTERNAL_RAM_START..=EXTERNAL_RAM_END => self.ram[(address - EXTERNAL_RAM_START) as usize] = value,
             _ => return,
         }
     }
@@ -84,7 +82,11 @@ pub struct MBC1 {
 
 impl MBC1 {
     pub fn new(rom: Vec<u8>, has_battery: bool, ram_size: &RamSizes, saved_ram: Option<Vec<u8>>) -> Self {
-        log::info!("MBC1 ROM Size: {} - Effective banks: {}", rom.len(), (rom.len() / ROM_BANK_SIZE));
+        log::info!(
+            "MBC1 ROM Size: {} - Effective banks: {}",
+            rom.len(),
+            (rom.len() / ROM_BANK_SIZE)
+        );
         let mut result = MBC1 {
             ram_enabled: false,
             has_battery,
@@ -219,7 +221,11 @@ pub struct MBC5 {
 
 impl MBC5 {
     pub fn new(rom: Vec<u8>, has_battery: bool, ram_size: &RamSizes, saved_ram: Option<Vec<u8>>) -> Self {
-        log::info!("MBC5 ROM Size: {} - Effective banks: {}", rom.len(), (rom.len() / ROM_BANK_SIZE));
+        log::info!(
+            "MBC5 ROM Size: {} - Effective banks: {}",
+            rom.len(),
+            (rom.len() / ROM_BANK_SIZE)
+        );
         let mut result = MBC5 {
             ram_enabled: false,
             has_battery,
@@ -291,11 +297,10 @@ impl MBC for MBC5 {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use crate::hardware::cartridge::header::RamSizes::KB32;
-    use crate::hardware::cartridge::mbc::{EXTERNAL_RAM_SIZE, MBC1, ROM_BANK_SIZE, MBC};
+    use crate::hardware::cartridge::mbc::{EXTERNAL_RAM_SIZE, MBC, MBC1, ROM_BANK_SIZE};
 
     #[test]
     fn basic_mbc_1_test() {

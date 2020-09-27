@@ -1,9 +1,9 @@
+use crate::hardware::cartridge::Cartridge;
 use crate::hardware::cpu::CPU;
 use crate::hardware::memory::MemoryMapper;
 use crate::hardware::registers::Registers;
 use std::cell::RefCell;
 use std::rc::Rc;
-use crate::hardware::cartridge::Cartridge;
 
 mod cycle_tests;
 mod instruction_tests;
@@ -40,9 +40,7 @@ impl<T: MemoryMapper> CPU<T> {
 }
 
 fn initial_cpu() -> CPU<TestMemory> {
-    let mut cpu = CPU::new(TestMemory {
-        mem: vec![0; 0x10000],
-    });
+    let mut cpu = CPU::new(TestMemory { mem: vec![0; 0x10000] });
     cpu.registers = Registers::new();
     cpu
 }
@@ -56,5 +54,6 @@ pub fn read_short<T: MemoryMapper>(cpu: &CPU<T>, address: u16) -> u16 {
 
 pub fn set_short<T: MemoryMapper>(cpu: &mut CPU<T>, address: u16, value: u16) {
     cpu.mmu.write_byte(address, (value & 0xFF) as u8); // Least significant byte first.
-    cpu.mmu.write_byte(address.wrapping_add(1), ((value & 0xFF00) >> 8) as u8);
+    cpu.mmu
+        .write_byte(address.wrapping_add(1), ((value & 0xFF00) >> 8) as u8);
 }

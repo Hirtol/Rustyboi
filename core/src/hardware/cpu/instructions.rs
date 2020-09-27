@@ -2,9 +2,7 @@
 //! for the small bit of extra clarity that an enum would provide
 //! Keep around in case we want to turn back.
 
-use crate::hardware::cpu::execute::{
-    horizontal_decode, vertical_decode, InstructionAddress, JumpModifier,
-};
+use crate::hardware::cpu::execute::{horizontal_decode, vertical_decode, InstructionAddress, JumpModifier};
 
 use crate::hardware::registers::Reg16::*;
 use crate::hardware::registers::Reg8::*;

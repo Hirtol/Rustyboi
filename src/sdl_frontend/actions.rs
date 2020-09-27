@@ -1,26 +1,31 @@
 use directories::ProjectDirs;
 use rustyboi_core::emulator::Emulator;
+use rustyboi_core::hardware::cartridge::header::CartridgeHeader;
+use rustyboi_core::hardware::cartridge::Cartridge;
 use std::fs::{create_dir_all, read, File};
 use std::io::Write;
 use std::path::Path;
-use rustyboi_core::hardware::cartridge::Cartridge;
-use rustyboi_core::hardware::cartridge::header::CartridgeHeader;
 
 /// Function to call in order to save external ram (in case it's present)
 /// as well as any additional cleanup as required.
 pub fn save_rom(emulator: &Emulator) {
     if let Some(ram) = emulator.battery_ram() {
-        let save_dir = ProjectDirs::from("", "Hirtol",  "Rustyboi")
-            .expect("Could not get access to data dir for saving!").data_dir().join("saves");
+        let save_dir = ProjectDirs::from("", "Hirtol", "Rustyboi")
+            .expect("Could not get access to data dir for saving!")
+            .data_dir()
+            .join("saves");
         create_dir_all(&save_dir);
         // Really, this expect case shouldn't ever be reached.
         let title = emulator.game_title().expect("No cartridge loaded, can't save!").trim();
 
-        let mut save_file = File::create(save_dir.join(format!("{}.save", title)))
-            .expect("Could not create the save file");
+        let mut save_file =
+            File::create(save_dir.join(format!("{}.save", title))).expect("Could not create the save file");
         save_file.write(ram);
 
-        log::debug!("Finished saving the external ram with size: {} successfully!", ram.len());
+        log::debug!(
+            "Finished saving the external ram with size: {} successfully!",
+            ram.len()
+        );
     }
 }
 
@@ -32,14 +37,20 @@ pub fn create_emulator(rom_path: impl AsRef<Path>, boot_rom: Option<[u8; 256]>) 
     let rom = read(rom_path.as_ref()).expect(&format!("Could not open ROM file {:?}!", rom_path.as_ref()));
     let saved_ram = find_saved_ram(find_rom_name(&rom));
 
-    log::info!("Created emulator for Path {:?} with saved data: {}", rom_path.as_ref(), saved_ram.is_some());
+    log::info!(
+        "Created emulator for Path {:?} with saved data: {}",
+        rom_path.as_ref(),
+        saved_ram.is_some()
+    );
 
     Emulator::new(boot_rom, &rom, saved_ram)
 }
 
 pub fn find_saved_ram(name: impl AsRef<str>) -> Option<Vec<u8>> {
-    let save_dir = ProjectDirs::from("", "Hirtol",  "Rustyboi")
-        .expect("Could not get access to data dir for saving!").data_dir().join("saves");
+    let save_dir = ProjectDirs::from("", "Hirtol", "Rustyboi")
+        .expect("Could not get access to data dir for saving!")
+        .data_dir()
+        .join("saves");
     create_dir_all(&save_dir);
 
     read(save_dir.join(format!("{}.save", name.as_ref()))).ok()

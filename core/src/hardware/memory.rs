@@ -135,13 +135,9 @@ impl Memory {
             EXTERNAL_RAM_START..=EXTERNAL_RAM_END => self.cartridge.write_byte(address, value),
             WRAM_BANK_00_START..=WRAM_BANK_00_END => self.memory[usize_address] = value,
             WRAM_BANK_NN_START..=WRAM_BANK_NN_END => self.memory[usize_address] = value,
-            ECHO_RAM_START..=ECHO_RAM_END => {
-                self.memory[(address - ECHO_RAM_OFFSET) as usize] = value
-            }
+            ECHO_RAM_START..=ECHO_RAM_END => self.memory[(address - ECHO_RAM_OFFSET) as usize] = value,
             OAM_ATTRIBUTE_START..=OAM_ATTRIBUTE_END => self.ppu.set_oam_byte(address, value),
-            NOT_USABLE_START..=NOT_USABLE_END => {
-                log::trace!("ROM Writing to Non-usable memory: {:04X}", address)
-            }
+            NOT_USABLE_START..=NOT_USABLE_END => log::trace!("ROM Writing to Non-usable memory: {:04X}", address),
             IO_START..=IO_END => self.write_io_byte(address, value),
             HRAM_START..=HRAM_END => self.memory[usize_address] = value,
             INTERRUPTS_ENABLE => {
@@ -223,9 +219,7 @@ impl Memory {
     }
 
     fn gather_shadow_oam(&self, start_address: usize) -> Vec<u8> {
-        (0..0xA0)
-            .map(|i| self.read_byte((start_address + i) as u16))
-            .collect()
+        (0..0xA0).map(|i| self.read_byte((start_address + i) as u16)).collect()
     }
 
     /// Simply returns 0xFF while also printing a warning to the logger.
@@ -255,10 +249,6 @@ impl MemoryMapper for Memory {
 
 impl Debug for Memory {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "Memory: {:?}\nCartridge: {:?}",
-            self.memory, self.cartridge
-        )
+        write!(f, "Memory: {:?}\nCartridge: {:?}", self.memory, self.cartridge)
     }
 }

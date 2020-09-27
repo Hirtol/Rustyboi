@@ -69,8 +69,11 @@ fn main() -> anyhow::Result<()> {
 }
 
 fn run_test_roms(blargg_path: impl AsRef<str>, mooneye_path: impl AsRef<str>, bootrom: impl AsRef<Path>) {
-
-    let boot_file = if bootrom.as_ref().exists() { read(bootrom.as_ref()).ok() } else { None };
+    let boot_file = if bootrom.as_ref().exists() {
+        read(bootrom.as_ref()).ok()
+    } else {
+        None
+    };
 
     if !blargg_path.as_ref().is_empty() {
         run_path(blargg_path.as_ref(), boot_file.clone());
@@ -116,17 +119,13 @@ fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>) {
                 emu.emulate_cycle();
             }
 
-            let mut remaining_cycles_for_frame =
-                (emu.cycles_performed() % CYCLES_PER_FRAME as u64) as i64;
+            let mut remaining_cycles_for_frame = (emu.cycles_performed() % CYCLES_PER_FRAME as u64) as i64;
 
             while remaining_cycles_for_frame > 0 {
                 remaining_cycles_for_frame -= emu.emulate_cycle() as i64;
             }
 
-            save_image(
-                &emu.frame_buffer(),
-                format!("{}.png", file_stem.to_str().unwrap()),
-            );
+            save_image(&emu.frame_buffer(), format!("{}.png", file_stem.to_str().unwrap()));
         }));
     }
 
@@ -137,21 +136,14 @@ fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>) {
 
 /// Lists all files in the provided `path` (if the former is a directory) with the provided
 /// `extension`
-fn list_files_with_extensions(
-    path: impl AsRef<Path>,
-    extension: impl AsRef<str>,
-) -> anyhow::Result<Vec<PathBuf>> {
+fn list_files_with_extensions(path: impl AsRef<Path>, extension: impl AsRef<str>) -> anyhow::Result<Vec<PathBuf>> {
     let mut result = Vec::with_capacity(200);
     if path.as_ref().is_dir() {
         for entry in read_dir(path)? {
             let path = entry?.path();
             if path.is_dir() {
                 result.extend(list_files_with_extensions(&path, extension.as_ref())?);
-            } else if path
-                .to_str()
-                .filter(|t| t.ends_with(extension.as_ref()))
-                .is_some()
-            {
+            } else if path.to_str().filter(|t| t.ends_with(extension.as_ref())).is_some() {
                 result.push(path);
             }
         }
@@ -169,20 +161,14 @@ fn copy_changed_file(file_name: &OsString) {
         let path = path.unwrap().path();
         let path_str = path.file_stem().and_then(OsStr::to_str).unwrap();
         if path_str.contains(file_name.to_str().unwrap()) {
-            copy(
-                path.clone(),
-                format!("{}{}_new.png", TESTING_PATH_CHANGED, path_str),
-            );
+            copy(path.clone(), format!("{}{}_new.png", TESTING_PATH_CHANGED, path_str));
         }
     }
     for path in read_dir(TESTING_PATH_OLD).unwrap() {
         let path = path.unwrap().path();
         let path_str = path.file_stem().and_then(OsStr::to_str).unwrap();
         if path_str.contains(file_name.to_str().unwrap()) {
-            copy(
-                path.clone(),
-                format!("{}{}_old.png", TESTING_PATH_CHANGED, path_str),
-            );
+            copy(path.clone(), format!("{}{}_old.png", TESTING_PATH_CHANGED, path_str));
         }
     }
 }
@@ -206,10 +192,7 @@ fn calculate_hashes(directory: impl AsRef<Path>) -> anyhow::Result<HashMap<OsStr
         let _n = io::copy(&mut file, &mut hasher)?;
         let hash = hasher.finalize();
 
-        result.insert(
-            path.file_stem().unwrap().to_os_string(),
-            format!("{:x}", hash),
-        );
+        result.insert(path.file_stem().unwrap().to_os_string(), format!("{:x}", hash));
     }
 
     Ok(result)

@@ -1,16 +1,16 @@
+use crate::hardware::cartridge::header::RamSizes::{KB128, KB2, KB32, KB64, KB8, NONE};
 use bitflags::_core::str::from_utf8;
-use crate::hardware::cartridge::header::RamSizes::{NONE, KB2, KB8, KB32, KB128, KB64};
 
 pub const HEADER_START: u16 = 0x0100;
 pub const HEADER_END: u16 = 0x014F;
 
 #[derive(Debug)]
 pub enum RamSizes {
-    NONE  = 0x0,
-    KB2   = 0x1,
-    KB8   = 0x2,
-    KB32  = 0x3,
-    KB64  = 0x5,
+    NONE = 0x0,
+    KB2 = 0x1,
+    KB8 = 0x2,
+    KB32 = 0x3,
+    KB64 = 0x5,
     KB128 = 0x4,
 }
 
@@ -128,7 +128,10 @@ fn read_ram_size(rom: &[u8]) -> RamSizes {
         0x3 => KB32,
         0x4 => KB128,
         0x5 => KB64,
-        _ => panic!("Unrecognized memory size ({}) specified in ROM header, aborting!", r_size)
+        _ => panic!(
+            "Unrecognized memory size ({}) specified in ROM header, aborting!",
+            r_size
+        ),
     }
 }
 
@@ -174,11 +177,9 @@ mod tests {
     #[test]
     fn test_read_title() {
         let mut test = vec![0u8; 0x10000];
-        for (loc, i) in [
-            0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x57, 0x6f, 0x72, 0x00, 0x00,
-        ]
-        .iter()
-        .enumerate()
+        for (loc, i) in [0x48, 0x65, 0x6c, 0x6c, 0x6f, 0x20, 0x57, 0x6f, 0x72, 0x00, 0x00]
+            .iter()
+            .enumerate()
         {
             test[0x134 + loc] = *i;
         }

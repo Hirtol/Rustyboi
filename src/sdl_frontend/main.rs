@@ -11,21 +11,21 @@ use sdl2::video::Window;
 use sdl2::Sdl;
 use simplelog::{CombinedLogger, Config, ConfigBuilder, TermLogger, TerminalMode, WriteLogger};
 
-use std::fs::{read, File, create_dir_all};
+use std::fs::{create_dir_all, read, File};
 
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
+use crate::actions::*;
 use crate::display::{DisplayColour, RGB};
+use directories::ProjectDirs;
+use rustyboi_core::hardware::cartridge::Cartridge;
 use sdl2::event::Event;
 use std::io::{BufWriter, Write};
 use std::ops::Div;
-use directories::ProjectDirs;
-use rustyboi_core::hardware::cartridge::Cartridge;
-use crate::actions::*;
 
-mod display;
 mod actions;
+mod display;
 
 const KIRBY_DISPLAY_COLOURS: DisplayColour = DisplayColour {
     black: RGB(44, 44, 150),
@@ -131,8 +131,7 @@ fn main() {
 
         if FRAME_DELAY.as_millis() as i32 > frame_time {
             let sleeptime = (FRAME_DELAY.as_millis() as i32 - frame_time) as u64;
-            delta_acc +=
-                Duration::from_millis((FRAME_DELAY.as_millis() as i32 - frame_time) as u64);
+            delta_acc += Duration::from_millis((FRAME_DELAY.as_millis() as i32 - frame_time) as u64);
             std::thread::sleep(Duration::from_millis(sleeptime));
         }
 
@@ -142,9 +141,9 @@ fn main() {
             let average_delta = delta_acc.div(9);
             loop_cycles = 0;
             delta_acc = Duration::default();
-            canvas.window_mut().set_title(
-                format!("RustyBoi - {:.2} FPS", 1.0 / average_delta.as_secs_f64()).as_str(),
-            );
+            canvas
+                .window_mut()
+                .set_title(format!("RustyBoi - {:.2} FPS", 1.0 / average_delta.as_secs_f64()).as_str());
         }
 
         last_update_time = frame_start;
@@ -154,13 +153,16 @@ fn main() {
 fn handle_events(event: Event, emulator: &mut Emulator, fast_forward: &mut bool) -> bool {
     match event {
         Event::Quit { .. }
-        | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+        | Event::KeyDown {
+            keycode: Some(Keycode::Escape),
+            ..
+        } => {
             save_rom(emulator);
             return false;
         }
         Event::DropFile { filename, .. } => {
             // GBC games are not guaranteed to work
-            if filename.ends_with(".gb") || filename.ends_with(".gbc"){
+            if filename.ends_with(".gb") || filename.ends_with(".gbc") {
                 debug!("Opening file: {}", filename);
                 save_rom(emulator);
 
@@ -172,14 +174,14 @@ fn handle_events(event: Event, emulator: &mut Emulator, fast_forward: &mut bool)
         Event::KeyDown { keycode: Some(key), .. } => {
             if let Some(input_key) = keycode_to_input(key) {
                 emulator.handle_input(input_key, true);
-            }else if key == Keycode::LShift {
+            } else if key == Keycode::LShift {
                 *fast_forward = true;
             }
         }
         Event::KeyUp { keycode: Some(key), .. } => {
             if let Some(input_key) = keycode_to_input(key) {
                 emulator.handle_input(input_key, false);
-            }else if key == Keycode::LShift {
+            } else if key == Keycode::LShift {
                 *fast_forward = false;
             }
         }
@@ -235,12 +237,7 @@ fn fill_texture_and_copy(
     canvas.copy(&texture, None, None);
 }
 
-fn test_fast(
-    sdl_context: Sdl,
-    mut canvas: &mut Canvas<Window>,
-    mut screen_texture: &mut Texture,
-    cpu_test: &Vec<u8>,
-) {
+fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_texture: &mut Texture, cpu_test: &Vec<u8>) {
     let mut emulator = Emulator::new(Option::None, &cpu_test, None);
     let mut count: u128 = 0;
 
@@ -301,13 +298,9 @@ fn test_fast(
 
         canvas.present();
 
-        canvas.window_mut().set_title(
-            format!(
-                "RustyBoi - {} FPS",
-                1.0 / last_update_time.elapsed().as_secs_f64()
-            )
-            .as_str(),
-        );
+        canvas
+            .window_mut()
+            .set_title(format!("RustyBoi - {} FPS", 1.0 / last_update_time.elapsed().as_secs_f64()).as_str());
         last_update_time = frame_start;
     }
 }

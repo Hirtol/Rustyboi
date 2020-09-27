@@ -130,10 +130,7 @@ impl TimerRegisters {
 
         // If we've already halfway passed our cycle count then we'll increase our timer
         // due to the falling edge detector in the DMG.
-        if self.fallen_sys_clock(
-            old_sys_clock,
-            self.timer_control.input_select.to_relevant_bit(),
-        ) {
+        if self.fallen_sys_clock(old_sys_clock, self.timer_control.input_select.to_relevant_bit()) {
             self.tick_timer();
         }
     }
@@ -146,10 +143,7 @@ impl TimerRegisters {
 
         // When disabling the timer the DMG will increment the timer register if our system clock
         // was already half way through it's cycle due to the falling edge detector.
-        if old_control.timer_enabled
-            && !self.timer_control.timer_enabled
-            && (self.system_clock & (select_bit)) != 0
-        {
+        if old_control.timer_enabled && !self.timer_control.timer_enabled && (self.system_clock & (select_bit)) != 0 {
             self.tick_timer();
         }
 

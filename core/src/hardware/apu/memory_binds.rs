@@ -1,5 +1,5 @@
-use crate::hardware::apu::APU;
 use crate::hardware::apu::channels::Voice1;
+use crate::hardware::apu::APU;
 
 impl APU {
     pub fn nr10(&self) -> u8 {
@@ -66,6 +66,4 @@ impl APU {
         // Ignore the lower nibble as it's read only.
         self.nr52 = value & 0xF0;
     }
-
-
 }
