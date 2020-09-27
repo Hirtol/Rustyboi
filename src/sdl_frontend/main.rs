@@ -113,7 +113,13 @@ fn main() {
     'mainloop: loop {
         let audio_buffer = emulator.audio_buffer();
         //debug!("Status: {:?} - Size: {} - SUM: {}", audio_queue.status(), audio_queue.size(), audio_buffer.iter().sum::<f32>());
-        audio_queue.queue(audio_buffer);
+        // Temporary hack to make audio not buffer up while fast forwarding,
+        // in the future could consider downsampling the sped up audio for a cool effect.
+        if !fast_forward {
+            audio_queue.queue(audio_buffer);
+        }else {
+            audio_queue.clear();
+        }
         emulator.clear_audio_buffer();
 
         let frame_start = Instant::now();
