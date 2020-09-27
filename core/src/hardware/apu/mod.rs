@@ -21,7 +21,7 @@ pub struct APU {
     ///  Bit 6-4 - SO2 output level (volume)  (0-7)
     ///  Bit 3   - Output Vin to SO1 terminal (1=Enable)
     ///  Bit 2-0 - SO1 output level (volume)  (0-7)```
-    nr50: u8,
+    //nr50: u8,
     /// Each channel can be panned hard left, center, or hard right.
     ///
     ///  ```Bit 7 - Output sound 4 to SO2 terminal
@@ -32,7 +32,7 @@ pub struct APU {
     ///  Bit 2 - Output sound 3 to SO1 terminal
     ///  Bit 1 - Output sound 2 to SO1 terminal
     ///  Bit 0 - Output sound 1 to SO1 terminal```
-    nr51: u8,
+    //nr51: u8,
     /// Disabling the sound controller by clearing Bit 7 destroys the contents of all sound registers.
     /// Also, it is not possible to access any sound registers (execpt FF26) while the sound controller is disabled.
     /// Bits 0-3 of this register are read only status bits, writing to these bits does NOT enable/disable sound.
@@ -45,6 +45,7 @@ pub struct APU {
     ///  Bit 2 - Sound 3 ON flag (Read Only)
     ///  Bit 1 - Sound 2 ON flag (Read Only)
     ///  Bit 0 - Sound 1 ON flag (Read Only)```
+    // nr52: u8
     /// All sound on/off  (0: stop all sound circuits) (Read/Write)
     all_sound_enable: bool,
 
@@ -61,10 +62,8 @@ pub struct APU {
 
 impl APU {
     pub fn new() -> Self {
-        APU {
+        APU { 
             voice1: Default::default(),
-            nr50: 0x77,
-            nr51: 0xF3,
             left_volume: 7,
             right_volume: 7,
             left_channel_enable: [true; 4],
@@ -120,8 +119,17 @@ impl APU {
         match address {
             0x10..=0x14 => self.voice1.read_register(address),
             // APU registers
-            0x24 => self.nr50,
-            0x25 => self.nr51,
+            0x24 => self.right_volume | (self.left_volume << 4),
+            0x25 => {
+                let mut output = 0;
+                for i in 0..4 {
+                    set_bit(&mut output, i as u8, self.right_channel_enable[i]);
+                }
+                for i in 0..4 {
+                    set_bit(&mut output,  i as u8 + 4, self.left_channel_enable[i]);
+                }
+                output
+            },
             0x26 => {
                 let mut output = 0u8;
                 set_bit(&mut output, 7, self.all_sound_enable);
@@ -150,14 +158,10 @@ impl APU {
         match address {
             0x10..=0x14 => self.voice1.write_register(address, value),
             0x24 => {
-                log::warn!("Write to NR50 with value : 0x{:02X}", value);
-                self.nr50 = value;
+                self.right_volume = value & 0x07;
                 self.left_volume = (value & 0x70) >> 4;
-
-                self.left_volume = value & 0x07;
             }
             0x25 => {
-                self.nr51 = value;
                 for i in 0..4 {
                     self.right_channel_enable[i] = test_bit(value, i as u8);
                 }
