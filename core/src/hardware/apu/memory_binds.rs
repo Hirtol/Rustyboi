@@ -30,10 +30,6 @@ impl APU {
         self.nr51
     }
 
-    pub fn nr52(&self) -> u8 {
-        self.nr52
-    }
-
     pub fn set_nr10(&mut self, value: u8) {
         self.voice1.nr10 = value;
     }
@@ -60,10 +56,5 @@ impl APU {
 
     pub fn set_nr51(&mut self, value: u8) {
         self.nr51 = value;
-    }
-
-    pub fn set_nr52(&mut self, value: u8) {
-        // Ignore the lower nibble as it's read only.
-        self.nr52 = value & 0xF0;
     }
 }

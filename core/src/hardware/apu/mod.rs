@@ -70,18 +70,18 @@ impl APU {
             left_volume: 7,
             right_volume: 7,
             left_channel_enable: [true; 4],
-            right_channel_enable: [true,true,false,false],
+            right_channel_enable: [true, true, false, false],
             // Start the APU with 2 frames of audio buffered
-            output_buffer: vec![0f32; SAMPLE_SIZE_BUFFER*2],
+            output_buffer: vec![0f32; SAMPLE_SIZE_BUFFER * 2],
             frame_sequencer: 0,
             sampling_handler: 95,
-            all_sound_enable: true
+            all_sound_enable: true,
         }
     }
-    
+
     pub fn tick(&mut self, mut delta_cycles: u64) {
-        let left_final_volume = ((128 * self.left_volume as u16)/7) as f32;
-        let right_final_volume = ((128 * self.right_volume as u16)/7) as f32;
+        let left_final_volume = ((128 * self.left_volume as u16) / 7) as f32;
+        let right_final_volume = ((128 * self.right_volume as u16) / 7) as f32;
         while delta_cycles > 0 {
             self.voice1.tick_timer();
 
@@ -128,15 +128,15 @@ impl APU {
             0x25 => self.nr51,
             0x26 => {
                 let mut output = 0u8;
-                set_bit( output, 7, self.all_sound_enable);
+                set_bit(&mut output, 7, self.all_sound_enable);
                 //TODO: These three voices enable flags.
-                set_bit( output, 3, true);
-                set_bit( output, 2, true);
-                set_bit( output, 1, true);
+                set_bit(&mut output, 3, true);
+                set_bit(&mut output, 2, true);
+                set_bit(&mut output, 1, true);
 
-                set_bit( output, 0, self.voice1.enabled());
+                set_bit(&mut output, 0, self.voice1.enabled());
                 output
-            },
+            }
             //TODO: Once all voices are implemented bring back panic.
             _ => 0xFF//panic!("Attempt to read an unknown audio register: 0xFF{:02X}", address),
         }
@@ -178,29 +178,24 @@ impl APU {
         }
     }
 
-    fn generate_audio(&mut self, voice_enables: [bool; 4], final_volume: f32){
+    fn generate_audio(&mut self, voice_enables: [bool; 4], final_volume: f32) {
         let mut result = 0f32;
         // Voice 1 (Square wave)
         if voice_enables[0] {
             result += (self.voice1.output_volume() as f32 / 100.0) * final_volume;
         }
         // Voice 2 (Square wave)
-        if voice_enables[1] {
-
-        }
+        if voice_enables[1] {}
         // Voice 3 (Wave)
-        if voice_enables[2] {
-
-        }
+        if voice_enables[2] {}
         // Voice 4 (Noise)
-        if voice_enables[3] {
-
-        }
+        if voice_enables[3] {}
 
         self.output_buffer.push(result);
     }
 }
-fn set_bit(&mut output: u8, bit: u8, set: bool) {
+
+fn set_bit(output: &mut u8, bit: u8, set: bool) {
     *output = if set { 1 } else { 0 } << bit;
 }
 
