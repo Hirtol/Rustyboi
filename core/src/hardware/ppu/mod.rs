@@ -301,14 +301,15 @@ impl PPU {
         // 20 since 20*8 = 160 pixels
         let mut tile_higher_bound = (tile_lower_bound + 20);
 
-        // Which particular y coordinate to use from an 8x8 or 16x8 tile.
+        // Which particular y coordinate to use from an 8x8 tile.
         let tile_line_y = scanline_to_be_rendered % 8;
         // How many pixels we've drawn so far on this scanline.
         let mut pixel_counter: i16 = 0;
         // The amount of pixels to partially render from the first tile in the sequence
         // (for cases where self.scroll_x % 8 != 0, and thus not nicely aligned on tile boundaries)
         let mut x_remainder = (self.scroll_x % 8) as i8;
-
+        // If the tile is not nicely aligned on % 8 boundaries we'll need an additional tile for the
+        // last 8-x_remainder pixels of the scanline.
         if x_remainder != 0 {
             tile_higher_bound += 1;
         }
@@ -402,9 +403,7 @@ impl PPU {
         let y_size: u8 = if tall_sprites { 16 } else { 8 };
 
         // Sort by x such that a lower x-pos will always overwrite a higher x-pos sprite.
-        let sprites_to_draw = self
-            .oam
-            .iter()
+        let sprites_to_draw = self.oam.iter()
             .filter(|sprite| {
                 let screen_y_pos = sprite.y_pos as i16 - 16;
                 is_sprite_on_scanline(self.current_y as i16, screen_y_pos, y_size as i16)
@@ -440,8 +439,8 @@ impl PPU {
                     self.tiles[tile_index & 0xFE]
                 } else {
                     // Add one, if appropriate.
-                    // PanDocs references an OR operation here, but to me an unconditional +1
-                    // would make more sense, but I'll keep it like this for now.
+                    // To me an unconditional +1 would make more sense here, however PanDocs
+                    // references an OR operation here, so I'll keep it like this for now.
                     self.tiles[tile_index | 0x01]
                 }
             };
