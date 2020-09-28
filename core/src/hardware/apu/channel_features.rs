@@ -95,10 +95,8 @@ impl LengthFeature {
     /// Follows the behaviour when a channel is triggered for the Length feature (64)
     #[inline]
     pub fn trigger(&mut self) {
-        //TODO: FIX THIS, AS CURRENTLY LENGTH DOESN'T WORK.
         if self.length_timer == 0 {
             self.length_timer = 64;
-            // Not sure about this, but without it the Nintendo TRING gets cut off.
         }
     }
 

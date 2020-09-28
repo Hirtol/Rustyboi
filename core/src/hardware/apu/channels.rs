@@ -82,7 +82,7 @@ impl Voice1 {
             0x13 => self._frequency = (self._frequency & 0x0700) | value as u16,
             0x14 => {
                 self.enabled = (value & 0x80) != 0;
-                self.length.length_enable = (value & 0x4) == 0x4;
+                self.length.length_enable = (value & 0x40) == 0x40;
                 self._frequency = (self._frequency & 0xFF) | (((value & 0x07) as u16) << 8);
                 // TODO: Check if this occurs always, or only if the previous _triggered == false
                 if self.enabled {
