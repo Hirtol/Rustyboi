@@ -1,21 +1,13 @@
-use crate::hardware::apu::channel_features::EnvelopeFeature;
-
-pub trait AudioVoice {}
-
+use crate::hardware::apu::channel_features::{EnvelopeFeature, SweepFeature, LengthFeature};
 
 #[derive(Default, Debug)]
 pub struct Voice1 {
-    /// 0xFF10 -PPP NSSS  Sweep period, negate, shift
-    pub nr10: u8,
-    /// 0xFF11 DDLL LLLL  Duty, Length load (64-L)
-    pub nr11: u8,
-    /// 0xFF12 VVVV APPP  Starting volume, Envelope add mode, period
-    pub nr12: u8,
-    /// 0xFF13 FFFF FFFF  Frequency LSB
-    /// Write only.
-    pub nr13: u8,
     /// 0xFF14 TL-- -FFF  Trigger, Length enable, Frequency MSB
     pub nr14: u8,
+
+    pub length: LengthFeature,
+    pub envelope: EnvelopeFeature,
+
     // Sweep
     sweep_period: u8,
     sweep_negate: bool,
@@ -24,13 +16,6 @@ pub struct Voice1 {
     sweep_enabled: bool,
     sweep_timer: u8,
     sweep_frequency_shadow: u16,
-
-    // Length
-    length_load: u8,
-    length_enable: bool,
-    length_timer: u8,
-
-    pub envelope: EnvelopeFeature,
 
     // Timer stuff
     _frequency: u16,
@@ -53,6 +38,14 @@ impl Voice1 {
         [0, 1, 1, 1, 1, 1, 1, 0]  // 75%
     ];
 
+    pub fn output_volume(&self) -> u8 {
+        self.output_volume
+    }
+
+    pub fn enabled(&self) -> bool {
+        self.enabled
+    }
+
     pub fn tick_timer(&mut self) {
         let (new_val, overflowed) = self._timer.overflowing_sub(1);
 
@@ -73,18 +66,71 @@ impl Voice1 {
         };
     }
 
-    pub fn tick_length(&mut self) {
-        // Not sure whether to have length_load become a separate timer, and use the
-        // length_load field as a load_value instead like we've done with envelop/sweep.
-        if self.length_enable && self.length_timer > 0 {
-            self.length_timer -= 1;
-
-            if self.length_timer == 0 {
-                log::warn!("OFF");
-                self.enabled = false;
-            }
+    pub fn read_register(&self, address: u16) -> u8 {
+        // Expect the address to already have had an & 0xFF
+        match address {
+            0x10 => self.read_sweep_register(),
+            0x11 => ((self._duty_select as u8) << 6) | self.length.read_register(),
+            0x12 => self.envelope.read_register(),
+            0x13 => 0xFF, // Can't read NR13
+            0x14 => self.get_nr14(),
+            _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address)
         }
     }
+
+    pub fn write_register(&mut self, address: u16, value: u8) {
+        // Expect the address to already have had an & 0xFF
+        match address {
+            0x10 => self.write_sweep_register(value),
+            0x11 => {
+                self._duty_select = ((value & 0b1100_0000) >> 6) as usize;
+                self.length.write_register(value);
+            }
+            0x12 => self.envelope.write_register(value),
+            0x13 => self._frequency = (self._frequency & 0x0700) | value as u16,
+            0x14 => {
+                self.enabled = (value & 0x80) != 0;
+                self.length.length_enable = (value & 0x4) == 0x4;
+                self._frequency = (self._frequency & 0xFF) | (((value & 0x07) as u16) << 8);
+                // TODO: Check if this occurs always, or only if the previous _triggered == false
+                if self.enabled {
+                    self.enable();
+                }
+            }
+            _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address)
+        }
+    }
+
+    fn enable(&mut self) {
+        log::warn!("Enable Call!");
+        // Values taken from: https://gist.github.com/drhelius/3652407
+        self.enabled = true;
+        self.length.trigger();
+        self._timer = (2048 - self._frequency) * 4;
+        self.envelope.trigger();
+        self.trigger_sweep();
+
+        // Default wave form should be selected.
+        self._duty_select = 0x2;
+    }
+
+    fn get_nr14(&self) -> u8 {
+        let mut output = if self.enabled { 0x80 } else { 0x0 };
+        output |= if self.length.length_enable { 0x40 } else { 0x0 };
+        output |= (self._frequency >> 8) as u8;
+
+        output
+    }
+
+    // --- Length ---
+
+    pub fn tick_length(&mut self) {
+        // TODO: Check if this is correct, as I'm pretty sure channels should continue ticking
+        // even when disabled.
+        self.length.tick(&mut self.enabled);
+    }
+
+    // --- SWEEP ---
 
     pub fn tick_sweep(&mut self) {
         if self.sweep_enabled && self.sweep_period != 0 {
@@ -98,75 +144,8 @@ impl Voice1 {
         }
     }
 
-    pub fn read_register(&self, address: u16) -> u8 {
-        // Expect the address to already have had an & 0xFF
-        match address {
-            0x10 => self.nr10,
-            0x11 => self.nr11,
-            0x12 => self.envelope.read_register(),
-            0x13 => 0xFF, // Can't read NR13
-            0x14 => self.nr14,
-            _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address)
-        }
-    }
-
-    pub fn write_register(&mut self, address: u16, value: u8) {
-        // Expect the address to already have had an & 0xFF
-        match address {
-            0x10 => {
-                self.nr10 = value;
-                self.sweep_period = (value >> 4) & 0x7;
-                self.sweep_negate = (value & 0x8) == 0x8;
-                self.sweep_shift = value & 0x7;
-            }
-            0x11 => {
-                self.nr11 = value;
-                self._duty_select = ((value & 0b1100_0000) >> 6) as usize;
-                self.length_load = value & 0x3F;
-                // I think this is correct, not sure.
-                self.length_timer = 64 - self.length_load;
-            }
-            0x12 => self.envelope.write_register(value),
-            0x13 => {
-                self.nr13 = value;
-                self._frequency = (self._frequency & 0x0700) | value as u16;
-            }
-            0x14 => {
-                self.nr14 = value;
-                self.enabled = (value & 0x80) != 0;
-                self.length_enable = (value & 0x4) == 0x4;
-                self._frequency = (self._frequency & 0xFF) | (((value & 0x07) as u16) << 8);
-                // TODO: Check if this occurs always, or only if the previous _triggered == false
-                if self.enabled {
-                    self.enable();
-                }
-            }
-            _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address)
-        }
-    }
-
-    pub fn output_volume(&self) -> u8 {
-        self.output_volume
-    }
-
-    pub fn enabled(&self) -> bool {
-        self.enabled
-    }
-
-    fn enable(&mut self) {
-        // Values taken from: https://gist.github.com/drhelius/3652407
-        self.enabled = true;
-        self.envelope.trigger();
-        self._duty_select = 0x2;
-        //TODO: FIX THIS, AS CURRENTLY LENGTH DOESN'T WORK.
-        if self.length_load == 0 {
-            self.length_load = 64;
-            // Not sure about this, but without it the Nintendo TRING gets cut off.
-            self.length_timer = 0;
-        }
-
-        self._timer = (2048 - self._frequency) * 4;
-
+    /// Follows the behaviour when a channel is triggered, specifically for the Sweep feature.
+    pub fn trigger_sweep(&mut self) {
         self.sweep_frequency_shadow = self._frequency;
         self.sweep_timer = self.sweep_period; // Not sure if it's the period?
         self.sweep_enabled = self.sweep_period != 0 && self.sweep_shift != 0;
@@ -175,6 +154,17 @@ impl Voice1 {
             self.sweep_calculations();
         }
     }
+
+    pub fn read_sweep_register(&self) -> u8 {
+        (self.sweep_period << 4) | self.sweep_shift | if self.sweep_negate { 0x8 } else { 0 }
+    }
+
+    pub fn write_sweep_register(&mut self, value: u8) {
+        self.sweep_period = (value >> 4) & 0x7;
+        self.sweep_negate = (value & 0x8) == 0x8;
+        self.sweep_shift = value & 0x7;
+    }
+
 
     fn sweep_calculations(&mut self) -> u16 {
         let mut temp_shadow = (self.sweep_frequency_shadow >> self.sweep_shift);

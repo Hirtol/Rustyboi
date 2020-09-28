@@ -74,13 +74,16 @@ impl APU {
             // Start the APU with 2 frames of audio buffered
             output_buffer: vec![0f32; SAMPLE_SIZE_BUFFER * 2],
             frame_sequencer: 0,
-            sampling_handler: 95,
+            sampling_handler: 0,
             all_sound_enable: true,
             frame_sequencer_step: 0,
         }
     }
 
     pub fn tick(&mut self, mut delta_cycles: u64) {
+        if !self.all_sound_enable {
+            return;
+        }
         //TODO: Adjust these volumes to our liking.
         let left_final_volume = self.left_volume as f32 / 6.0;
         let right_final_volume = self.right_volume as f32 / 6.0;
@@ -88,7 +91,7 @@ impl APU {
         while delta_cycles > 0 {
             self.voice1.tick_timer();
 
-            self.frame_sequencer = self.frame_sequencer.wrapping_add(1);
+            self.frame_sequencer += 1;
             if self.frame_sequencer >= 8192 {
                 // The frame sequencer component clocks at 512Hz apparently.
                 // 4194304/512 = 8192
@@ -109,10 +112,10 @@ impl APU {
             // far more than we could consume.
             // TODO: Add actual downsampling instead of the selective audio pick.
             // Refer to: https://www.reddit.com/r/EmuDev/comments/g5czyf/sound_emulation/
-            self.sampling_handler = self.sampling_handler.saturating_sub(1);
-            if self.sampling_handler == 0 {
+            self.sampling_handler += 1;
+            if self.sampling_handler == 95 {
                 // Close enough value such that we get one sample every ~1/44100
-                self.sampling_handler = 95;
+                self.sampling_handler -= 95;
 
                 // Left Audio
                 self.generate_audio(self.left_channel_enable, left_final_volume);
