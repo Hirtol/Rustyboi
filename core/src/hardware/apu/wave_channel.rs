@@ -32,7 +32,11 @@ impl WaveformChannel {
     }
 
     pub fn output_volume(&self) -> u8 {
-        self.output_volume
+        if self.enabled && self.dac_power {
+            self.output_volume
+        } else {
+            0
+        }
     }
 
     pub fn enabled(&self) -> bool {
@@ -40,6 +44,7 @@ impl WaveformChannel {
     }
 
     pub fn tick_timer(&mut self) {
+        //TODO: Fix
         let (new_val, overflowed) = self.timer.overflowing_sub(1);
 
         if new_val == 0 || overflowed {
@@ -47,17 +52,11 @@ impl WaveformChannel {
             self.timer = (2048 - self.frequency) * 2;
             // Selects which sample we should select in our chosen duty cycle.
             self.sample_pointer = (self.sample_pointer + 1) % 32;
+
+            self.output_volume = (self.sample_buffer[self.sample_pointer] >> self.volume);
         } else {
             self.timer = new_val;
         }
-
-        // TODO: not sure if self.dac_power check should be here or not.
-        self.output_volume =
-            if self.enabled && self.dac_power {
-                (self.sample_buffer[self.sample_pointer] >> self.volume)
-            } else {
-                0
-            };
     }
 
     pub fn tick_length(&mut self) {

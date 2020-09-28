@@ -31,7 +31,11 @@ impl SquareWaveChannel {
     ];
 
     pub fn output_volume(&self) -> u8 {
-        self.output_volume
+        if self.enabled {
+            self.output_volume
+        } else {
+            0
+        }
     }
 
     pub fn enabled(&self) -> bool {
@@ -47,16 +51,14 @@ impl SquareWaveChannel {
             // Selects which sample we should select in our chosen duty cycle.
             // Refer to SQUARE_WAVE_TABLE constant.
             self.wave_table_pointer = (self.wave_table_pointer + 1) % 8;
-        } else {
-            self.timer = new_val;
-        }
-
-        self.output_volume =
-            if Self::SQUARE_WAVE_TABLE[self.duty_select][self.wave_table_pointer] == 1 && self.enabled {
+            self.output_volume = if Self::SQUARE_WAVE_TABLE[self.duty_select][self.wave_table_pointer] == 1 {
                 self.envelope.volume
             } else {
                 0
             };
+        } else {
+            self.timer = new_val;
+        }
     }
 
     pub fn read_register(&self, address: u16) -> u8 {
