@@ -122,10 +122,7 @@ impl LengthFeature {
         // I think this is correct, not sure.
         self.length_timer = 255 - self.length_load;
     }
-
 }
-
-
 
 
 #[derive(Default, Debug)]

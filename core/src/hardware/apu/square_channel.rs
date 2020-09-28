@@ -1,7 +1,15 @@
-use crate::hardware::apu::channel_features::{EnvelopeFeature, SweepFeature, LengthFeature};
+use crate::hardware::apu::channel_features::{EnvelopeFeature, LengthFeature, SweepFeature};
 
+/// Relevant for voice 1 and 2 for the DMG.
+/// This is a rather dirty implementation where voice 1 and 2 are merged, the latter
+/// simply not having its sweep function called.
+///
+/// # Properties:
+/// * Sweep (only voice 1)
+/// * Volume Envelope
+/// * Length Counter
 #[derive(Default, Debug)]
-pub struct Voice1 {
+pub struct SquareWaveChannel {
     length: LengthFeature,
     envelope: EnvelopeFeature,
     sweep: SweepFeature,
@@ -19,7 +27,7 @@ pub struct Voice1 {
     _duty_select: usize,
 }
 
-impl Voice1 {
+impl SquareWaveChannel {
     const SQUARE_WAVE_TABLE: [[u8; 8]; 4] = [
         [0, 0, 0, 0, 0, 0, 0, 1], // 12.5% Duty cycle square
         [1, 0, 0, 0, 0, 0, 0, 1], // 25%
@@ -58,11 +66,11 @@ impl Voice1 {
     pub fn read_register(&self, address: u16) -> u8 {
         // Expect the address to already have had an & 0xFF
         match address {
-            0x10 => self.sweep.read_register(),
-            0x11 => ((self._duty_select as u8) << 6) | self.length.read_register(),
-            0x12 => self.envelope.read_register(),
-            0x13 => 0xFF, // Can't read NR13
-            0x14 => self.get_nr14(),
+            0x10 | 0x15 => self.sweep.read_register(),
+            0x11 | 0x16 => ((self._duty_select as u8) << 6) | self.length.read_register(),
+            0x12 | 0x17 => self.envelope.read_register(),
+            0x13 | 0x18 => 0xFF, // Can't read NR13
+            0x14 | 0x19 => self.get_nr14(),
             _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address)
         }
     }
@@ -70,14 +78,14 @@ impl Voice1 {
     pub fn write_register(&mut self, address: u16, value: u8) {
         // Expect the address to already have had an & 0xFF
         match address {
-            0x10 => self.sweep.write_register(value),
-            0x11 => {
+            0x10 | 0x15 => self.sweep.write_register(value),
+            0x11 | 0x16 => {
                 self._duty_select = ((value & 0b1100_0000) >> 6) as usize;
                 self.length.write_register(value);
             }
-            0x12 => self.envelope.write_register(value),
-            0x13 => self._frequency = (self._frequency & 0x0700) | value as u16,
-            0x14 => {
+            0x12 | 0x17 => self.envelope.write_register(value),
+            0x13 | 0x18 => self._frequency = (self._frequency & 0x0700) | value as u16,
+            0x14 | 0x19 => {
                 self.enabled = (value & 0x80) != 0;
                 self.length.length_enable = (value & 0x40) == 0x40;
                 self._frequency = (self._frequency & 0xFF) | (((value & 0x07) as u16) << 8);
@@ -125,24 +133,6 @@ impl Voice1 {
     }
 }
 
-/// Relevant for voice 1 and 2 for the DMG.
-///
-/// # Properties:
-/// * Sweep (only voice 1)
-/// * Volume Envelope
-/// * Length Counter
-pub struct SquareWaveChannel {
-    has_sweep: bool,
-}
 
-/// Relevant for voice 3 for the DMG.
-///
-/// # Properties:
-/// * Length Counter
-pub struct WaveformChannel {}
 
-/// Relevant for voice 4 for the DMG.
-///
-/// # Properties:
-/// * Volume Envelope
-pub struct NoiseChannel {}
+
