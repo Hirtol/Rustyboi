@@ -77,9 +77,8 @@ pub struct LengthFeature {
 impl LengthFeature {
     /// Ticks the length feature.
     ///
-    /// # Returns
-    /// * `true` - when the channel should stay enabled.
-    /// * `false` - when the channel should be disabled.
+    /// # Manipulations
+    /// * `channel_enable` - Is reset when the length timer reaches 0, otherwise untouched.
     pub fn tick(&mut self, channel_enable: &mut bool) {
         // Not sure whether to have length_load become a separate timer, and use the
         // length_load field as a load_value instead like we've done with envelop/sweep.
@@ -136,7 +135,7 @@ impl LengthFeature {
 
 
 
-// Consider using this if we can figure out bindings.
+#[derive(Default, Debug)]
 pub struct SweepFeature {
     sweep_period: u8,
     sweep_negate: bool,
@@ -148,5 +147,60 @@ pub struct SweepFeature {
 }
 
 impl SweepFeature {
+    /// Ticks the sweep feature.
+    /// Expects the channel enable and frequency
+    ///
+    /// # Manipulations
+    /// * `channel_enable` - Is reset when the sum of the
+    /// shifted shadow frequency + shadow frequency is >= 2048, otherwise untouched.
+    /// * `channel_frequency` - Is set to a new value when the tick function has a shadow frequency
+    /// lower than 2048.
+    pub fn tick(&mut self, channel_enable: &mut bool, channel_frequency: &mut u16) {
+        if self.sweep_enabled && self.sweep_period != 0 {
+            let temp_freq = self.sweep_calculations(channel_enable);
+            // Duplicate overflow check, but this gets called, at most 128 times per second so, eh.
+            if temp_freq < 2048 && self.sweep_shift != 0 {
+                self.sweep_frequency_shadow = temp_freq;
+                *channel_frequency = temp_freq;
+                self.sweep_calculations(channel_enable);
+            }
+        }
+    }
 
+    /// Follows the behaviour when a channel is triggered, specifically for the Sweep feature.
+    pub fn trigger_sweep(&mut self, channel_enable: &mut bool, frequency: u16) {
+        self.sweep_frequency_shadow = frequency;
+        self.sweep_timer = self.sweep_period; // Not sure if it's the period?
+        self.sweep_enabled = self.sweep_period != 0 && self.sweep_shift != 0;
+        // If sweep shift != 0, question is if sweep_enable is OR or AND, because docs are ambiguous.
+        if self.sweep_enabled {
+            self.sweep_calculations(channel_enable);
+        }
+    }
+
+    fn sweep_calculations(&mut self, channel_enable: &mut bool) -> u16 {
+        let mut temp_shadow = (self.sweep_frequency_shadow >> self.sweep_shift);
+        if self.sweep_negate {
+            // Not sure if we should take 2's complement here, TODO: Verify.
+            temp_shadow = !temp_shadow;
+        }
+        temp_shadow += self.sweep_frequency_shadow;
+
+        if temp_shadow > 2047 {
+            *channel_enable = false;
+            self.sweep_enabled = false;
+        }
+
+        temp_shadow
+    }
+
+    pub fn read_register(&self) -> u8 {
+        (self.sweep_period << 4) | self.sweep_shift | if self.sweep_negate { 0x8 } else { 0 }
+    }
+
+    pub fn write_register(&mut self, value: u8) {
+        self.sweep_period = (value >> 4) & 0x7;
+        self.sweep_negate = (value & 0x8) == 0x8;
+        self.sweep_shift = value & 0x7;
+    }
 }

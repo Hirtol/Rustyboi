@@ -7,15 +7,7 @@ pub struct Voice1 {
 
     pub length: LengthFeature,
     pub envelope: EnvelopeFeature,
-
-    // Sweep
-    sweep_period: u8,
-    sweep_negate: bool,
-    sweep_shift: u8,
-    // Internal Sweep
-    sweep_enabled: bool,
-    sweep_timer: u8,
-    sweep_frequency_shadow: u16,
+    pub sweep: SweepFeature,
 
     // Timer stuff
     _frequency: u16,
@@ -69,7 +61,7 @@ impl Voice1 {
     pub fn read_register(&self, address: u16) -> u8 {
         // Expect the address to already have had an & 0xFF
         match address {
-            0x10 => self.read_sweep_register(),
+            0x10 => self.sweep.read_register(),
             0x11 => ((self._duty_select as u8) << 6) | self.length.read_register(),
             0x12 => self.envelope.read_register(),
             0x13 => 0xFF, // Can't read NR13
@@ -81,7 +73,7 @@ impl Voice1 {
     pub fn write_register(&mut self, address: u16, value: u8) {
         // Expect the address to already have had an & 0xFF
         match address {
-            0x10 => self.write_sweep_register(value),
+            0x10 => self.sweep.write_register(value),
             0x11 => {
                 self._duty_select = ((value & 0b1100_0000) >> 6) as usize;
                 self.length.write_register(value);
@@ -108,7 +100,7 @@ impl Voice1 {
         self.length.trigger();
         self._timer = (2048 - self._frequency) * 4;
         self.envelope.trigger();
-        self.trigger_sweep();
+        self.sweep.trigger_sweep(&mut self.enabled, self._frequency);
 
         // Default wave form should be selected.
         self._duty_select = 0x2;
@@ -133,53 +125,7 @@ impl Voice1 {
     // --- SWEEP ---
 
     pub fn tick_sweep(&mut self) {
-        if self.sweep_enabled && self.sweep_period != 0 {
-            let temp_freq = self.sweep_calculations();
-            // Duplicate overflow check, but this gets called, at most 128 times per second so, eh.
-            if temp_freq < 2048 && self.sweep_shift != 0 {
-                self.sweep_frequency_shadow = temp_freq;
-                self._frequency = temp_freq;
-                self.sweep_calculations();
-            }
-        }
-    }
-
-    /// Follows the behaviour when a channel is triggered, specifically for the Sweep feature.
-    pub fn trigger_sweep(&mut self) {
-        self.sweep_frequency_shadow = self._frequency;
-        self.sweep_timer = self.sweep_period; // Not sure if it's the period?
-        self.sweep_enabled = self.sweep_period != 0 && self.sweep_shift != 0;
-        // If sweep shift != 0, question is if sweep_enable is OR or AND, because docs are ambiguous.
-        if self.sweep_enabled {
-            self.sweep_calculations();
-        }
-    }
-
-    pub fn read_sweep_register(&self) -> u8 {
-        (self.sweep_period << 4) | self.sweep_shift | if self.sweep_negate { 0x8 } else { 0 }
-    }
-
-    pub fn write_sweep_register(&mut self, value: u8) {
-        self.sweep_period = (value >> 4) & 0x7;
-        self.sweep_negate = (value & 0x8) == 0x8;
-        self.sweep_shift = value & 0x7;
-    }
-
-
-    fn sweep_calculations(&mut self) -> u16 {
-        let mut temp_shadow = (self.sweep_frequency_shadow >> self.sweep_shift);
-        if self.sweep_negate {
-            // Not sure if we should take 2's complement here, TODO: Verify.
-            temp_shadow = !temp_shadow;
-        }
-        temp_shadow += self.sweep_frequency_shadow;
-
-        if temp_shadow > 2047 {
-            self.enabled = false;
-            self.sweep_enabled = false;
-        }
-
-        temp_shadow
+        self.sweep.tick(&mut self.enabled, &mut self._frequency);
     }
 }
 
