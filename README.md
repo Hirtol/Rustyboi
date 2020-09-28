@@ -6,7 +6,7 @@ one would best refer to another fully working emulator, e.g [PyBoy](https://gith
 
 ## Prerequisites
 - [SDL2](https://github.com/Rust-SDL2/rust-sdl2)
-- Rust 1.45.2
+- Rust 1.46.0
 
 ## Installation
 ### Build from Source
