@@ -1,4 +1,5 @@
 use crate::hardware::apu::square_channel::SquareWaveChannel;
+use crate::hardware::apu::wave_channel::WaveformChannel;
 
 mod channel_features;
 mod noise_channel;
@@ -10,11 +11,12 @@ mod wave_channel;
 pub const SAMPLE_SIZE_BUFFER: usize = 739;
 
 pub const APU_MEM_START: u16 = 0xFF10;
-pub const APU_MEM_END: u16 = 0xFF26;
+pub const APU_MEM_END: u16 = 0xFF3F;
 
 pub struct APU {
     voice1: SquareWaveChannel,
     voice2: SquareWaveChannel,
+    voice3: WaveformChannel,
     left_volume: u8,
     right_volume: u8,
     // 0-3 will represent voice 1-4 enable respectively.
@@ -32,6 +34,7 @@ impl APU {
         APU {
             voice1: Default::default(),
             voice2: Default::default(),
+            voice3: WaveformChannel::new(),
             left_volume: 7,
             right_volume: 7,
             left_channel_enable: [true; 4],
@@ -57,6 +60,7 @@ impl APU {
         while delta_cycles > 0 {
             self.voice1.tick_timer();
             self.voice2.tick_timer();
+            self.voice3.tick_timer();
 
             self.frame_sequencer += 1;
             if self.frame_sequencer >= 8192 {
@@ -105,7 +109,7 @@ impl APU {
     pub fn read_register(&self, address: u16) -> u8 {
         let address = address & 0xFF;
         // It's not possible to access any registers beside 0x26 while the sound is disabled.
-        if !self.global_sound_enable && address != 0x26 {
+        if !self.global_sound_enable && address != 0x26 && !(0x30..=0x3F).contains(&address) {
             log::warn!("Tried to read APU while inaccessible");
             return 0xFF;
         }
@@ -113,6 +117,7 @@ impl APU {
         match address {
             0x10..=0x14 => self.voice1.read_register(address),
             0x15..=0x19 => self.voice2.read_register(address),
+            0x1A..=0x1E | 0x30..=0x3F => self.voice3.read_register(address),
             // APU registers
             0x24 => self.right_volume | (self.left_volume << 4),
             0x25 => {
@@ -126,13 +131,12 @@ impl APU {
                 output
             }
             0x26 => {
-                let mut output = 0u8;
+                let mut output = 0x70;
                 set_bit(&mut output, 7, self.global_sound_enable);
                 //TODO: These three voices enable flags.
                 set_bit(&mut output, 3, true);
-                set_bit(&mut output, 2, true);
+                set_bit(&mut output, 2, self.voice3.enabled());
                 set_bit(&mut output, 1, self.voice2.enabled());
-
                 set_bit(&mut output, 0, self.voice1.enabled());
                 output
             }
@@ -145,7 +149,7 @@ impl APU {
         let address = address & 0xFF;
 
         // It's not possible to access any registers beside 0x26 while the sound is disabled.
-        if !self.global_sound_enable && address != 0x26 {
+        if !self.global_sound_enable && address != 0x26 && !(0x30..=0x3F).contains(&address) {
             log::warn!("Tried to write APU while inaccessible");
             return;
         }
@@ -153,6 +157,7 @@ impl APU {
         match address {
             0x10..=0x14 => self.voice1.write_register(address, value),
             0x15..=0x19 => self.voice2.write_register(address, value),
+            0x1A..=0x1E | 0x30..=0x3F => self.voice3.write_register(address, value),
             0x24 => {
                 self.right_volume = value & 0x07;
                 self.left_volume = (value & 0x70) >> 4;
@@ -168,8 +173,11 @@ impl APU {
             0x26 => {
                 self.global_sound_enable = (value & 0b1000_0000) == 0b1000_0000;
                 self.voice1 = SquareWaveChannel::default();
+                self.voice2 = SquareWaveChannel::default();
+                // TODO: Maybe don't reset voice3 this way, since we lose samples!
+                self.voice3 = WaveformChannel::new();
                 //TODO: Reset all voices.
-            }
+            },
             //TODO: Once all voices are implemented bring back panic.
             _ => {} //panic!("Attempt to write to an unknown audio register: 0xFF{:02X} with val: {}", address, value),
         }
@@ -186,7 +194,9 @@ impl APU {
             result += (self.voice2.output_volume() as f32 / 100.0) * final_volume;
         }
         // Voice 3 (Wave)
-        if voice_enables[2] {}
+        if voice_enables[2] {
+            result += (self.voice3.output_volume() as f32 / 100.0) * final_volume;
+        }
         // Voice 4 (Noise)
         if voice_enables[3] {}
 
@@ -196,6 +206,7 @@ impl APU {
     fn tick_length(&mut self) {
         self.voice1.tick_length();
         self.voice2.tick_length();
+        self.voice3.tick_length();
     }
 
     fn tick_envelop(&mut self) {

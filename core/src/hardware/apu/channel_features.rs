@@ -71,7 +71,7 @@ impl EnvelopeFeature {
 pub struct LengthFeature {
     pub length_enable: bool,
     length_load: u8,
-    length_timer: u8,
+    length_timer: u16,
 }
 
 impl LengthFeature {
@@ -106,21 +106,21 @@ impl LengthFeature {
     pub fn write_register(&mut self, value: u8) {
         self.length_load = value & 0x3F;
         // I think this is correct, not sure.
-        self.length_timer = 64 - self.length_load;
+        self.length_timer = 64 - self.length_load as u16;
     }
 
     /// Follows the behaviour for a wave channel, Length feature (256)
     pub fn trigger_256(&mut self) {
         //TODO: VERIFY THIS
         if self.length_timer == 0 {
-            self.length_timer = 255;
+            self.length_timer = 256;
         }
     }
 
     pub fn write_register_256(&mut self, value: u8) {
         self.length_load = value;
         // I think this is correct, not sure.
-        self.length_timer = 255 - self.length_load;
+        self.length_timer = 256 - self.length_load as u16;
     }
 }
 
@@ -159,6 +159,7 @@ impl SweepFeature {
     /// Follows the behaviour when a channel is triggered, specifically for the Sweep feature.
     pub fn trigger_sweep(&mut self, channel_enable: &mut bool, frequency: u16) {
         self.sweep_frequency_shadow = frequency;
+        //TODO: Remove as it seems unnecessary?
         self.sweep_timer = self.sweep_period; // Not sure if it's the period?
         self.sweep_enabled = self.sweep_period != 0 && self.sweep_shift != 0;
         // If sweep shift != 0, question is if sweep_enable is OR or AND, because docs are ambiguous.
