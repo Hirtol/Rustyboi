@@ -403,7 +403,9 @@ impl PPU {
         let y_size: u8 = if tall_sprites { 16 } else { 8 };
 
         // Sort by x such that a lower x-pos will always overwrite a higher x-pos sprite.
-        let sprites_to_draw = self.oam.iter()
+        let sprites_to_draw = self
+            .oam
+            .iter()
             .filter(|sprite| {
                 let screen_y_pos = sprite.y_pos as i16 - 16;
                 is_sprite_on_scanline(self.current_y as i16, screen_y_pos, y_size as i16)

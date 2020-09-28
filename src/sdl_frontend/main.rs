@@ -2,7 +2,7 @@ use log::LevelFilter;
 use log::*;
 use rustyboi_core::emulator::{Emulator, CYCLES_PER_FRAME};
 
-use rustyboi_core::{emulator, DmgColor, InputKey};
+use rustyboi_core::{DmgColor, InputKey};
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::pixels::PixelFormatEnum::RGB24;
@@ -11,20 +11,19 @@ use sdl2::video::Window;
 use sdl2::Sdl;
 use simplelog::{CombinedLogger, Config, ConfigBuilder, TermLogger, TerminalMode, WriteLogger};
 
-use std::fs::{create_dir_all, read, File};
+use std::fs::{read, File};
 
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
 use crate::actions::*;
 use crate::display::{DisplayColour, RGB};
-use directories::ProjectDirs;
-use rustyboi_core::hardware::cartridge::Cartridge;
+
+use hound::{SampleFormat, WavSpec};
+use sdl2::audio::{AudioQueue, AudioSpecDesired};
 use sdl2::event::Event;
-use std::io::{BufWriter, Write};
+use std::io::Write;
 use std::ops::Div;
-use sdl2::audio::{AudioSpecDesired, AudioQueue};
-use hound::{WavSpec, SampleFormat};
 
 mod actions;
 mod display;
@@ -65,11 +64,16 @@ fn main() {
     let audio_subsystem = sdl_context.audio().expect("SDL context failed to initialise audio!");
     let video_subsystem = sdl_context.video().expect("SDL context failed to initialise video!");
 
-    let audio_queue: AudioQueue<f32> = audio_subsystem.open_queue(None, &AudioSpecDesired {
-        freq: Some(44100),
-        channels: Some(2),
-        samples: None,
-    }).unwrap();
+    let audio_queue: AudioQueue<f32> = audio_subsystem
+        .open_queue(
+            None,
+            &AudioSpecDesired {
+                freq: Some(44100),
+                channels: Some(2),
+                samples: None,
+            },
+        )
+        .unwrap();
 
     let window = video_subsystem
         .window("RustyBoi", 800, 720)
@@ -85,8 +89,8 @@ fn main() {
     let bootrom_file = read("roms\\DMG_ROM.bin").unwrap();
 
     let cartridge = "roms/Kirby's Dream Land.gb";
-    let cpu_test = "test roms/blargg/instr_timing/instr_timing.gb";
-    let cpu_test2 = "test roms/mooneye/tests/emulator-only/mbc5/mbc5_rom_512kb.gb";
+    let _cpu_test = "test roms/blargg/instr_timing/instr_timing.gb";
+    let _cpu_test2 = "test roms/mooneye/tests/emulator-only/mbc5/mbc5_rom_512kb.gb";
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
@@ -117,7 +121,7 @@ fn main() {
         // in the future could consider downsampling the sped up audio for a cool effect.
         if !fast_forward {
             audio_queue.queue(audio_buffer);
-        }else {
+        } else {
             audio_queue.clear();
         }
         emulator.clear_audio_buffer();
@@ -170,14 +174,18 @@ fn main() {
         last_update_time = frame_start;
     }
 
-    let mut out_file = File::create("output.wav").unwrap();
+    let out_file = File::create("output.wav").unwrap();
 
-    let mut writer = hound::WavWriter::new(out_file, WavSpec {
-        channels: 2,
-        sample_rate: 44100,
-        bits_per_sample: 32,
-        sample_format: SampleFormat::Float
-    }).unwrap();
+    let mut writer = hound::WavWriter::new(
+        out_file,
+        WavSpec {
+            channels: 2,
+            sample_rate: 44100,
+            bits_per_sample: 32,
+            sample_format: SampleFormat::Float,
+        },
+    )
+    .unwrap();
 
     // Temp audio stuff to save to WAV file for testing.
     emulator.audio_buffer().iter().for_each(|f| {

@@ -8,9 +8,9 @@ use bitflags::_core::fmt::{Debug, Formatter};
 use log::*;
 use std::fmt;
 
+use crate::hardware::apu::{APU, APU_MEM_END, APU_MEM_START};
 use crate::io::joypad::*;
 use crate::io::timer::*;
-use crate::hardware::apu::{APU, APU_MEM_START, APU_MEM_END};
 
 pub const MEMORY_SIZE: usize = 0x10000;
 /// 16 KB ROM bank, usually 00. From Cartridge, read-only

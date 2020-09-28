@@ -124,7 +124,6 @@ impl LengthFeature {
     }
 }
 
-
 #[derive(Default, Debug)]
 pub struct SweepFeature {
     sweep_period: u8,

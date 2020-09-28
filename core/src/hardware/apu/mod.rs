@@ -1,9 +1,9 @@
 use crate::hardware::apu::square_channel::SquareWaveChannel;
 
-mod square_channel;
 mod channel_features;
-mod wave_channel;
 mod noise_channel;
+mod square_channel;
+mod wave_channel;
 
 // Currently chose for 44100/60 = 739 samples per frame to make it 'kinda' sync up.
 // In all likelihood this will cause issues due to scheduling delays so this should go up probably.
@@ -37,7 +37,7 @@ impl APU {
             left_channel_enable: [true; 4],
             right_channel_enable: [true, true, false, false],
             // Start the APU with 2 frames of audio buffered
-            output_buffer: Vec::with_capacity(SAMPLE_SIZE_BUFFER*2),
+            output_buffer: Vec::with_capacity(SAMPLE_SIZE_BUFFER * 2),
             frame_sequencer: 0,
             sampling_handler: 0,
             global_sound_enable: true,
@@ -136,7 +136,7 @@ impl APU {
                 output
             }
             //TODO: Once all voices are implemented bring back panic.
-            _ => 0xFF//panic!("Attempt to read an unknown audio register: 0xFF{:02X}", address),
+            _ => 0xFF, //panic!("Attempt to read an unknown audio register: 0xFF{:02X}", address),
         }
     }
 
@@ -169,7 +169,7 @@ impl APU {
                 //TODO: Reset all voices.
             }
             //TODO: Once all voices are implemented bring back panic.
-            _ => {}//panic!("Attempt to write to an unknown audio register: 0xFF{:02X} with val: {}", address, value),
+            _ => {} //panic!("Attempt to write to an unknown audio register: 0xFF{:02X} with val: {}", address, value),
         }
     }
 
@@ -214,4 +214,3 @@ fn test_bit(value: u8, bit: u8) -> bool {
     let mask = 1 << bit;
     (value & mask) == mask
 }
-

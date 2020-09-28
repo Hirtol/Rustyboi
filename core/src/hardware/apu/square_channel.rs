@@ -32,7 +32,7 @@ impl SquareWaveChannel {
         [0, 0, 0, 0, 0, 0, 0, 1], // 12.5% Duty cycle square
         [1, 0, 0, 0, 0, 0, 0, 1], // 25%
         [1, 0, 0, 0, 0, 1, 1, 1], // 50%
-        [0, 1, 1, 1, 1, 1, 1, 0]  // 75%
+        [0, 1, 1, 1, 1, 1, 1, 0], // 75%
     ];
 
     pub fn output_volume(&self) -> u8 {
@@ -56,11 +56,12 @@ impl SquareWaveChannel {
             self._timer = new_val;
         }
         //TODO: Insert && self.enabled once we figure out why the early cutoff
-        self.output_volume = if Self::SQUARE_WAVE_TABLE[self._duty_select][self._wave_table_pointer] == 1 && self.enabled {
-            self.envelope.volume
-        } else {
-            0
-        };
+        self.output_volume =
+            if Self::SQUARE_WAVE_TABLE[self._duty_select][self._wave_table_pointer] == 1 && self.enabled {
+                self.envelope.volume
+            } else {
+                0
+            };
     }
 
     pub fn read_register(&self, address: u16) -> u8 {
@@ -71,7 +72,7 @@ impl SquareWaveChannel {
             0x12 | 0x17 => self.envelope.read_register(),
             0x13 | 0x18 => 0xFF, // Can't read NR13
             0x14 | 0x19 => self.get_nr14(),
-            _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address)
+            _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address),
         }
     }
 
@@ -94,7 +95,7 @@ impl SquareWaveChannel {
                     self.enable();
                 }
             }
-            _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address)
+            _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address),
         }
     }
 
@@ -132,7 +133,3 @@ impl SquareWaveChannel {
         self.sweep.tick(&mut self.enabled, &mut self._frequency);
     }
 }
-
-
-
-

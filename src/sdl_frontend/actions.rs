@@ -1,7 +1,7 @@
 use directories::ProjectDirs;
 use rustyboi_core::emulator::Emulator;
 use rustyboi_core::hardware::cartridge::header::CartridgeHeader;
-use rustyboi_core::hardware::cartridge::Cartridge;
+
 use std::fs::{create_dir_all, read, File};
 use std::io::Write;
 use std::path::Path;
