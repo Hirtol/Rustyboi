@@ -112,6 +112,7 @@ impl APU {
 
         match address {
             0x10..=0x14 => self.voice1.read_register(address),
+            0x15..=0x19 => self.voice2.read_register(address),
             // APU registers
             0x24 => self.right_volume | (self.left_volume << 4),
             0x25 => {
@@ -130,7 +131,7 @@ impl APU {
                 //TODO: These three voices enable flags.
                 set_bit(&mut output, 3, true);
                 set_bit(&mut output, 2, true);
-                set_bit(&mut output, 1, true);
+                set_bit(&mut output, 1, self.voice2.enabled());
 
                 set_bit(&mut output, 0, self.voice1.enabled());
                 output
@@ -151,6 +152,7 @@ impl APU {
 
         match address {
             0x10..=0x14 => self.voice1.write_register(address, value),
+            0x15..=0x19 => self.voice2.write_register(address, value),
             0x24 => {
                 self.right_volume = value & 0x07;
                 self.left_volume = (value & 0x70) >> 4;
