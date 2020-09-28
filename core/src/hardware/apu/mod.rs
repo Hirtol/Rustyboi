@@ -227,7 +227,7 @@ impl APU {
     }
 
     fn tick_envelop(&mut self) {
-        self.voice1.envelope.tick();
+        self.voice1.tick_envelope();
     }
 
     fn tick_sweep(&mut self) {

@@ -2,12 +2,9 @@ use crate::hardware::apu::channel_features::{EnvelopeFeature, SweepFeature, Leng
 
 #[derive(Default, Debug)]
 pub struct Voice1 {
-    /// 0xFF14 TL-- -FFF  Trigger, Length enable, Frequency MSB
-    pub nr14: u8,
-
-    pub length: LengthFeature,
-    pub envelope: EnvelopeFeature,
-    pub sweep: SweepFeature,
+    length: LengthFeature,
+    envelope: EnvelopeFeature,
+    sweep: SweepFeature,
 
     // Timer stuff
     _frequency: u16,
@@ -93,9 +90,10 @@ impl Voice1 {
         }
     }
 
+    /// Should be called whenever the trigger bit in NR14 is written to.
+    ///
+    /// The values that are set are taken from [here](https://gist.github.com/drhelius/3652407)
     fn enable(&mut self) {
-        log::warn!("Enable Call!");
-        // Values taken from: https://gist.github.com/drhelius/3652407
         self.enabled = true;
         self.length.trigger();
         self._timer = (2048 - self._frequency) * 4;
@@ -114,15 +112,13 @@ impl Voice1 {
         output
     }
 
-    // --- Length ---
-
-    pub fn tick_length(&mut self) {
-        // TODO: Check if this is correct, as I'm pretty sure channels should continue ticking
-        // even when disabled.
-        self.length.tick(&mut self.enabled);
+    pub fn tick_envelope(&mut self) {
+        self.envelope.tick();
     }
 
-    // --- SWEEP ---
+    pub fn tick_length(&mut self) {
+        self.length.tick(&mut self.enabled);
+    }
 
     pub fn tick_sweep(&mut self) {
         self.sweep.tick(&mut self.enabled, &mut self._frequency);

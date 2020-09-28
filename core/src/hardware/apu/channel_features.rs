@@ -93,19 +93,16 @@ impl LengthFeature {
     }
 
     /// Follows the behaviour when a channel is triggered for the Length feature (64)
-    #[inline]
     pub fn trigger(&mut self) {
         if self.length_timer == 0 {
             self.length_timer = 64;
         }
     }
 
-    #[inline]
     pub fn read_register(&self) -> u8 {
         self.length_load
     }
 
-    #[inline]
     pub fn write_register(&mut self, value: u8) {
         self.length_load = value & 0x3F;
         // I think this is correct, not sure.
@@ -113,15 +110,13 @@ impl LengthFeature {
     }
 
     /// Follows the behaviour for a wave channel, Length feature (256)
-    #[inline]
     pub fn trigger_256(&mut self) {
         //TODO: VERIFY THIS
         if self.length_timer == 0 {
             self.length_timer = 255;
         }
     }
-
-    #[inline]
+    
     pub fn write_register_256(&mut self, value: u8) {
         self.length_load = value;
         // I think this is correct, not sure.
