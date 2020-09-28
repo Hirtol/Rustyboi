@@ -1,7 +1,9 @@
+use crate::hardware::apu::channel_features::EnvelopeFeature;
+
 pub trait AudioVoice {}
 
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug)]
 pub struct Voice1 {
     /// 0xFF10 -PPP NSSS  Sweep period, negate, shift
     pub nr10: u8,
@@ -28,11 +30,7 @@ pub struct Voice1 {
     length_enable: bool,
     length_timer: u8,
 
-    // Envelope
-    envelope_enabled: bool,
-    envelope_add_mode: bool,
-    envelope_period_load_value: u8,
-    envelope_period: u8,
+    pub envelope: EnvelopeFeature,
 
     // Timer stuff
     _frequency: u16,
@@ -41,7 +39,6 @@ pub struct Voice1 {
     enabled: bool,
     // Maybe use if we do the while loops inside the APU instead of channels, then
     // we wouldn't need a sample buffer (how about down sampling?).
-    volume: u8,
     output_volume: u8,
     // Relevant for wave table indexing
     _wave_table_pointer: usize,
@@ -70,7 +67,7 @@ impl Voice1 {
         }
         //TODO: Insert && self.enabled once we figure out why the early cutoff
         self.output_volume = if Self::SQUARE_WAVE_TABLE[self._duty_select][self._wave_table_pointer] == 1 && self.enabled {
-            self.volume
+            self.envelope.volume
         } else {
             0
         };
@@ -83,6 +80,7 @@ impl Voice1 {
             self.length_timer -= 1;
 
             if self.length_timer == 0 {
+                log::warn!("OFF");
                 self.enabled = false;
             }
         }
@@ -98,33 +96,6 @@ impl Voice1 {
                 self.sweep_calculations();
             }
         }
-
-    }
-
-    pub fn tick_envelop(&mut self) {
-        if self.envelope_enabled && self.envelope_period > 0 {
-            self.envelope_period = self.envelope_period.saturating_sub(1);
-
-            if self.envelope_period == 0 {
-                if self.envelope_add_mode {
-                    let new_val = self.volume + 1;
-                    if new_val <= 15 {
-                        self.volume = new_val;
-                        self.envelope_period = self.envelope_period_load_value;
-                    } else {
-                        self.envelope_enabled = false;
-                    }
-                } else {
-                    let (new_val, overflow) = self.volume.overflowing_sub(1);
-                    if !overflow {
-                        self.volume = new_val;
-                        self.envelope_period = self.envelope_period_load_value;
-                    } else {
-                        self.envelope_enabled = false;
-                    }
-                }
-            }
-        }
     }
 
     pub fn read_register(&self, address: u16) -> u8 {
@@ -132,7 +103,7 @@ impl Voice1 {
         match address {
             0x10 => self.nr10,
             0x11 => self.nr11,
-            0x12 => self.nr12,
+            0x12 => self.envelope.read_register(),
             0x13 => 0xFF, // Can't read NR13
             0x14 => self.nr14,
             _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address)
@@ -155,13 +126,7 @@ impl Voice1 {
                 // I think this is correct, not sure.
                 self.length_timer = 64 - self.length_load;
             }
-            0x12 => {
-                self.nr12 = value;
-                self.volume = (value & 0xF0) >> 4;
-                self.envelope_add_mode = (value & 0x8) == 0x8;
-                self.envelope_period_load_value = value & 0x7;
-                self.envelope_period = self.envelope_period_load_value;
-            }
+            0x12 => self.envelope.write_register(value),
             0x13 => {
                 self.nr13 = value;
                 self._frequency = (self._frequency & 0x0700) | value as u16;
@@ -191,14 +156,14 @@ impl Voice1 {
     fn enable(&mut self) {
         // Values taken from: https://gist.github.com/drhelius/3652407
         self.enabled = true;
+        self.envelope.trigger();
         self._duty_select = 0x2;
+        //TODO: FIX THIS, AS CURRENTLY LENGTH DOESN'T WORK.
         if self.length_load == 0 {
             self.length_load = 64;
             // Not sure about this, but without it the Nintendo TRING gets cut off.
             self.length_timer = 0;
         }
-        self.envelope_enabled = true;
-        self.envelope_period = self.envelope_period_load_value;
 
         self._timer = (2048 - self._frequency) * 4;
 
@@ -211,7 +176,7 @@ impl Voice1 {
         }
     }
 
-    fn sweep_calculations(&mut self) -> u16{
+    fn sweep_calculations(&mut self) -> u16 {
         let mut temp_shadow = (self.sweep_frequency_shadow >> self.sweep_shift);
         if self.sweep_negate {
             // Not sure if we should take 2's complement here, TODO: Verify.

@@ -2,6 +2,7 @@ use crate::hardware::apu::channels::Voice1;
 
 mod channels;
 mod memory_binds;
+mod channel_features;
 
 // Currently chose for 44100/60 = 739 samples per frame to make it 'kinda' sync up.
 // In all likelihood this will cause issues due to scheduling delays so this should go up probably.
@@ -223,7 +224,7 @@ impl APU {
     }
 
     fn tick_envelop(&mut self) {
-        self.voice1.tick_envelop();
+        self.voice1.envelope.tick();
     }
 
     fn tick_sweep(&mut self) {
