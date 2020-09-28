@@ -1,7 +1,6 @@
 use crate::hardware::apu::channels::Voice1;
 
 mod channels;
-mod memory_binds;
 mod channel_features;
 
 // Currently chose for 44100/60 = 739 samples per frame to make it 'kinda' sync up.

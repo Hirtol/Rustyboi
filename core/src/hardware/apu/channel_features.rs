@@ -116,7 +116,7 @@ impl LengthFeature {
             self.length_timer = 255;
         }
     }
-    
+
     pub fn write_register_256(&mut self, value: u8) {
         self.length_load = value;
         // I think this is correct, not sure.
