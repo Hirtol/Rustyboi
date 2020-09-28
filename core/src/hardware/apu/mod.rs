@@ -174,8 +174,7 @@ impl APU {
                 self.global_sound_enable = (value & 0b1000_0000) == 0b1000_0000;
                 self.voice1 = SquareWaveChannel::default();
                 self.voice2 = SquareWaveChannel::default();
-                // TODO: Maybe don't reset voice3 this way, since we lose samples!
-                self.voice3 = WaveformChannel::new();
+                self.voice3.reset();
                 //TODO: Reset all voices.
             },
             //TODO: Once all voices are implemented bring back panic.

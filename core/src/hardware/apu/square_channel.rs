@@ -41,7 +41,7 @@ impl SquareWaveChannel {
     pub fn tick_timer(&mut self) {
         let (new_val, overflowed) = self.timer.overflowing_sub(1);
 
-        if overflowed {
+        if new_val == 0 || overflowed {
             // I got this from Reddit, lord only knows why specifically 2048.
             self.timer = (2048 - self.frequency) * 4;
             // Selects which sample we should select in our chosen duty cycle.

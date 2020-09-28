@@ -70,8 +70,8 @@ impl EnvelopeFeature {
 #[derive(Default, Debug)]
 pub struct LengthFeature {
     pub length_enable: bool,
+    pub length_timer: u16,
     length_load: u8,
-    length_timer: u16,
 }
 
 impl LengthFeature {

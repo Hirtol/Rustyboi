@@ -42,7 +42,7 @@ impl WaveformChannel {
     pub fn tick_timer(&mut self) {
         let (new_val, overflowed) = self.timer.overflowing_sub(1);
 
-        if overflowed {
+        if new_val == 0 || overflowed {
             // The formula is taken from gbdev, I haven't done the period calculations myself.
             self.timer = (2048 - self.frequency) * 2;
             // Selects which sample we should select in our chosen duty cycle.
@@ -106,6 +106,18 @@ impl WaveformChannel {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.length.length_enable = false;
+        self.length.length_timer = 0;
+        self.sample_pointer = 0;
+        self.enabled = false;
+        self.dac_power = false;
+        self.volume_load = 0;
+        self.volume = 0;
+        self.timer = 0;
+        self.frequency = 0;
+    }
+
     /// Should be called whenever the trigger bit in NR34 is written to.
     ///
     /// The values that are set are taken from [here](https://gist.github.com/drhelius/3652407)
@@ -130,12 +142,5 @@ impl WaveformChannel {
             0b0_11_0_0000 => 2, // 75% volume
             _ => panic!("Received invalid entry in set_volume!"),
         }
-    }
-
-    fn get_nr34(&self) -> u8 {
-        let mut output = if self.enabled { 0x80 } else { 0x0 };
-        output |= if self.length.length_enable { 0x40 } else { 0x0 };
-
-        output
     }
 }
