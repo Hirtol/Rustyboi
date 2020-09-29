@@ -1,5 +1,6 @@
 use crate::hardware::apu::square_channel::SquareWaveChannel;
 use crate::hardware::apu::wave_channel::WaveformChannel;
+use crate::hardware::apu::noise_channel::NoiseChannel;
 
 mod channel_features;
 mod noise_channel;
@@ -17,6 +18,7 @@ pub struct APU {
     voice1: SquareWaveChannel,
     voice2: SquareWaveChannel,
     voice3: WaveformChannel,
+    voice4: NoiseChannel,
     left_volume: u8,
     right_volume: u8,
     // 0-3 will represent voice 1-4 enable respectively.
@@ -35,6 +37,7 @@ impl APU {
             voice1: Default::default(),
             voice2: Default::default(),
             voice3: WaveformChannel::new(),
+            voice4: Default::default(),
             left_volume: 7,
             right_volume: 7,
             left_channel_enable: [true; 4],
@@ -61,6 +64,7 @@ impl APU {
             self.voice1.tick_timer();
             self.voice2.tick_timer();
             self.voice3.tick_timer();
+            self.voice4.tick_timer();
 
             self.frame_sequencer += 1;
             if self.frame_sequencer >= 8192 {
@@ -118,6 +122,7 @@ impl APU {
             0x10..=0x14 => self.voice1.read_register(address),
             0x15..=0x19 => self.voice2.read_register(address),
             0x1A..=0x1E | 0x30..=0x3F => self.voice3.read_register(address),
+            0x1F..=0x23 => self.voice4.read_register(address),
             // APU registers
             0x24 => self.right_volume | (self.left_volume << 4),
             0x25 => {
@@ -158,6 +163,7 @@ impl APU {
             0x10..=0x14 => self.voice1.write_register(address, value),
             0x15..=0x19 => self.voice2.write_register(address, value),
             0x1A..=0x1E | 0x30..=0x3F => self.voice3.write_register(address, value),
+            0x1F..=0x23 => self.voice4.write_register(address, value),
             0x24 => {
                 self.right_volume = value & 0x07;
                 self.left_volume = (value & 0x70) >> 4;
@@ -175,6 +181,7 @@ impl APU {
                 self.voice1 = SquareWaveChannel::default();
                 self.voice2 = SquareWaveChannel::default();
                 self.voice3.reset();
+                self.voice4 = NoiseChannel::default();
                 //TODO: Reset all voices.
             },
             //TODO: Once all voices are implemented bring back panic.
@@ -197,7 +204,9 @@ impl APU {
             result += (self.voice3.output_volume() as f32 / 100.0) * final_volume;
         }
         // Voice 4 (Noise)
-        if voice_enables[3] {}
+        if voice_enables[3] {
+            result += (self.voice4.output_volume() as f32 / 100.0) * final_volume
+        }
 
         self.output_buffer.push(result);
     }
@@ -206,11 +215,14 @@ impl APU {
         self.voice1.tick_length();
         self.voice2.tick_length();
         self.voice3.tick_length();
+        // Not sure if voice 4 uses length.
+        self.voice4.tick_length();
     }
 
     fn tick_envelop(&mut self) {
         self.voice1.tick_envelope();
         self.voice2.tick_envelope();
+        self.voice4.tick_envelope();
     }
 
     fn tick_sweep(&mut self) {
