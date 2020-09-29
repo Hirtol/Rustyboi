@@ -1,4 +1,5 @@
 use crate::hardware::apu::channel_features::{EnvelopeFeature, LengthFeature, SweepFeature};
+use crate::hardware::apu::test_bit;
 
 /// Relevant for voice 1 and 2 for the DMG.
 /// This is a rather dirty implementation where voice 1 and 2 are merged, the latter
@@ -13,7 +14,7 @@ pub struct SquareWaveChannel {
     length: LengthFeature,
     envelope: EnvelopeFeature,
     sweep: SweepFeature,
-    enabled: bool,
+    trigger: bool,
     output_volume: u8,
     frequency: u16,
     timer: u16,
@@ -31,15 +32,15 @@ impl SquareWaveChannel {
     ];
 
     pub fn output_volume(&self) -> u8 {
-        if self.enabled {
+        if self.trigger {
             self.output_volume
         } else {
             0
         }
     }
 
-    pub fn enabled(&self) -> bool {
-        self.enabled
+    pub fn triggered(&self) -> bool {
+        self.trigger
     }
 
     pub fn tick_timer(&mut self) {
@@ -82,15 +83,25 @@ impl SquareWaveChannel {
                 self.duty_select = ((value & 0b1100_0000) >> 6) as usize;
                 self.length.write_register(value);
             }
-            0x12 | 0x17 => self.envelope.write_register(value),
+            0x12 | 0x17 => {
+                self.envelope.write_register(value);
+                // If the DAC is disabled by this write we disable the channel
+                if self.envelope.volume_load == 0 {
+                    self.trigger = false;
+                }
+            },
             0x13 | 0x18 => self.frequency = (self.frequency & 0x0700) | value as u16,
             0x14 | 0x19 => {
-                self.enabled = (value & 0x80) != 0;
+                // This trigger can only be reset by internal counters, thus we only check to set it
+                // if we haven't already triggered the channel
+                if !self.trigger {
+                    self.trigger = test_bit(value, 7);
+                }
                 self.length.length_enable = (value & 0x40) == 0x40;
                 self.frequency = (self.frequency & 0xFF) | (((value & 0x07) as u16) << 8);
-                // TODO: Check if this occurs always, or only if the previous _triggered == false
-                if self.enabled {
-                    self.enable();
+
+                if self.trigger {
+                    self.trigger();
                 }
             }
             _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address),
@@ -100,15 +111,19 @@ impl SquareWaveChannel {
     /// Should be called whenever the trigger bit in NR14 is written to.
     ///
     /// The values that are set are taken from [here](https://gist.github.com/drhelius/3652407)
-    fn enable(&mut self) {
-        self.enabled = true;
+    fn trigger(&mut self) {
         self.length.trigger();
         self.timer = (2048 - self.frequency) * 4;
         self.envelope.trigger();
-        self.sweep.trigger_sweep(&mut self.enabled, self.frequency);
+        self.sweep.trigger_sweep(&mut self.trigger, self.frequency);
 
         // Default wave form should be selected.
         self.duty_select = 0x2;
+        // If the DAC doesn't have power we ignore this trigger.
+        // Why the add mode is relevant eludes me, but the PanDocs specifically mention it so..
+        if self.envelope.volume_load == 0 && !self.envelope.envelope_add_mode {
+            self.trigger = false;
+        }
     }
 
     pub fn tick_envelope(&mut self) {
@@ -116,10 +131,10 @@ impl SquareWaveChannel {
     }
 
     pub fn tick_length(&mut self) {
-        self.length.tick(&mut self.enabled);
+        self.length.tick(&mut self.trigger);
     }
 
     pub fn tick_sweep(&mut self) {
-        self.sweep.tick(&mut self.enabled, &mut self.frequency);
+        self.sweep.tick(&mut self.trigger, &mut self.frequency);
     }
 }

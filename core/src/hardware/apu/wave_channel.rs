@@ -1,6 +1,7 @@
 use num_integer::Integer;
 
 use crate::hardware::apu::channel_features::LengthFeature;
+use crate::hardware::apu::test_bit;
 
 /// Relevant for voice 3 for the DMG.
 ///
@@ -9,7 +10,7 @@ use crate::hardware::apu::channel_features::LengthFeature;
 #[derive(Default, Debug)]
 pub struct WaveformChannel {
     length: LengthFeature,
-    enabled: bool,
+    trigger: bool,
     output_volume: u8,
     frequency: u16,
     timer: u16,
@@ -32,15 +33,15 @@ impl WaveformChannel {
     }
 
     pub fn output_volume(&self) -> u8 {
-        if self.enabled && self.dac_power {
+        if self.trigger && self.dac_power {
             self.output_volume
         } else {
             0
         }
     }
 
-    pub fn enabled(&self) -> bool {
-        self.enabled
+    pub fn triggered(&self) -> bool {
+        self.trigger
     }
 
     pub fn tick_timer(&mut self) {
@@ -60,7 +61,7 @@ impl WaveformChannel {
     }
 
     pub fn tick_length(&mut self) {
-        self.length.tick(&mut self.enabled);
+        self.length.tick(&mut self.trigger);
     }
 
     pub fn read_register(&self, address: u16) -> u8 {
@@ -85,14 +86,25 @@ impl WaveformChannel {
         match address {
             0x1A => self.dac_power = (value & 0x80) == 0x80,
             0x1B => self.length.write_register_256(value),
-            0x1C => self.set_volume_from_val(value),
+            0x1C => {
+                self.set_volume_from_val(value);
+                // If we're at 0% volume we've practically disabled the DAC, and thus should
+                // disable the channel as well.
+                if self.volume_load == 0 {
+                    self.trigger = false;
+                }
+            },
             0x1D => self.frequency = (self.frequency & 0x0700) | value as u16,
             0x1E => {
-                self.enabled = (value & 0x80) != 0;
+                // This trigger can only be reset by internal counters, thus we only check to set it
+                // if we haven't already triggered the channel
+                if !self.trigger {
+                    self.trigger = test_bit(value, 7);
+                }
                 self.length.length_enable = (value & 0x40) == 0x40;
                 self.frequency = (self.frequency & 0xFF) | (((value & 0x07) as u16) << 8);
-                if self.enabled {
-                    self.enable();
+                if self.trigger {
+                    self.trigger();
                 }
             }
             0x30..=0x3F => {
@@ -109,7 +121,7 @@ impl WaveformChannel {
         self.length.length_enable = false;
         self.length.length_timer = 0;
         self.sample_pointer = 0;
-        self.enabled = false;
+        self.trigger = false;
         self.dac_power = false;
         self.volume_load = 0;
         self.volume = 0;
@@ -120,15 +132,15 @@ impl WaveformChannel {
     /// Should be called whenever the trigger bit in NR34 is written to.
     ///
     /// The values that are set are taken from [here](https://gist.github.com/drhelius/3652407)
-    fn enable(&mut self) {
-        // Only if the dac has power should the channel be re-enabled.
-        if self.dac_power {
-            self.enabled = true;
-        }
+    fn trigger(&mut self) {
         self.length.trigger_256();
         self.timer = (2048 - self.frequency) * 2;
         self.sample_pointer = 0;
         self.set_volume_from_val(self.volume_load);
+        // If the DAC doesn't have power we ignore this trigger.
+        if !self.dac_power {
+            self.trigger = false;
+        }
     }
 
     fn set_volume_from_val(&mut self, value: u8) {

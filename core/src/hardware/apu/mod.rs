@@ -143,10 +143,10 @@ impl APU {
             0x26 => {
                 let mut output = 0x70;
                 set_bit(&mut output, 7, self.global_sound_enable);
-                set_bit(&mut output, 3, self.voice4.enabled());
-                set_bit(&mut output, 2, self.voice3.enabled());
-                set_bit(&mut output, 1, self.voice2.enabled());
-                set_bit(&mut output, 0, self.voice1.enabled());
+                set_bit(&mut output, 3, self.voice4.triggered());
+                set_bit(&mut output, 2, self.voice3.triggered());
+                set_bit(&mut output, 1, self.voice2.triggered());
+                set_bit(&mut output, 0, self.voice1.triggered());
                 output
             },
             0x27..=0x2F => 0xFF, // Unused registers, always read 0xFF

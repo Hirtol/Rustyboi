@@ -10,7 +10,7 @@ use crate::hardware::apu::test_bit;
 pub struct NoiseChannel {
     envelope: EnvelopeFeature,
     length: LengthFeature,
-    enabled: bool,
+    trigger: bool,
     output_volume: u8,
     timer: u16,
     // Noise Feature
@@ -23,15 +23,15 @@ pub struct NoiseChannel {
 
 impl NoiseChannel {
     pub fn output_volume(&self) -> u8 {
-        if self.enabled {
+        if self.trigger {
             self.output_volume
         } else {
             0
         }
     }
 
-    pub fn enabled(&self) -> bool {
-        self.enabled
+    pub fn triggered(&self) -> bool {
+        self.trigger
     }
 
     pub fn tick_timer(&mut self) {
@@ -60,7 +60,7 @@ impl NoiseChannel {
     }
 
     pub fn tick_length(&mut self) {
-        self.length.tick(&mut self.enabled);
+        self.length.tick(&mut self.trigger);
     }
 
     pub fn tick_envelope(&mut self) {
@@ -85,17 +85,27 @@ impl NoiseChannel {
         match address {
             0x1F => {},
             0x20 => self.length.write_register(value),
-            0x21 => self.envelope.write_register(value),
+            0x21 => {
+                self.envelope.write_register(value);
+                // If the DAC is disabled by this write we also disable the channel
+                if self.envelope.volume_load == 0 {
+                    self.trigger = false;
+                }
+            },
             0x22 => {
                 self.clock_shift = value >> 4;
                 self.divisor_code = value & 0x7;
                 self.width_mode = test_bit(value, 3)
             },
             0x23 => {
-                self.enabled = test_bit(value, 7);
+                // This trigger can only be reset by internal counters, thus we only check to set it
+                // if we haven't already triggered the channel
+                if !self.trigger {
+                    self.trigger = test_bit(value, 7);
+                }
                 self.length.length_enable = test_bit(value, 6);
-                if self.enabled {
-                    self.enable();
+                if self.trigger {
+                    self.trigger();
                 }
             }
             _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address),
@@ -105,14 +115,18 @@ impl NoiseChannel {
     /// Should be called whenever the trigger bit in NR44 is written to.
     ///
     /// The values that are set are taken from [here](https://gist.github.com/drhelius/3652407)
-    fn enable(&mut self) {
-        // Only if the dac has power should the channel be re-enabled.
-        self.enabled = true;
+    fn trigger(&mut self) {
+
         self.length.trigger();
         self.envelope.trigger();
         self.timer = self.get_divisor_from_code() << self.clock_shift;
         // Top 15 bits all set to 1
         self.lfsr = 0x7FFF;
+        // If the DAC doesn't have power we ignore this trigger.
+        // Why the add mode is relevant eludes me, but the PanDocs specifically mention it so..
+        if self.envelope.volume_load == 0 && !self.envelope.envelope_add_mode {
+            self.trigger = false;
+        }
     }
 
     fn get_divisor_from_code(&self) -> u16 {

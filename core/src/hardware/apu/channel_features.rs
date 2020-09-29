@@ -1,9 +1,9 @@
 #[derive(Default, Debug)]
 pub struct EnvelopeFeature {
     pub volume: u8,
-    volume_load: u8,
+    pub volume_load: u8,
+    pub envelope_add_mode: bool,
     envelope_enabled: bool,
-    envelope_add_mode: bool,
     envelope_period_load_value: u8,
     envelope_period: u8,
 }
@@ -111,7 +111,6 @@ impl LengthFeature {
 
     /// Follows the behaviour for a wave channel, Length feature (256)
     pub fn trigger_256(&mut self) {
-        //TODO: VERIFY THIS
         if self.length_timer == 0 {
             self.length_timer = 256;
         }
