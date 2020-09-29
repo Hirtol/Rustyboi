@@ -2,9 +2,11 @@ use crate::hardware::cartridge::header::CartridgeHeader;
 use crate::hardware::cartridge::mbc::{MBC, MBC0, MBC1, MBC5};
 use bitflags::_core::fmt::{Debug, Formatter};
 use std::fmt;
+use crate::hardware::cartridge::mbc3::MBC3;
 
 pub mod header;
-mod mbc;
+pub mod mbc;
+mod mbc3;
 
 pub struct Cartridge {
     header: CartridgeHeader,
@@ -60,6 +62,11 @@ fn create_mbc(header: &CartridgeHeader, rom: &[u8], saved_ram: Option<Vec<u8>>) 
         // Potentially need to specify RAM + Battery for MBC1.
         0x2 => Box::new(MBC1::new(rom_vec, false, &header.ram_size, None)),
         0x3 => Box::new(MBC1::new(rom_vec, true, &header.ram_size, saved_ram)),
+        0xF => Box::new(MBC3::new(rom_vec, true, &header.ram_size, None)),
+        0x10 => Box::new(MBC3::new(rom_vec, true, &header.ram_size, saved_ram)),
+        0x11 => Box::new(MBC3::new(rom_vec, false, &header.ram_size, None)),
+        0x12 => Box::new(MBC3::new(rom_vec, false, &header.ram_size, saved_ram)),
+        0x13 => Box::new(MBC3::new(rom_vec, true, &header.ram_size, saved_ram)),
         0x19 => Box::new(MBC5::new(rom_vec, false, &header.ram_size, None)),
         0x1A => Box::new(MBC5::new(rom_vec, false, &header.ram_size, None)),
         0x1B => Box::new(MBC5::new(rom_vec, true, &header.ram_size, saved_ram)),

@@ -14,8 +14,8 @@ use crate::hardware::cartridge::header::RamSizes;
 use crate::hardware::memory::*;
 
 // 8 KB
-const EXTERNAL_RAM_SIZE: usize = 8192;
-const ROM_BANK_SIZE: usize = 16384;
+pub const EXTERNAL_RAM_SIZE: usize = 8192;
+pub const ROM_BANK_SIZE: usize = 16384;
 
 pub trait MBC {
     fn read_3fff(&self, address: u16) -> u8;
@@ -296,6 +296,8 @@ impl MBC for MBC5 {
         }
     }
 }
+
+
 
 #[cfg(test)]
 mod tests {
