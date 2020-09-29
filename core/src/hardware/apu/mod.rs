@@ -139,14 +139,13 @@ impl APU {
                 let mut output = 0x70;
                 set_bit(&mut output, 7, self.global_sound_enable);
                 //TODO: These three voices enable flags.
-                set_bit(&mut output, 3, true);
+                set_bit(&mut output, 3, self.voice4.enabled());
                 set_bit(&mut output, 2, self.voice3.enabled());
                 set_bit(&mut output, 1, self.voice2.enabled());
                 set_bit(&mut output, 0, self.voice1.enabled());
                 output
             }
-            //TODO: Once all voices are implemented bring back panic.
-            _ => 0xFF, //panic!("Attempt to read an unknown audio register: 0xFF{:02X}", address),
+            _ => 0xFF,
         }
     }
 
@@ -182,10 +181,8 @@ impl APU {
                 self.voice2 = SquareWaveChannel::default();
                 self.voice3.reset();
                 self.voice4 = NoiseChannel::default();
-                //TODO: Reset all voices.
             },
-            //TODO: Once all voices are implemented bring back panic.
-            _ => {} //panic!("Attempt to write to an unknown audio register: 0xFF{:02X} with val: {}", address, value),
+            _ => panic!("Attempt to write to an unknown audio register: 0xFF{:02X} with val: {}", address, value),
         }
     }
 

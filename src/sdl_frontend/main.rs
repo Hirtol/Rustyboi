@@ -88,7 +88,7 @@ fn main() {
 
     let bootrom_file = read("roms\\DMG_ROM.bin").unwrap();
 
-    let cartridge = "roms/Kirby's Dream Land.gb";
+    let cartridge = "roms/Zelda.gb";
     let _cpu_test = "test roms/blargg/instr_timing/instr_timing.gb";
     let _cpu_test2 = "test roms/mooneye/tests/emulator-only/mbc5/mbc5_rom_512kb.gb";
 
@@ -324,15 +324,32 @@ fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_textu
         // Temp loop for testing.
         // TODO: Implement actual cycling.
         if start_time.elapsed() < Duration::new(1, 0) {
+            // loop {
+            //     emulator.emulate_cycle();
+            //     count += 1;
+            //     if count % 100_000_000 == 0 {
+            //         warn!("REACHED VALUE: {} AFTER: {:?}", count, start_time.elapsed());
+            //         break;
+            //     }
+            // }
+            let mut frame_count = 0;
+            let start_time = Instant::now();
+            let mut cycles = 0;
             loop {
-                emulator.emulate_cycle();
-                count += 1;
-                if count % 100_000_000 == 0 {
-                    warn!("REACHED VALUE: {} AFTER: {:?}", count, start_time.elapsed());
+                while cycles < CYCLES_PER_FRAME {
+                    cycles += emulator.emulate_cycle() as u32;
+                }
+
+                cycles -= CYCLES_PER_FRAME;
+                frame_count += 1;
+                if frame_count > 20_000 {
+                    println!("Rendered: {} frames per second after 20_000 frames!", frame_count as f64/start_time.elapsed().as_secs_f64());
                     break;
                 }
             }
         }
+
+
 
         fill_texture_and_copy(
             &mut canvas,
