@@ -5,6 +5,7 @@ use crate::hardware::apu::test_bit;
 ///
 /// # Properties:
 /// * Volume Envelope
+/// * Length Feature (? Not listed in docs, but has a register for it)
 #[derive(Debug, Default)]
 pub struct NoiseChannel {
     envelope: EnvelopeFeature,

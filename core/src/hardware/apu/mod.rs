@@ -19,6 +19,9 @@ pub struct APU {
     voice2: SquareWaveChannel,
     voice3: WaveformChannel,
     voice4: NoiseChannel,
+    // The vins are unused by by games, but for the sake of accuracy tests will be kept here.
+    vin_l_enable: bool,
+    vin_r_enable: bool,
     left_volume: u8,
     right_volume: u8,
     // 0-3 will represent voice 1-4 enable respectively.
@@ -38,6 +41,8 @@ impl APU {
             voice2: Default::default(),
             voice3: WaveformChannel::new(),
             voice4: Default::default(),
+            vin_l_enable: false,
+            vin_r_enable: false,
             left_volume: 7,
             right_volume: 7,
             left_channel_enable: [true; 4],
@@ -112,11 +117,6 @@ impl APU {
 
     pub fn read_register(&self, address: u16) -> u8 {
         let address = address & 0xFF;
-        // It's not possible to access any registers beside 0x26 while the sound is disabled.
-        if !self.global_sound_enable && address != 0x26 && !(0x30..=0x3F).contains(&address) {
-            log::warn!("Tried to read APU while inaccessible");
-            return 0xFF;
-        }
 
         match address {
             0x10..=0x14 => self.voice1.read_register(address),
@@ -124,7 +124,12 @@ impl APU {
             0x1A..=0x1E | 0x30..=0x3F => self.voice3.read_register(address),
             0x1F..=0x23 => self.voice4.read_register(address),
             // APU registers
-            0x24 => self.right_volume | (self.left_volume << 4),
+            0x24 => {
+                let mut output = 0;
+                set_bit(&mut output, 7, self.vin_l_enable);
+                set_bit(&mut output, 3, self.vin_r_enable);
+                output |(self.left_volume << 4) | self.right_volume
+            } ,
             0x25 => {
                 let mut output = 0;
                 for i in 0..4 {
@@ -138,14 +143,14 @@ impl APU {
             0x26 => {
                 let mut output = 0x70;
                 set_bit(&mut output, 7, self.global_sound_enable);
-                //TODO: These three voices enable flags.
                 set_bit(&mut output, 3, self.voice4.enabled());
                 set_bit(&mut output, 2, self.voice3.enabled());
                 set_bit(&mut output, 1, self.voice2.enabled());
                 set_bit(&mut output, 0, self.voice1.enabled());
                 output
-            }
-            _ => 0xFF,
+            },
+            0x27..=0x2F => 0xFF, // Unused registers, always read 0xFF
+            _ => panic!("Out of bound APU register read: {}", address),
         }
     }
 
@@ -164,6 +169,8 @@ impl APU {
             0x1A..=0x1E | 0x30..=0x3F => self.voice3.write_register(address, value),
             0x1F..=0x23 => self.voice4.write_register(address, value),
             0x24 => {
+                self.vin_l_enable = test_bit(value, 7);
+                self.vin_r_enable = test_bit(value, 3);
                 self.right_volume = value & 0x07;
                 self.left_volume = (value & 0x70) >> 4;
             }
@@ -176,12 +183,10 @@ impl APU {
                 }
             }
             0x26 => {
-                self.global_sound_enable = (value & 0b1000_0000) == 0b1000_0000;
-                self.voice1 = SquareWaveChannel::default();
-                self.voice2 = SquareWaveChannel::default();
-                self.voice3.reset();
-                self.voice4 = NoiseChannel::default();
+                self.global_sound_enable = test_bit(value, 7);
+                self.reset();
             },
+            0x27..=0x2F => {} // Writes to unused registers are silently ignored.
             _ => panic!("Attempt to write to an unknown audio register: 0xFF{:02X} with val: {}", address, value),
         }
     }
@@ -225,10 +230,25 @@ impl APU {
     fn tick_sweep(&mut self) {
         self.voice1.tick_sweep();
     }
+
+    fn reset(&mut self) {
+        self.voice1 = SquareWaveChannel::default();
+        self.voice2 = SquareWaveChannel::default();
+        self.voice3.reset();
+        self.voice4 = NoiseChannel::default();
+        self.vin_l_enable = false;
+        self.vin_r_enable = false;
+        self.right_volume = 0;
+        self.left_volume = 0;
+        self.left_channel_enable = [false; 4];
+        self.right_channel_enable = [false; 4]
+    }
 }
 
 fn set_bit(output: &mut u8, bit: u8, set: bool) {
-    *output = (*output & (!bit)) | if set { 1 } else { 0 } << bit;
+    if set {
+        *output |= 1 << bit;
+    }
 }
 
 fn test_bit(value: u8, bit: u8) -> bool {
