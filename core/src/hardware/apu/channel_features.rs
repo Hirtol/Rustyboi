@@ -75,6 +75,12 @@ pub struct LengthFeature {
 }
 
 impl LengthFeature {
+
+    pub fn peculiar_tick(&mut self, channel_enable: &mut bool, old_enable: bool) {
+        if !old_enable {
+            self.tick(channel_enable);
+        }
+    }
     /// Ticks the length feature.
     ///
     /// # Manipulations

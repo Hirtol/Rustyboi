@@ -165,8 +165,6 @@ impl APU {
             return;
         }
 
-        self.test_length_sequencer_edge_case(address, value);
-
         match address {
             0x10..=0x14 => self.voice1.write_register(address, value, self.frame_sequencer_step),
             0x15..=0x19 => self.voice2.write_register(address, value, self.frame_sequencer_step),
@@ -209,11 +207,11 @@ impl APU {
         let mut result = 0f32;
         // Voice 1 (Square wave)
         if voice_enables[0] {
-            //result += (self.voice1.output_volume() as f32 / 100.0) * final_volume;
+            result += (self.voice1.output_volume() as f32 / 100.0) * final_volume;
         }
         // Voice 2 (Square wave)
         if voice_enables[1] {
-            //result += (self.voice2.output_volume() as f32 / 100.0) * final_volume;
+            result += (self.voice2.output_volume() as f32 / 100.0) * final_volume;
         }
         // Voice 3 (Wave)
         if voice_enables[2] {
@@ -221,7 +219,7 @@ impl APU {
         }
         // Voice 4 (Noise)
         if voice_enables[3] {
-            //result += (self.voice4.output_volume() as f32 / 100.0) * final_volume
+            result += (self.voice4.output_volume() as f32 / 100.0) * final_volume
         }
 
         self.output_buffer.push(result);

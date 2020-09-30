@@ -98,6 +98,12 @@ impl NoiseChannel {
                 self.width_mode = test_bit(value, 3)
             },
             0x23 => {
+                let old_length_enable = self.length.length_enable;
+                let next_step = no_length_tick_next_step(next_frame_sequencer_step);
+                self.length.length_enable = test_bit(value, 6);
+                if next_step {
+                    self.length.peculiar_tick(&mut self.trigger, old_length_enable);
+                }
                 // This trigger can only be reset by internal counters, thus we only check to set it
                 // if we haven't already triggered the channel
                 if !self.trigger {
@@ -105,7 +111,7 @@ impl NoiseChannel {
                 }
                 self.length.length_enable = test_bit(value, 6);
                 if self.trigger {
-                    self.trigger(no_length_tick_next_step(next_frame_sequencer_step));
+                    self.trigger(next_step);
                 }
             }
             _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address),
