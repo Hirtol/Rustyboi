@@ -252,7 +252,9 @@ impl APU {
         self.right_volume = 0;
         self.left_volume = 0;
         self.left_channel_enable = [false; 4];
-        self.right_channel_enable = [false; 4]
+        self.right_channel_enable = [false; 4];
+        self.frame_sequencer = 0;
+        self.frame_sequencer_step = 0;
     }
 }
 

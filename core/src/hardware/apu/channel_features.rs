@@ -6,8 +6,8 @@ pub struct EnvelopeFeature {
     pub volume_load: u8,
     pub envelope_add_mode: bool,
     envelope_enabled: bool,
-    envelope_period_load_value: u8,
     envelope_period: u8,
+    envelope_timer: u8,
 }
 
 impl EnvelopeFeature {
@@ -22,15 +22,15 @@ impl EnvelopeFeature {
     ///
     /// When the waveform input is zero the envelope outputs zero, otherwise it outputs the current volume.
     pub fn tick(&mut self) {
-        if self.envelope_enabled && self.envelope_period > 0 {
-            self.envelope_period = self.envelope_period.saturating_sub(1);
+        if self.envelope_enabled && self.envelope_timer > 0 {
+            self.envelope_timer = self.envelope_timer.saturating_sub(1);
 
-            if self.envelope_period == 0 {
+            if self.envelope_timer == 0 {
                 if self.envelope_add_mode {
                     let new_val = self.volume + 1;
                     if new_val <= 15 {
                         self.volume = new_val;
-                        self.envelope_period = self.envelope_period_load_value;
+                        self.envelope_timer = self.envelope_period;
                     } else {
                         self.envelope_enabled = false;
                     }
@@ -38,7 +38,7 @@ impl EnvelopeFeature {
                     let (new_val, overflow) = self.volume.overflowing_sub(1);
                     if !overflow {
                         self.volume = new_val;
-                        self.envelope_period = self.envelope_period_load_value;
+                        self.envelope_timer = self.envelope_period;
                     } else {
                         self.envelope_enabled = false;
                     }
@@ -51,15 +51,15 @@ impl EnvelopeFeature {
     pub fn trigger(&mut self, next_step_envelope: bool) {
         self.envelope_enabled = true;
         self.volume = self.volume_load;
-        self.envelope_period = if next_step_envelope {
-            (self.envelope_period_load_value + 1) % 8
+        self.envelope_timer = if next_step_envelope {
+            (self.envelope_period + 1) % 8
         } else {
-            self.envelope_period_load_value
+            self.envelope_period
         };
     }
 
     pub fn read_register(&self) -> u8 {
-        (self.volume_load << 4) | self.envelope_period_load_value | if self.envelope_add_mode { 0x8 } else { 0 }
+        (self.volume_load << 4) | self.envelope_period | if self.envelope_add_mode { 0x8 } else { 0 }
     }
 
     pub fn write_register(&mut self, value: u8) {
@@ -67,9 +67,9 @@ impl EnvelopeFeature {
         // Not sure if to reload this value.
         self.volume = self.volume_load;
         self.envelope_add_mode = (value & 0x8) == 0x8;
-        self.envelope_period_load_value = value & 0x7;
+        self.envelope_period = value & 0x7;
         // Does this immediately load?
-        self.envelope_period = self.envelope_period_load_value;
+        self.envelope_timer = self.envelope_period;
     }
 }
 
