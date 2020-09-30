@@ -97,10 +97,13 @@ impl WaveformChannel {
             0x1D => self.frequency = (self.frequency & 0x0700) | value as u16,
             0x1E => {
                 let old_length_enable = self.length.length_enable;
-                let next_step = no_length_tick_next_step(next_frame_sequencer_step);
+                let no_l_next = no_length_tick_next_step(next_frame_sequencer_step);
+
                 self.length.length_enable = test_bit(value, 6);
-                if next_step {
-                    self.length.peculiar_tick(&mut self.trigger, old_length_enable);
+                self.frequency = (self.frequency & 0xFF) | (((value & 0x07) as u16) << 8);
+
+                if no_l_next {
+                    self.length.second_half_enable_tick(&mut self.trigger, old_length_enable);
                 }
                 // This trigger can only be reset by internal counters, thus we only check to set it
                 // if we haven't already triggered the channel
@@ -108,14 +111,11 @@ impl WaveformChannel {
                     self.trigger = test_bit(value, 7);
                 }
 
-                self.frequency = (self.frequency & 0xFF) | (((value & 0x07) as u16) << 8);
-
                 if self.trigger {
-                    self.trigger(next_step);
+                    self.trigger(no_l_next);
                 }
             }
             0x30..=0x3F => {
-                log::warn!("Writing Samples");
                 let offset_address = ((address - 0x30) * 2) as usize;
                 self.sample_buffer[offset_address] = value >> 4;
                 self.sample_buffer[offset_address + 1] = value & 0xF;

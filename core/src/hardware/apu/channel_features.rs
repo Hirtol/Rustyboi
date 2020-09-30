@@ -76,11 +76,6 @@ pub struct LengthFeature {
 
 impl LengthFeature {
 
-    pub fn peculiar_tick(&mut self, channel_enable: &mut bool, old_enable: bool) {
-        if !old_enable {
-            self.tick(channel_enable);
-        }
-    }
     /// Ticks the length feature.
     ///
     /// # Manipulations
@@ -101,6 +96,9 @@ impl LengthFeature {
     /// Follows the behaviour when a channel is triggered for the Length feature (64)
     pub fn trigger(&mut self, next_step_no_length: bool) {
         if self.length_timer == 0 {
+            // If a channel is triggered when the frame sequencer's next step is one that doesn't
+            // clock the length counter and the length counter is now enabled and length is
+            // being set to 64 because it was previously zero, it is set to 63 instead.
             if next_step_no_length && self.length_enable {
                 self.length_timer = 63;
             } else {
@@ -122,6 +120,7 @@ impl LengthFeature {
     /// Follows the behaviour for a wave channel, Length feature (256)
     pub fn trigger_256(&mut self, next_step_no_length: bool) {
         if self.length_timer == 0 {
+            // See trigger() method above, except with 256 and 255.
             if next_step_no_length && self.length_enable {
                 self.length_timer = 255;
             } else {
@@ -134,6 +133,17 @@ impl LengthFeature {
         self.length_load = value;
         // I think this is correct, not sure.
         self.length_timer = 256 - self.length_load as u16;
+    }
+
+    /// Tests for a particular edge case (described within the method) when the address points
+    /// to one of the NRx4 registers of the voices.
+    pub fn second_half_enable_tick(&mut self, channel_enable: &mut bool, old_enable: bool) {
+        // If we write to length when the next step in the frame sequencer DOESN't tick length
+        // AND if the length counter was previously disabled and now enabled AND the length
+        // counter isn't zero it is then decremented once.
+        if !old_enable {
+            self.tick(channel_enable);
+        }
     }
 }
 

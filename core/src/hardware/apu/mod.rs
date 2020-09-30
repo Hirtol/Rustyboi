@@ -254,59 +254,10 @@ impl APU {
         self.left_channel_enable = [false; 4];
         self.right_channel_enable = [false; 4]
     }
-
-    /// Tests for a particular edge case (described within the method) when the address points
-    /// to one of the NRx4 registers of the voices.
-    fn test_length_sequencer_edge_case(&mut self, address: u16, value: u8) {
-        // If we write to length when the next step in the frame sequencer DOESN't tick length
-        // AND if the length counter was previously disabled and now enabled AND the length
-        // counter isn't zero it is then decremented once.
-        // Due to the fact that we increment frame_sequencer immediately we have to check for current_step + 1
-        if [0x14, 0x19, 0x1E, 0x23].contains(&address)
-            && [1, 3, 5, 7].contains(&self.frame_sequencer_step)
-            && test_bit(value, 6) {
-            log::warn!("Reached ticking Length!");
-            // Have to clone or else we have a mut and immut reference ._.
-            let length_feature = match address {
-                0x14 => self.voice1.length.clone(),
-                0x19 => self.voice2.length.clone(),
-                0x1E => self.voice3.length.clone(),
-                0x23 => self.voice4.length.clone(),
-                _ => panic!("Invalid read address passed: 0xFF{:02X}", address),
-            };
-
-            if !length_feature.length_enable && length_feature.length_timer > 0 {
-                //TODO: Think of a way to avoid the double match for the same thing.
-                log::warn!("Ticking Length, before: {}", length_feature.length_timer);
-                match address {
-                    0x14 => {
-                        // We have to preemptively set length_enable to true, or else the tick
-                        // won't work. This is not an ideal architecture and I should redo this
-                        // later.
-                        self.voice1.length.length_enable = true;
-                        self.voice1.tick_length()
-                    },
-                    0x19 => {
-                        self.voice2.length.length_enable = true;
-                        self.voice2.tick_length()
-                    },
-                    0x1E => {
-                        self.voice3.length.length_enable = true;
-                        self.voice3.tick_length()
-                    },
-                    0x23 => {
-                        self.voice4.length.length_enable = true;
-                        self.voice4.tick_length()
-                    },
-                    _ => panic!("Invalid read address passed: 0xFF{:02X}", address),
-                };
-                log::warn!("After: {}", self.voice1.length.length_timer);
-            }
-        }
-    }
 }
 
 fn no_length_tick_next_step(next_frame_sequence_val: u8) -> bool {
+    // Due to the fact that we increment frame_sequencer immediately we have to check for current_step + 1
     [1, 3, 5, 7].contains(&next_frame_sequence_val)
 }
 
