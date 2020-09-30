@@ -195,6 +195,7 @@ impl SweepFeature {
     pub fn trigger_sweep(&mut self, channel_enable: &mut bool, frequency: u16) {
         self.sweep_frequency_shadow = frequency;
         self.sweep_enabled = self.sweep_period != 0 || self.sweep_shift != 0;
+        // Sweep timer treats a period of 0 as 8 for some reason.
         self.sweep_timer = if self.sweep_period == 0 { 8 } else { self.sweep_period };
         self.done_negate_calc = false;
         //If the sweep shift is non-zero, frequency calculation and the overflow check are performed immediately.

@@ -74,7 +74,20 @@ impl WaveformChannel {
             0x1D => 0xFF,
             0x1E => 0xBF | if self.length.length_enable { 0x40 } else { 0x0 },
             0x30..=0x3F => {
-                let offset_address = ((address - 0x30) * 2) as usize;
+                // If the wave channel is enabled, accessing any byte from $FF30-$FF3F is equivalent
+                // to accessing the current byte selected by the waveform position.
+                // Further, on the DMG accesses will only work in this manner if made within a
+                // couple of clocks of the wave channel accessing wave RAM;
+                // if made at any other time, reads return $FF and writes have no effect.
+                let offset_address = if self.trigger {
+                    if self.sample_pointer % 2 == 1 {
+                        (self.sample_pointer-1) as usize
+                    }else {
+                        self.sample_pointer as usize
+                    }
+                } else {
+                    ((address - 0x30) * 2) as usize
+                };
                 (self.sample_buffer[offset_address] << 4) | self.sample_buffer[offset_address + 1]
             }
             _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address),
