@@ -1,6 +1,6 @@
+use crate::hardware::apu::noise_channel::NoiseChannel;
 use crate::hardware::apu::square_channel::SquareWaveChannel;
 use crate::hardware::apu::wave_channel::WaveformChannel;
-use crate::hardware::apu::noise_channel::NoiseChannel;
 
 mod channel_features;
 mod noise_channel;
@@ -12,7 +12,9 @@ mod wave_channel;
 pub const SAMPLE_SIZE_BUFFER: usize = 739;
 
 pub const APU_MEM_START: u16 = 0xFF10;
-pub const APU_MEM_END: u16 = 0xFF3F;
+pub const APU_MEM_END: u16 = 0xFF29;
+pub const WAVE_SAMPLE_START: u16 = 0xFF30;
+pub const WAVE_SAMPLE_END: u16 = 0xFF3F;
 
 pub struct APU {
     voice1: SquareWaveChannel,
@@ -121,15 +123,15 @@ impl APU {
         match address {
             0x10..=0x14 => self.voice1.read_register(address),
             0x15..=0x19 => self.voice2.read_register(address),
-            0x1A..=0x1E | 0x30..=0x3F => self.voice3.read_register(address),
+            0x1A..=0x1E => self.voice3.read_register(address),
             0x1F..=0x23 => self.voice4.read_register(address),
             // APU registers
             0x24 => {
                 let mut output = 0;
                 set_bit(&mut output, 7, self.vin_l_enable);
                 set_bit(&mut output, 3, self.vin_r_enable);
-                output |(self.left_volume << 4) | self.right_volume
-            } ,
+                output | (self.left_volume << 4) | self.right_volume
+            }
             0x25 => {
                 let mut output = 0;
                 for i in 0..4 {
@@ -158,15 +160,17 @@ impl APU {
         let address = address & 0xFF;
 
         // It's not possible to access any registers beside 0x26 while the sound is disabled.
-        if !self.global_sound_enable && address != 0x26 && !(0x30..=0x3F).contains(&address) {
+        if !self.global_sound_enable && address != 0x26 {
             log::warn!("Tried to write APU while inaccessible");
             return;
         }
 
+        self.test_length_sequencer_edge_case(address, value);
+
         match address {
             0x10..=0x14 => self.voice1.write_register(address, value),
             0x15..=0x19 => self.voice2.write_register(address, value),
-            0x1A..=0x1E | 0x30..=0x3F => self.voice3.write_register(address, value),
+            0x1A..=0x1E => self.voice3.write_register(address, value),
             0x1F..=0x23 => self.voice4.write_register(address, value),
             0x24 => {
                 self.vin_l_enable = test_bit(value, 7);
@@ -191,15 +195,25 @@ impl APU {
         }
     }
 
+    pub fn read_wave_sample(&self, address: u16) -> u8 {
+        let address = address & 0xFF;
+        self.voice3.read_register(address)
+    }
+
+    pub fn write_wave_sample(&mut self, address: u16, value: u8) {
+        let address = address & 0xFF;
+        self.voice3.write_register(address, value)
+    }
+
     fn generate_audio(&mut self, voice_enables: [bool; 4], final_volume: f32) {
         let mut result = 0f32;
         // Voice 1 (Square wave)
         if voice_enables[0] {
-            result += (self.voice1.output_volume() as f32 / 100.0) * final_volume;
+            //result += (self.voice1.output_volume() as f32 / 100.0) * final_volume;
         }
         // Voice 2 (Square wave)
         if voice_enables[1] {
-            result += (self.voice2.output_volume() as f32 / 100.0) * final_volume;
+            //result += (self.voice2.output_volume() as f32 / 100.0) * final_volume;
         }
         // Voice 3 (Wave)
         if voice_enables[2] {
@@ -207,7 +221,7 @@ impl APU {
         }
         // Voice 4 (Noise)
         if voice_enables[3] {
-            result += (self.voice4.output_volume() as f32 / 100.0) * final_volume
+            //result += (self.voice4.output_volume() as f32 / 100.0) * final_volume
         }
 
         self.output_buffer.push(result);
@@ -242,6 +256,43 @@ impl APU {
         self.left_volume = 0;
         self.left_channel_enable = [false; 4];
         self.right_channel_enable = [false; 4]
+    }
+
+    /// Tests for a particular edge case (described within the method) when the address points
+    /// to one of the NRx4 registers of the voices.
+    fn test_length_sequencer_edge_case(&mut self, address: u16, value: u8) {
+        if address == 0x14 && value == 0x40 {
+            log::warn!("HEY FUNCTION: {} {}", self.frame_sequencer_step, test_bit(value, 6));
+        }
+        // If we write to length when the next step in the frame sequencer DOESN't tick length
+        // AND if the length counter was previously disabled and now enabled AND the length
+        // counter isn't zero it is then decremented once.
+        // Due to the fact that we increment frame_sequencer immediately we have to check for current_step + 1
+        if [0x14, 0x19, 0x1E, 0x23].contains(&address)
+            && [1, 3, 5, 7].contains(&self.frame_sequencer_step)
+            && test_bit(value, 6) {
+            log::warn!("Reached ticking Length!");
+            // Have to clone or else we have a mut and immut reference ._.
+            let length_feature = match address {
+                0x14 => self.voice1.length.clone(),
+                0x19 => self.voice2.length.clone(),
+                0x1E => self.voice3.length.clone(),
+                0x23 => self.voice4.length.clone(),
+                _ => panic!("Invalid read address passed: 0xFF{:02X}", address),
+            };
+
+            if !length_feature.length_enable && length_feature.length_timer > 0 {
+                //TODO: Think of a way to avoid the double match for the same thing.
+                log::warn!("Ticking Length, before: {}!", length_feature.length_timer);
+                match address {
+                    0x14 => self.voice1.tick_length(),
+                    0x19 => self.voice2.tick_length(),
+                    0x1E => self.voice3.tick_length(),
+                    0x23 => self.voice4.tick_length(),
+                    _ => panic!("Invalid read address passed: 0xFF{:02X}", address),
+                };
+            }
+        }
     }
 }
 

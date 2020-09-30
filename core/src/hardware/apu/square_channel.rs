@@ -11,7 +11,7 @@ use crate::hardware::apu::test_bit;
 /// * Length Counter
 #[derive(Default, Debug)]
 pub struct SquareWaveChannel {
-    length: LengthFeature,
+    pub length: LengthFeature,
     envelope: EnvelopeFeature,
     sweep: SweepFeature,
     trigger: bool,

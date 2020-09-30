@@ -9,7 +9,7 @@ use crate::hardware::apu::test_bit;
 /// * Length Counter
 #[derive(Default, Debug)]
 pub struct WaveformChannel {
-    length: LengthFeature,
+    pub length: LengthFeature,
     trigger: bool,
     output_volume: u8,
     frequency: u16,
@@ -70,8 +70,8 @@ impl WaveformChannel {
         match address {
             0x1A => 0x7F | if self.dac_power { 0x80 } else { 0 },
             0x1B => 0xFF,
-            0x1C => 0x9F | self.volume_load, // todo
-            0x1D => 0xFF, // Can't read NR33
+            0x1C => 0x9F | self.volume_load,
+            0x1D => 0xFF,
             0x1E => 0xBF | if self.length.length_enable { 0x40 } else { 0x0 },
             0x30..=0x3F => {
                 let offset_address = ((address - 0x30) * 2) as usize;

@@ -8,8 +8,8 @@ use crate::hardware::apu::test_bit;
 /// * Length Feature (? Not listed in docs, but has a register for it)
 #[derive(Debug, Default)]
 pub struct NoiseChannel {
+    pub length: LengthFeature,
     envelope: EnvelopeFeature,
-    length: LengthFeature,
     trigger: bool,
     output_volume: u8,
     timer: u16,

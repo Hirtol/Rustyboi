@@ -8,7 +8,7 @@ use bitflags::_core::fmt::{Debug, Formatter};
 use log::*;
 use std::fmt;
 
-use crate::hardware::apu::{APU, APU_MEM_END, APU_MEM_START};
+use crate::hardware::apu::{APU, APU_MEM_END, APU_MEM_START, WAVE_SAMPLE_START, WAVE_SAMPLE_END};
 use crate::io::joypad::*;
 use crate::io::timer::*;
 
@@ -165,7 +165,16 @@ impl Memory {
                 //log::info!("Reading interrupt flag {:?}", self.interrupts_flag);
                 self.interrupts_flag.bits()
             }
-            APU_MEM_START..=APU_MEM_END => self.apu.read_register(address),
+            APU_MEM_START..=APU_MEM_END => {
+                let result = self.apu.read_register(address);
+                log::info!("APU Read on address: 0x{:02X} with return value: 0x{:02X}", address, result);
+                result
+            },
+            WAVE_SAMPLE_START..=WAVE_SAMPLE_END => {
+                let result = self.apu.read_wave_sample(address);
+                log::info!("APU Wave_Read on address: 0x{:02X} with return value: 0x{:02X}", address, result);
+                result
+            }
             LCD_CONTROL_REGISTER => self.ppu.get_lcd_control(),
             LCD_STATUS_REGISTER => self.ppu.get_lcd_status(),
             SCY_REGISTER => self.ppu.get_scy(),
@@ -195,7 +204,14 @@ impl Memory {
                 self.interrupts_flag = InterruptFlags::from_bits_truncate(value);
                 //log::info!("Writing interrupt flag {:?}", self.interrupts_flag);
             }
-            APU_MEM_START..=APU_MEM_END => self.apu.write_register(address, value),
+            APU_MEM_START..=APU_MEM_END => {
+                log::info!("APU Write on address: 0x{:02X} with value: 0x{:02X}", address, value);
+                self.apu.write_register(address, value)
+            },
+            WAVE_SAMPLE_START..=WAVE_SAMPLE_END => {
+                log::info!("APU Wave_Write on address: 0x{:02X} with value: 0x{:02X}", address, value);
+                self.apu.write_wave_sample(address, value)
+            }
             LCD_CONTROL_REGISTER => self.ppu.set_lcd_control(value),
             LCD_STATUS_REGISTER => self.ppu.set_lcd_status(value),
             SCY_REGISTER => self.ppu.set_scy(value),
