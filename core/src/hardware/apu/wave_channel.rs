@@ -1,7 +1,7 @@
 use num_integer::Integer;
 
 use crate::hardware::apu::channel_features::LengthFeature;
-use crate::hardware::apu::test_bit;
+use crate::hardware::apu::{test_bit, no_length_tick_next_step};
 
 /// Relevant for voice 3 for the DMG.
 ///
@@ -81,7 +81,7 @@ impl WaveformChannel {
         }
     }
 
-    pub fn write_register(&mut self, address: u16, value: u8) {
+    pub fn write_register(&mut self, address: u16, value: u8, next_frame_sequencer_step: u8) {
         // Expect the address to already have had an & 0xFF
         match address {
             0x1A => self.dac_power = (value & 0x80) == 0x80,
@@ -104,7 +104,7 @@ impl WaveformChannel {
                 self.length.length_enable = (value & 0x40) == 0x40;
                 self.frequency = (self.frequency & 0xFF) | (((value & 0x07) as u16) << 8);
                 if self.trigger {
-                    self.trigger();
+                    self.trigger(no_length_tick_next_step(next_frame_sequencer_step));
                 }
             }
             0x30..=0x3F => {
@@ -132,8 +132,8 @@ impl WaveformChannel {
     /// Should be called whenever the trigger bit in NR34 is written to.
     ///
     /// The values that are set are taken from [here](https://gist.github.com/drhelius/3652407)
-    fn trigger(&mut self) {
-        self.length.trigger_256();
+    fn trigger(&mut self, next_step_no_length: bool) {
+        self.length.trigger_256(next_step_no_length);
         self.timer = (2048 - self.frequency) * 2;
         self.sample_pointer = 0;
         self.set_volume_from_val(self.volume_load);

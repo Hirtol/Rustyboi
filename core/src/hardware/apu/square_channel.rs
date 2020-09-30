@@ -1,5 +1,5 @@
 use crate::hardware::apu::channel_features::{EnvelopeFeature, LengthFeature, SweepFeature};
-use crate::hardware::apu::test_bit;
+use crate::hardware::apu::{test_bit, no_length_tick_next_step};
 
 /// Relevant for voice 1 and 2 for the DMG.
 /// This is a rather dirty implementation where voice 1 and 2 are merged, the latter
@@ -75,7 +75,7 @@ impl SquareWaveChannel {
         }
     }
 
-    pub fn write_register(&mut self, address: u16, value: u8) {
+    pub fn write_register(&mut self, address: u16, value: u8, next_frame_sequencer_step: u8) {
         // Expect the address to already have had an & 0xFF
         match address {
             0x10 | 0x15 => self.sweep.write_register(value),
@@ -101,7 +101,7 @@ impl SquareWaveChannel {
                 self.frequency = (self.frequency & 0xFF) | (((value & 0x07) as u16) << 8);
 
                 if self.trigger {
-                    self.trigger();
+                    self.trigger(no_length_tick_next_step(next_frame_sequencer_step));
                 }
             }
             _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address),
@@ -111,8 +111,8 @@ impl SquareWaveChannel {
     /// Should be called whenever the trigger bit in NR14 is written to.
     ///
     /// The values that are set are taken from [here](https://gist.github.com/drhelius/3652407)
-    fn trigger(&mut self) {
-        self.length.trigger();
+    fn trigger(&mut self, next_step_no_length: bool) {
+        self.length.trigger(next_step_no_length);
         self.timer = (2048 - self.frequency) * 4;
         self.envelope.trigger();
         self.sweep.trigger_sweep(&mut self.trigger, self.frequency);

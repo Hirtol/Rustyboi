@@ -12,7 +12,7 @@ mod wave_channel;
 pub const SAMPLE_SIZE_BUFFER: usize = 739;
 
 pub const APU_MEM_START: u16 = 0xFF10;
-pub const APU_MEM_END: u16 = 0xFF29;
+pub const APU_MEM_END: u16 = 0xFF2F;
 pub const WAVE_SAMPLE_START: u16 = 0xFF30;
 pub const WAVE_SAMPLE_END: u16 = 0xFF3F;
 
@@ -168,10 +168,10 @@ impl APU {
         self.test_length_sequencer_edge_case(address, value);
 
         match address {
-            0x10..=0x14 => self.voice1.write_register(address, value),
-            0x15..=0x19 => self.voice2.write_register(address, value),
-            0x1A..=0x1E => self.voice3.write_register(address, value),
-            0x1F..=0x23 => self.voice4.write_register(address, value),
+            0x10..=0x14 => self.voice1.write_register(address, value, self.frame_sequencer_step),
+            0x15..=0x19 => self.voice2.write_register(address, value, self.frame_sequencer_step),
+            0x1A..=0x1E => self.voice3.write_register(address, value, self.frame_sequencer_step),
+            0x1F..=0x23 => self.voice4.write_register(address, value, self.frame_sequencer_step),
             0x24 => {
                 self.vin_l_enable = test_bit(value, 7);
                 self.vin_r_enable = test_bit(value, 3);
@@ -202,7 +202,7 @@ impl APU {
 
     pub fn write_wave_sample(&mut self, address: u16, value: u8) {
         let address = address & 0xFF;
-        self.voice3.write_register(address, value)
+        self.voice3.write_register(address, value, self.frame_sequencer_step)
     }
 
     fn generate_audio(&mut self, voice_enables: [bool; 4], final_volume: f32) {
@@ -231,7 +231,6 @@ impl APU {
         self.voice1.tick_length();
         self.voice2.tick_length();
         self.voice3.tick_length();
-        // Not sure if voice 4 uses length.
         self.voice4.tick_length();
     }
 
@@ -261,9 +260,6 @@ impl APU {
     /// Tests for a particular edge case (described within the method) when the address points
     /// to one of the NRx4 registers of the voices.
     fn test_length_sequencer_edge_case(&mut self, address: u16, value: u8) {
-        if address == 0x14 && value == 0x40 {
-            log::warn!("HEY FUNCTION: {} {}", self.frame_sequencer_step, test_bit(value, 6));
-        }
         // If we write to length when the next step in the frame sequencer DOESN't tick length
         // AND if the length counter was previously disabled and now enabled AND the length
         // counter isn't zero it is then decremented once.
@@ -283,17 +279,37 @@ impl APU {
 
             if !length_feature.length_enable && length_feature.length_timer > 0 {
                 //TODO: Think of a way to avoid the double match for the same thing.
-                log::warn!("Ticking Length, before: {}!", length_feature.length_timer);
+                log::warn!("Ticking Length, before: {}", length_feature.length_timer);
                 match address {
-                    0x14 => self.voice1.tick_length(),
-                    0x19 => self.voice2.tick_length(),
-                    0x1E => self.voice3.tick_length(),
-                    0x23 => self.voice4.tick_length(),
+                    0x14 => {
+                        // We have to preemptively set length_enable to true, or else the tick
+                        // won't work. This is not an ideal architecture and I should redo this
+                        // later.
+                        self.voice1.length.length_enable = true;
+                        self.voice1.tick_length()
+                    },
+                    0x19 => {
+                        self.voice2.length.length_enable = true;
+                        self.voice2.tick_length()
+                    },
+                    0x1E => {
+                        self.voice3.length.length_enable = true;
+                        self.voice3.tick_length()
+                    },
+                    0x23 => {
+                        self.voice4.length.length_enable = true;
+                        self.voice4.tick_length()
+                    },
                     _ => panic!("Invalid read address passed: 0xFF{:02X}", address),
                 };
+                log::warn!("After: {}", self.voice1.length.length_timer);
             }
         }
     }
+}
+
+fn no_length_tick_next_step(next_frame_sequence_val: u8) -> bool {
+    [1, 3, 5, 7].contains(&next_frame_sequence_val)
 }
 
 fn set_bit(output: &mut u8, bit: u8, set: bool) {

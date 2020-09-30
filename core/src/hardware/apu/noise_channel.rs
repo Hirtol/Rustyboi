@@ -1,5 +1,5 @@
 use crate::hardware::apu::channel_features::{EnvelopeFeature, LengthFeature};
-use crate::hardware::apu::test_bit;
+use crate::hardware::apu::{test_bit, no_length_tick_next_step};
 
 /// Relevant for voice 4 for the DMG.
 ///
@@ -80,7 +80,7 @@ impl NoiseChannel {
         }
     }
 
-    pub fn write_register(&mut self, address: u16, value: u8) {
+    pub fn write_register(&mut self, address: u16, value: u8, next_frame_sequencer_step: u8) {
         // Expect the address to already have had an & 0xFF
         match address {
             0x1F => {},
@@ -105,7 +105,7 @@ impl NoiseChannel {
                 }
                 self.length.length_enable = test_bit(value, 6);
                 if self.trigger {
-                    self.trigger();
+                    self.trigger(no_length_tick_next_step(next_frame_sequencer_step));
                 }
             }
             _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address),
@@ -115,9 +115,8 @@ impl NoiseChannel {
     /// Should be called whenever the trigger bit in NR44 is written to.
     ///
     /// The values that are set are taken from [here](https://gist.github.com/drhelius/3652407)
-    fn trigger(&mut self) {
-
-        self.length.trigger();
+    fn trigger(&mut self, next_step_no_length: bool) {
+        self.length.trigger(next_step_no_length);
         self.envelope.trigger();
         self.timer = self.get_divisor_from_code() << self.clock_shift;
         // Top 15 bits all set to 1

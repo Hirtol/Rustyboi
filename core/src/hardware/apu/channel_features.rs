@@ -93,9 +93,13 @@ impl LengthFeature {
     }
 
     /// Follows the behaviour when a channel is triggered for the Length feature (64)
-    pub fn trigger(&mut self) {
+    pub fn trigger(&mut self, next_step_no_length: bool) {
         if self.length_timer == 0 {
-            self.length_timer = 64;
+            if next_step_no_length && self.length_enable {
+                self.length_timer = 63;
+            } else {
+                self.length_timer = 64;
+            }
         }
     }
 
@@ -110,9 +114,13 @@ impl LengthFeature {
     }
 
     /// Follows the behaviour for a wave channel, Length feature (256)
-    pub fn trigger_256(&mut self) {
+    pub fn trigger_256(&mut self, next_step_no_length: bool) {
         if self.length_timer == 0 {
-            self.length_timer = 256;
+            if next_step_no_length && self.length_enable {
+                self.length_timer = 255;
+            } else {
+                self.length_timer = 256;
+            }
         }
     }
 
