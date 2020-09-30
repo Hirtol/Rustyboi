@@ -120,8 +120,9 @@ impl SquareWaveChannel {
     /// The values that are set are taken from [here](https://gist.github.com/drhelius/3652407)
     fn trigger(&mut self, next_step_no_length: bool) {
         self.length.trigger(next_step_no_length);
+        //TODO: Set this to next_step_envelope
+        self.envelope.trigger(false);
         self.timer = (2048 - self.frequency) * 4;
-        self.envelope.trigger();
         self.sweep.trigger_sweep(&mut self.trigger, self.frequency);
 
         // Default wave form should be selected.

@@ -46,10 +46,14 @@ impl EnvelopeFeature {
     }
 
     /// Follows the behaviour when a channel is triggered, specifically for the Envelope feature.
-    pub fn trigger(&mut self) {
+    pub fn trigger(&mut self, next_step_envelope: bool) {
         self.envelope_enabled = true;
-        self.envelope_period = self.envelope_period_load_value;
         self.volume = self.volume_load;
+        self.envelope_period = if next_step_envelope {
+            (self.envelope_period_load_value + 1) % 8
+        } else {
+            self.envelope_period_load_value
+        };
     }
 
     pub fn read_register(&self) -> u8 {
@@ -75,7 +79,6 @@ pub struct LengthFeature {
 }
 
 impl LengthFeature {
-
     /// Ticks the length feature.
     ///
     /// # Manipulations
@@ -182,21 +185,20 @@ impl SweepFeature {
     /// Follows the behaviour when a channel is triggered, specifically for the Sweep feature.
     pub fn trigger_sweep(&mut self, channel_enable: &mut bool, frequency: u16) {
         self.sweep_frequency_shadow = frequency;
-        //TODO: Remove as it seems unnecessary?
-        self.sweep_timer = self.sweep_period; // Not sure if it's the period?
-        self.sweep_enabled = self.sweep_period != 0 && self.sweep_shift != 0;
-        // If sweep shift != 0, question is if sweep_enable is OR or AND, because docs are ambiguous.
-        if self.sweep_enabled {
+        self.sweep_enabled = self.sweep_period != 0 || self.sweep_shift != 0;
+        //If the sweep shift is non-zero, frequency calculation and the overflow check are performed immediately.
+        if self.sweep_shift != 0 {
             self.sweep_calculations(channel_enable);
         }
     }
 
     fn sweep_calculations(&mut self, channel_enable: &mut bool) -> u16 {
         let mut temp_shadow = (self.sweep_frequency_shadow >> self.sweep_shift);
+
         if self.sweep_negate {
-            // Not sure if we should take 2's complement here, TODO: Verify.
             temp_shadow = !temp_shadow;
         }
+
         temp_shadow += self.sweep_frequency_shadow;
 
         if temp_shadow > 2047 {

@@ -125,7 +125,8 @@ impl NoiseChannel {
     /// The values that are set are taken from [here](https://gist.github.com/drhelius/3652407)
     fn trigger(&mut self, next_step_no_length: bool) {
         self.length.trigger(next_step_no_length);
-        self.envelope.trigger();
+        //TODO: Set this to next_step_envelope
+        self.envelope.trigger(false);
         self.timer = self.get_divisor_from_code() << self.clock_shift;
         // Top 15 bits all set to 1
         self.lfsr = 0x7FFF;
