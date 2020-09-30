@@ -35,6 +35,14 @@ features = ["unsafe_textures"]
 #[profile.release]
 #lto = "fat"
 #codegen-units = 1
+#[profile.release]
+#lto = 'fat'
+#panic = 'abort'
+#codegen-units = 1
+#
+#[profile.bench]
+#lto = 'fat'
+#codegen-units = 1
 
 [workspace]
 members = ["core"]

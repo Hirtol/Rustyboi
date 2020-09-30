@@ -78,7 +78,7 @@ impl SquareWaveChannel {
     pub fn write_register(&mut self, address: u16, value: u8, next_frame_sequencer_step: u8) {
         // Expect the address to already have had an & 0xFF
         match address {
-            0x10 | 0x15 => self.sweep.write_register(value),
+            0x10 | 0x15 => self.sweep.write_register(value, &mut self.trigger),
             0x11 | 0x16 => {
                 self.duty_select = ((value & 0b1100_0000) >> 6) as usize;
                 self.length.write_register(value);

@@ -1,3 +1,5 @@
+use crate::hardware::apu::test_bit;
+
 #[derive(Default, Debug)]
 pub struct EnvelopeFeature {
     pub volume: u8,
@@ -157,6 +159,7 @@ pub struct SweepFeature {
     sweep_shift: u8,
     // Internal Sweep
     sweep_enabled: bool,
+    done_negate_calc: bool,
     sweep_timer: u8,
     sweep_frequency_shadow: u16,
 }
@@ -171,14 +174,20 @@ impl SweepFeature {
     /// * `channel_frequency` - Is set to a new value when the tick function has a shadow frequency
     /// lower than 2048.
     pub fn tick(&mut self, channel_enable: &mut bool, channel_frequency: &mut u16) {
-        if self.sweep_enabled && self.sweep_period != 0 {
-            let temp_freq = self.sweep_calculations(channel_enable);
-            // Duplicate overflow check, but this gets called, at most 128 times per second so, eh.
-            if temp_freq < 2048 && self.sweep_shift != 0 {
-                self.sweep_frequency_shadow = temp_freq;
-                *channel_frequency = temp_freq;
-                self.sweep_calculations(channel_enable);
+        self.sweep_timer = self.sweep_timer.saturating_sub(1);
+        if self.sweep_timer == 0 {
+            if self.sweep_enabled && self.sweep_period != 0 {
+                let temp_freq = self.sweep_calculations(channel_enable);
+                // Duplicate overflow check, but this gets called, at most 128 times per second so, eh.
+                if temp_freq < 2048 && self.sweep_shift != 0 {
+                    self.sweep_frequency_shadow = temp_freq;
+
+                    *channel_frequency = temp_freq;
+
+                    self.sweep_calculations(channel_enable);
+                }
             }
+            self.sweep_timer = if self.sweep_period == 0 { 8 } else { self.sweep_period };
         }
     }
 
@@ -186,6 +195,8 @@ impl SweepFeature {
     pub fn trigger_sweep(&mut self, channel_enable: &mut bool, frequency: u16) {
         self.sweep_frequency_shadow = frequency;
         self.sweep_enabled = self.sweep_period != 0 || self.sweep_shift != 0;
+        self.sweep_timer = if self.sweep_period == 0 { 8 } else { self.sweep_period };
+        self.done_negate_calc = false;
         //If the sweep shift is non-zero, frequency calculation and the overflow check are performed immediately.
         if self.sweep_shift != 0 {
             self.sweep_calculations(channel_enable);
@@ -194,9 +205,11 @@ impl SweepFeature {
 
     fn sweep_calculations(&mut self, channel_enable: &mut bool) -> u16 {
         let mut temp_shadow = (self.sweep_frequency_shadow >> self.sweep_shift);
-
         if self.sweep_negate {
+            self.done_negate_calc = true;
+            // Take the 2's complement value
             temp_shadow = !temp_shadow;
+            temp_shadow = temp_shadow.wrapping_add(1);
         }
 
         temp_shadow += self.sweep_frequency_shadow;
@@ -213,9 +226,15 @@ impl SweepFeature {
         (self.sweep_period << 4) | self.sweep_shift | if self.sweep_negate { 0x8 } else { 0 }
     }
 
-    pub fn write_register(&mut self, value: u8) {
+    pub fn write_register(&mut self, value: u8, channel_enable: &mut bool) {
+        let old_negate = self.sweep_negate;
+        self.sweep_negate = test_bit(value, 3);
+        // Exiting negate mode disables channel after having done a sweep calculation in negate mode.
+        if old_negate && !self.sweep_negate && self.done_negate_calc {
+            *channel_enable = false;
+            self.done_negate_calc = false;
+        }
         self.sweep_period = (value >> 4) & 0x7;
-        self.sweep_negate = (value & 0x8) == 0x8;
         self.sweep_shift = value & 0x7;
     }
 }
