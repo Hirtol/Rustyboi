@@ -35,17 +35,19 @@ impl NoiseChannel {
     }
 
     pub fn tick_timer(&mut self) {
-        let (new_val, overflowed) = self.timer.overflowing_sub(1);
-
-        if new_val == 0 || overflowed {
+        let new_val = self.timer.saturating_sub(1);
+        // Using a noise channel clock shift of 14 or 15 results in the LFSR receiving no clocks.
+        if new_val == 0 {
             self.timer = self.get_divisor_from_code() << self.clock_shift;
             // Selects which sample we should select in our chosen duty cycle.
             let bit_1_and_0_xor = (self.lfsr & 0x1) ^ ((self.lfsr & 0x2) >> 1);
             // Shift LFSR right by 1
             self.lfsr >>= 1;
             // Set the high bit (bit 14) to the XOR operation of before. Always done
-            self.lfsr |= bit_1_and_0_xor << 14;
-
+            // By all rights this should be a << 14, but for some reason sounds are pitch
+            // shifted too high, and bit 13 works better... for some reason.
+            self.lfsr |= bit_1_and_0_xor << 13;
+            
             if self.width_mode {
                 // Set bit 6 as well, resulting in a 7bit LFSR.
                 self.lfsr |= bit_1_and_0_xor << 6;

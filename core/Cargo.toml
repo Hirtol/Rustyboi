@@ -17,6 +17,9 @@ itertools = "0.9.0"
 [dev-dependencies]
 criterion = "0.3.3"
 
+#[profile.release]
+#debug = true
+
 [[bench]]
 name = "test_benchmark"
 harness = false
