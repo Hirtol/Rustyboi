@@ -46,9 +46,9 @@ impl WaveformChannel {
 
     pub fn tick_timer(&mut self) {
         //TODO: Fix
-        let (new_val, overflowed) = self.timer.overflowing_sub(1);
+        let new_val = self.timer.saturating_sub(1);
 
-        if new_val == 0 || overflowed {
+        if new_val == 0 {
             // The formula is taken from gbdev, I haven't done the period calculations myself.
             self.timer = (2048 - self.frequency) * 2;
             // Selects which sample we should select in our chosen duty cycle.
@@ -112,13 +112,17 @@ impl WaveformChannel {
                     self.trigger = false;
                 }
             },
-            0x1D => self.frequency = (self.frequency & 0x0700) | value as u16,
+            0x1D => {
+                self.frequency = (self.frequency & 0x0700) | value as u16;
+                self.timer = (2048 - self.frequency) * 2;
+            },
             0x1E => {
                 let old_length_enable = self.length.length_enable;
                 let no_l_next = no_length_tick_next_step(next_frame_sequencer_step);
 
                 self.length.length_enable = test_bit(value, 6);
-                self.frequency = (self.frequency & 0xFF) | (((value & 0x07) as u16) << 8);
+                self.frequency = (self.frequency & 0x00FF) | (((value & 0x07) as u16) << 8);
+                self.timer = (2048 - self.frequency) * 2;
 
                 if no_l_next {
                     self.length.second_half_enable_tick(&mut self.trigger, old_length_enable);
@@ -144,13 +148,13 @@ impl WaveformChannel {
 
     pub fn reset(&mut self) {
         self.length.length_enable = false;
-        self.length.length_timer = 0;
+        self.length.length_timer = 256;
         self.sample_pointer = 0;
         self.trigger = false;
         self.dac_power = false;
         self.volume_load = 0;
         self.volume = 0;
-        self.timer = 0;
+        self.timer = 4096;
         self.frequency = 0;
     }
 

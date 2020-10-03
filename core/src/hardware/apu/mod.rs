@@ -191,7 +191,9 @@ impl APU {
             }
             0x26 => {
                 self.global_sound_enable = test_bit(value, 7);
-                self.reset();
+                if !self.global_sound_enable {
+                    self.reset();
+                }
             },
             0x27..=0x2F => {} // Writes to unused registers are silently ignored.
             _ => panic!("Attempt to write to an unknown audio register: 0xFF{:02X} with val: {}", address, value),
