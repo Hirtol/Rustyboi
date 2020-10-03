@@ -104,14 +104,7 @@ impl WaveformChannel {
                 }
             },
             0x1B => self.length.write_register_256(value),
-            0x1C => {
-                self.set_volume_from_val(value);
-                // If we're at 0% volume we've practically disabled the DAC, and thus should
-                // disable the channel as well.
-                if self.volume_load == 0 {
-                    self.trigger = false;
-                }
-            },
+            0x1C => self.set_volume_from_val(value),
             0x1D => {
                 self.frequency = (self.frequency & 0x0700) | value as u16;
                 self.timer = (2048 - self.frequency) * 2;

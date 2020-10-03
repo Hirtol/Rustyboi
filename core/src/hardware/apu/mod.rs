@@ -99,6 +99,8 @@ impl APU {
             // far more than we could consume.
             // TODO: Add actual downsampling instead of the selective audio pick.
             // Refer to: https://www.reddit.com/r/EmuDev/comments/g5czyf/sound_emulation/
+            // Alternatively, we could go to 93207 sampling rate, which would give the sampling
+            // hanlder a value of *almost* exactly 45.
             self.sampling_handler += 1;
             if self.sampling_handler == 95 {
                 // Close enough value such that we get one sample every ~1/44100
@@ -214,22 +216,22 @@ impl APU {
         let mut result = 0f32;
         // Voice 1 (Square wave)
         if voice_enables[0] {
-            result += (self.voice1.output_volume() as f32 / 100.0) * final_volume;
+            result += (self.voice1.output_volume() as f32 / 100.0);
         }
         // Voice 2 (Square wave)
         if voice_enables[1] {
-            result += (self.voice2.output_volume() as f32 / 100.0) * final_volume;
+            result += (self.voice2.output_volume() as f32 / 100.0);
         }
         // Voice 3 (Wave)
         if voice_enables[2] {
-            result += (self.voice3.output_volume() as f32 / 100.0) * final_volume;
+            result += (self.voice3.output_volume() as f32 / 100.0);
         }
         // Voice 4 (Noise)
         if voice_enables[3] {
-            result += (self.voice4.output_volume() as f32 / 100.0) * final_volume
+            result += (self.voice4.output_volume() as f32 / 100.0)
         }
 
-        self.output_buffer.push(result);
+        self.output_buffer.push(result * final_volume);
     }
 
     fn tick_length(&mut self) {
