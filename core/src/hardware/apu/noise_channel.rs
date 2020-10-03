@@ -45,12 +45,13 @@ impl NoiseChannel {
             self.lfsr >>= 1;
 
             // Set the high bit (bit 14) to the XOR operation of before. Always done
-            // By all rights this should be a << 14, but for some reason sounds are pitch
-            // shifted too high, and bit 13 works better... for some reason.
-            self.lfsr |= bit_1_and_0_xor << 13;
+            self.lfsr |= bit_1_and_0_xor << 14;
+
             if self.width_mode {
                 // Set bit 6 as well, resulting in a 7bit LFSR.
-                self.lfsr |= bit_1_and_0_xor << 6;
+                // We need the AND here since the XOR result could be 0 as well, which would
+                // need to be set.
+                self.lfsr = (self.lfsr & 0xFFBF) | bit_1_and_0_xor << 6;
             }
             // The result is taken from the current bit 0, inverted
             // Not sure about the envelope multiplication, docs don't mention it but I assume it's there
