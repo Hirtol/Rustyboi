@@ -22,15 +22,15 @@ impl EnvelopeFeature {
     ///
     /// When the waveform input is zero the envelope outputs zero, otherwise it outputs the current volume.
     pub fn tick(&mut self) {
-        if self.envelope_enabled && self.envelope_timer > 0 {
+        if self.envelope_enabled && self.envelope_period != 0 {
             self.envelope_timer = self.envelope_timer.saturating_sub(1);
 
             if self.envelope_timer == 0 {
+                self.envelope_timer = self.envelope_period;
                 if self.envelope_add_mode {
                     let new_val = self.volume + 1;
                     if new_val <= 15 {
                         self.volume = new_val;
-                        self.envelope_timer = self.envelope_period;
                     } else {
                         self.envelope_enabled = false;
                     }
@@ -38,7 +38,6 @@ impl EnvelopeFeature {
                     let (new_val, overflow) = self.volume.overflowing_sub(1);
                     if !overflow {
                         self.volume = new_val;
-                        self.envelope_timer = self.envelope_period;
                     } else {
                         self.envelope_enabled = false;
                     }
@@ -64,12 +63,8 @@ impl EnvelopeFeature {
 
     pub fn write_register(&mut self, value: u8) {
         self.volume_load = (value & 0xF0) >> 4;
-        // Not sure if to reload this value.
-        self.volume = self.volume_load;
-        self.envelope_add_mode = (value & 0x8) == 0x8;
+        self.envelope_add_mode = test_bit(value, 3);
         self.envelope_period = value & 0x7;
-        // Does this immediately load?
-        self.envelope_timer = self.envelope_period;
     }
 }
 
@@ -91,7 +86,6 @@ impl LengthFeature {
             self.length_timer -= 1;
 
             if self.length_timer == 0 {
-                log::warn!("OFF");
                 *channel_enable = false;
             }
         }

@@ -101,13 +101,9 @@ impl SquareWaveChannel {
                 if no_l_next {
                     self.length.second_half_enable_tick(&mut self.trigger, old_length_enable);
                 }
-                // This trigger can only be reset by internal counters, thus we only check to set it
-                // if we haven't already triggered the channel
-                if !self.trigger {
-                    self.trigger = test_bit(value, 7);
-                }
 
-                if self.trigger {
+                // We specifically only trigger if the current write value is setting the trigger bit.
+                if test_bit(value, 7) {
                     self.trigger(no_l_next);
                 }
             }
@@ -119,6 +115,7 @@ impl SquareWaveChannel {
     ///
     /// The values that are set are taken from [here](https://gist.github.com/drhelius/3652407)
     fn trigger(&mut self, next_step_no_length: bool) {
+        self.trigger = true;
         self.length.trigger(next_step_no_length);
         //TODO: Set this to next_step_envelope
         self.envelope.trigger(false);

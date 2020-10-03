@@ -88,7 +88,7 @@ fn main() {
 
     let bootrom_file = read("roms\\DMG_ROM.bin").unwrap();
 
-    let cartridge = "roms/Kirby's Dream Land.gb";
+    let cartridge = "roms/Metroid II - Return of Samus.gb";
     let _cpu_test = "test roms/blargg_sound/dmg_sound/rom_singles/07-len sweep period sync.gb";
     let _cpu_test2 = "test roms/mooneye/tests/emulator-only/mbc5/mbc5_rom_512kb.gb";
 
