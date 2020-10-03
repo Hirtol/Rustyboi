@@ -68,11 +68,11 @@ impl WaveformChannel {
         // Expect the address to already have had an & 0xFF
         // The read values are taken from gbdev
         match address {
-            0x1A => 0x7F | if self.dac_power { 0x80 } else { 0 },
+            0x1A => if self.dac_power { 0xFF } else { 0x7F },
             0x1B => 0xFF,
             0x1C => 0x9F | self.volume_load,
             0x1D => 0xFF,
-            0x1E => 0xBF | if self.length.length_enable { 0x40 } else { 0x0 },
+            0x1E => if self.length.length_enable { 0xFF } else { 0xBF },
             0x30..=0x3F => {
                 // If the wave channel is enabled, accessing any byte from $FF30-$FF3F is equivalent
                 // to accessing the current byte selected by the waveform position.
@@ -97,7 +97,12 @@ impl WaveformChannel {
     pub fn write_register(&mut self, address: u16, value: u8, next_frame_sequencer_step: u8) {
         // Expect the address to already have had an & 0xFF
         match address {
-            0x1A => self.dac_power = (value & 0x80) == 0x80,
+            0x1A => {
+                self.dac_power = test_bit(value, 7);
+                if !self.dac_power {
+                    self.trigger = false;
+                }
+            },
             0x1B => self.length.write_register_256(value),
             0x1C => {
                 self.set_volume_from_val(value);

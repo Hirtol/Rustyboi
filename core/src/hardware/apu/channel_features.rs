@@ -77,7 +77,6 @@ impl EnvelopeFeature {
 pub struct LengthFeature {
     pub length_enable: bool,
     pub length_timer: u16,
-    length_load: u8,
 }
 
 impl LengthFeature {
@@ -112,14 +111,10 @@ impl LengthFeature {
         }
     }
 
-    pub fn read_register(&self) -> u8 {
-        self.length_load
-    }
-
     pub fn write_register(&mut self, value: u8) {
-        self.length_load = value & 0x3F;
+        let length_load = value & 0x3F;
         // I think this is correct, not sure.
-        self.length_timer = 64 - self.length_load as u16;
+        self.length_timer = 64 - length_load as u16;
     }
 
     /// Follows the behaviour for a wave channel, Length feature (256)
@@ -135,9 +130,8 @@ impl LengthFeature {
     }
 
     pub fn write_register_256(&mut self, value: u8) {
-        self.length_load = value;
         // I think this is correct, not sure.
-        self.length_timer = 256 - self.length_load as u16;
+        self.length_timer = 256 - value as u16;
     }
 
     /// Tests for a particular edge case (described within the method) when the address points

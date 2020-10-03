@@ -80,16 +80,8 @@ fn main() {
         .position_centered()
         .resizable()
         .allow_highdpi()
-        .opengl()
         .build()
         .unwrap();
-
-    let mut imgui = imgui::Context::create();
-    imgui.set_ini_filename(None);
-
-    let mut imgui_sdl2 = imgui_sdl2::ImguiSdl2::new(&mut imgui, &window);
-
-    let renderer = imgui_opengl_renderer::Renderer::new(&mut imgui, |s| video_subsystem.gl_get_proc_address(s) as _);
 
     let mut canvas = window.into_canvas().accelerated().build().unwrap();
     let mut screen_texture = setup_sdl(&mut canvas);
@@ -117,7 +109,6 @@ fn main() {
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     let mut last_update_time: Instant = Instant::now();
-    let mut last_frame = Instant::now();
 
     let mut fast_forward = false;
 
@@ -139,8 +130,6 @@ fn main() {
         let ticks = timer.ticks() as i32;
 
         for event in event_pump.poll_iter() {
-            imgui_sdl2.handle_event(&mut imgui, &event);
-
             if !handle_events(event, &mut emulator, &mut fast_forward) {
                 break 'mainloop;
             }
