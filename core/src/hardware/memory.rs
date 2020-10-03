@@ -205,11 +205,11 @@ impl Memory {
                 //log::info!("Writing interrupt flag {:?}", self.interrupts_flag);
             }
             APU_MEM_START..=APU_MEM_END => {
-                log::info!("APU Write on address: 0x{:02X} with value: 0x{:02X}", address, value);
+                //log::info!("APU Write on address: 0x{:02X} with value: 0x{:02X}", address, value);
                 self.apu.write_register(address, value)
             },
             WAVE_SAMPLE_START..=WAVE_SAMPLE_END => {
-                log::info!("APU Wave_Write on address: 0x{:02X} with value: 0x{:02X}", address, value);
+                //log::info!("APU Wave_Write on address: 0x{:02X} with value: 0x{:02X}", address, value);
                 self.apu.write_wave_sample(address, value)
             }
             LCD_CONTROL_REGISTER => self.ppu.set_lcd_control(value),

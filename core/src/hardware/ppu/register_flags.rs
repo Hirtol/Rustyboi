@@ -134,7 +134,7 @@ impl LcdStatus {
     }
 
     pub fn set_mode_flag(&mut self, value: Mode) {
-        self.bits = ((self.bits >> 2) << 2)
+        self.bits = (self.bits & 0xFC)
             | match value {
                 Mode::HBlank => 0,
                 Mode::VBlank => 1,

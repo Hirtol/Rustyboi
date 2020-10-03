@@ -43,11 +43,11 @@ impl NoiseChannel {
             let bit_1_and_0_xor = (self.lfsr & 0x1) ^ ((self.lfsr & 0x2) >> 1);
             // Shift LFSR right by 1
             self.lfsr >>= 1;
+
             // Set the high bit (bit 14) to the XOR operation of before. Always done
             // By all rights this should be a << 14, but for some reason sounds are pitch
             // shifted too high, and bit 13 works better... for some reason.
             self.lfsr |= bit_1_and_0_xor << 13;
-            
             if self.width_mode {
                 // Set bit 6 as well, resulting in a 7bit LFSR.
                 self.lfsr |= bit_1_and_0_xor << 6;

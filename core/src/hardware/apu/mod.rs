@@ -1,3 +1,8 @@
+//! This entire APU implementation currently passes the first 6/12 Blargg DMG_SOUND tests.
+//! However, there are still several other issues such as the wave_channel not always behaving
+//! properly. In addition, sound completely stops in the game Aladdin after the title screen for
+//! some reason.
+
 use crate::hardware::apu::noise_channel::NoiseChannel;
 use crate::hardware::apu::square_channel::SquareWaveChannel;
 use crate::hardware::apu::wave_channel::WaveformChannel;
