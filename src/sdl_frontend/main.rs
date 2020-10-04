@@ -100,7 +100,7 @@ fn main() {
 
     let mut timer = sdl_context.timer().unwrap();
 
-    let mut emulator = create_emulator(_cpu_test, None);
+    let mut emulator = create_emulator(cartridge, None);
 
     let mut cycles = 0;
     let mut loop_cycles = 0;

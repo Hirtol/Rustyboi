@@ -1,4 +1,4 @@
-use crate::hardware::ppu::palette::DmgColor::{DarkGrey, LightGrey, BLACK, WHITE};
+use crate::hardware::ppu::palette::DmgColor::{BLACK, DarkGrey, LightGrey, WHITE};
 
 #[derive(Debug, PartialOrd, PartialEq, Copy, Clone)]
 pub enum DmgColor {
@@ -11,6 +11,11 @@ pub enum DmgColor {
 #[derive(Debug, Copy, Clone)]
 pub struct Palette {
     palette_byte: u8,
+    color_0: DmgColor,
+    color_1: DmgColor,
+    color_2: DmgColor,
+    color_3: DmgColor,
+
 }
 
 impl Palette {
@@ -18,19 +23,19 @@ impl Palette {
     /// In Object (Sprite) palettes this particular color should be ignored, as it will always
     /// be transparent.
     pub fn color_0(&self) -> DmgColor {
-        DmgColor::from(self.palette_byte & 0x03)
+        self.color_0
     }
 
     pub fn color_1(&self) -> DmgColor {
-        DmgColor::from((self.palette_byte & 0x0C) >> 2)
+        self.color_1
     }
 
     pub fn color_2(&self) -> DmgColor {
-        DmgColor::from((self.palette_byte & 0x30) >> 4)
+        self.color_2
     }
 
     pub fn color_3(&self) -> DmgColor {
-        DmgColor::from(self.palette_byte >> 6)
+        self.color_3
     }
 
     /// Retrieve the appropriate colour for the provided pixel value.
@@ -38,10 +43,10 @@ impl Palette {
     /// Due to the aforementioned the `colour_value` should have at most 2 bits in use.
     pub fn colour(&self, color_value: u8) -> DmgColor {
         match color_value {
-            0 => self.color_0(),
-            1 => self.color_1(),
-            2 => self.color_2(),
-            3 => self.color_3(),
+            0 => self.color_0,
+            1 => self.color_1,
+            2 => self.color_2,
+            3 => self.color_3,
             _ => panic!("This should not be reached, color value: {}", color_value),
         }
     }
@@ -51,13 +56,23 @@ impl Default for Palette {
     fn default() -> Self {
         Palette {
             palette_byte: 0b1110_0100,
+            color_0: DmgColor::from(0x0),
+            color_1: DmgColor::from(0x1),
+            color_2: DmgColor::from(0x2),
+            color_3: DmgColor::from(0x3),
         }
     }
 }
 
 impl From<u8> for Palette {
     fn from(value: u8) -> Self {
-        Palette { palette_byte: value }
+        Palette {
+            palette_byte: value,
+            color_0: DmgColor::from(value & 0x03),
+            color_1: DmgColor::from((value & 0x0C) >> 2),
+            color_2: DmgColor::from((value & 0x30) >> 4),
+            color_3: DmgColor::from(value >> 6),
+        }
     }
 }
 
@@ -83,7 +98,7 @@ impl From<u8> for DmgColor {
 
 #[cfg(test)]
 mod test {
-    use crate::hardware::ppu::palette::DmgColor::{DarkGrey, LightGrey, BLACK, WHITE};
+    use crate::hardware::ppu::palette::DmgColor::{BLACK, DarkGrey, LightGrey, WHITE};
     use crate::hardware::ppu::palette::Palette;
 
     #[test]

@@ -19,7 +19,7 @@ pub struct SquareWaveChannel {
     frequency: u16,
     timer: u16,
     // Relevant for wave table indexing
-    wave_table_pointer: usize,
+    wave_table_index: usize,
     duty_select: usize,
 }
 
@@ -52,8 +52,8 @@ impl SquareWaveChannel {
             self.timer = (2048 - self.frequency) * 4;
             // Selects which sample we should select in our chosen duty cycle.
             // Refer to SQUARE_WAVE_TABLE constant.
-            self.wave_table_pointer = (self.wave_table_pointer + 1) % 8;
-            self.output_volume = if Self::SQUARE_WAVE_TABLE[self.duty_select][self.wave_table_pointer] == 1 {
+            self.wave_table_index = (self.wave_table_index + 1) % 8;
+            self.output_volume = if Self::SQUARE_WAVE_TABLE[self.duty_select][self.wave_table_index] == 1 {
                 self.envelope.volume
             } else {
                 0
