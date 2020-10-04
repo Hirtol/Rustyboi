@@ -34,11 +34,15 @@ impl NoiseChannel {
         self.trigger
     }
 
-    pub fn tick_timer(&mut self) {
-        let new_val = self.timer.saturating_sub(1);
+    pub fn tick_timer(&mut self, cycles: u16) {
+        let (new_val, overflowed) = self.timer.overflowing_sub(cycles);
         // Using a noise channel clock shift of 14 or 15 results in the LFSR receiving no clocks.
         if new_val == 0 {
             self.timer = self.get_divisor_from_code() << self.clock_shift;
+            // If we overflowed we might've lost some cycles, so we should make up for those.
+            if overflowed {
+                self.timer -= u16::MAX - new_val;
+            }
             // Selects which sample we should select in our chosen duty cycle.
             let bit_1_and_0_xor = (self.lfsr & 0x1) ^ ((self.lfsr & 0x2) >> 1);
             // Shift LFSR right by 1

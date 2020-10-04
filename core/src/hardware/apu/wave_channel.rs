@@ -47,13 +47,16 @@ impl WaveformChannel {
         self.trigger
     }
 
-    pub fn tick_timer(&mut self) {
-        //TODO: Fix
-        let new_val = self.timer.saturating_sub(1);
+    pub fn tick_timer(&mut self, cycles: u16) {
+        let (new_val, overflowed) = self.timer.overflowing_sub(cycles);
 
-        if new_val == 0 {
+        if overflowed || new_val == 0 {
             // The formula is taken from gbdev, I haven't done the period calculations myself.
             self.timer = (2048 - self.frequency) * 2;
+            // If we overflowed we might've lost some cycles, so we should make up for those.
+            if overflowed {
+                self.timer -= u16::MAX - new_val;
+            }
             // Selects which sample we should select in our chosen duty cycle.
             self.sample_pointer = (self.sample_pointer + 1) % 32;
 

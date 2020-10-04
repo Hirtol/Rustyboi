@@ -63,7 +63,7 @@ impl APU {
         }
     }
 
-    pub fn tick(&mut self, mut delta_cycles: u64) {
+    pub fn tick(&mut self, mut delta_cycles: u16) {
         if !self.global_sound_enable {
             return;
         }
@@ -72,47 +72,43 @@ impl APU {
         let left_final_volume = self.left_volume as f32 / 6.0;
         let right_final_volume = self.right_volume as f32 / 6.0;
 
-        while delta_cycles > 0 {
-            self.voice1.tick_timer();
-            self.voice2.tick_timer();
-            self.voice3.tick_timer();
-            self.voice4.tick_timer();
+        self.voice1.tick_timer(delta_cycles);
+        self.voice2.tick_timer(delta_cycles);
+        self.voice3.tick_timer(delta_cycles);
+        self.voice4.tick_timer(delta_cycles);
 
-            self.frame_sequencer += 1;
-            if self.frame_sequencer >= 8192 {
-                // The frame sequencer component clocks at 512Hz apparently.
-                // 4194304/512 = 8192
-                self.frame_sequencer -= 8192;
-                match self.frame_sequencer_step {
-                    0 | 4 => self.tick_length(),
-                    2 | 6 => {
-                        self.tick_length();
-                        self.tick_sweep();
-                    }
-                    7 => self.tick_envelop(),
-                    _ => {}
+        self.frame_sequencer += delta_cycles;
+        if self.frame_sequencer >= 8192 {
+            // The frame sequencer component clocks at 512Hz apparently.
+            // 4194304/512 = 8192
+            self.frame_sequencer -= 8192;
+            match self.frame_sequencer_step {
+                0 | 4 => self.tick_length(),
+                2 | 6 => {
+                    self.tick_length();
+                    self.tick_sweep();
                 }
-                self.frame_sequencer_step = (self.frame_sequencer_step + 1) % 8;
+                7 => self.tick_envelop(),
+                _ => {}
             }
+            self.frame_sequencer_step = (self.frame_sequencer_step + 1) % 8;
+        }
 
-            // This block is here such that we get ~44100 samples per second, otherwise we'd generate
-            // far more than we could consume.
-            // TODO: Add actual downsampling instead of the selective audio pick.
-            // Refer to: https://www.reddit.com/r/EmuDev/comments/g5czyf/sound_emulation/
-            // Alternatively, we could go to 93207 sampling rate, which would give the sampling
-            // hanlder a value of *almost* exactly 45.
-            self.sampling_handler += 1;
-            if self.sampling_handler == 95 {
-                // Close enough value such that we get one sample every ~1/44100
-                self.sampling_handler -= 95;
+        // This block is here such that we get ~44100 samples per second, otherwise we'd generate
+        // far more than we could consume.
+        // TODO: Add actual downsampling instead of the selective audio pick.
+        // Refer to: https://www.reddit.com/r/EmuDev/comments/g5czyf/sound_emulation/
+        // Alternatively, we could go to 93207 sampling rate, which would give the sampling
+        // hanlder a value of *almost* exactly 45.
+        self.sampling_handler += delta_cycles as u8;
+        if self.sampling_handler >= 95 {
+            // Close enough value such that we get one sample every ~1/44100
+            self.sampling_handler -= 95;
 
-                // Left Audio
-                self.generate_audio(self.left_channel_enable, left_final_volume);
-                // Right Audio
-                self.generate_audio(self.right_channel_enable, right_final_volume);
-            }
-
-            delta_cycles -= 1;
+            // Left Audio
+            self.generate_audio(self.left_channel_enable, left_final_volume);
+            // Right Audio
+            self.generate_audio(self.right_channel_enable, right_final_volume);
         }
     }
 

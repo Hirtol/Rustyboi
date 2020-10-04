@@ -86,7 +86,6 @@ impl LengthFeature {
             self.length_timer -= 1;
 
             if self.length_timer == 0 {
-                log::warn!("OFF");
                 *channel_enable = false;
             }
         }
