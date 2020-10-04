@@ -138,6 +138,7 @@ impl NoiseChannel {
 
     pub fn reset(&mut self) {
         self.length.length_enable = false;
+        //TODO: In CGB mode we should not save the length here, instead fully reset the channel.
         *self = Self {length: self.length, ..Default::default()};
     }
 
