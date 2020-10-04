@@ -133,6 +133,7 @@ impl WaveformChannel {
     pub fn reset(&mut self) {
         self.length.length_enable = false;
         self.length.length_timer = 256;
+        self.output_volume = 0;
         self.sample_pointer = 0;
         self.trigger = false;
         self.dac_power = false;
