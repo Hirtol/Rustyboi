@@ -3,11 +3,19 @@
 
 use crate::hardware::cpu::CPU;
 use crate::hardware::memory::MemoryMapper;
+use crate::io::interrupts::InterruptFlags;
 
 impl<M: MemoryMapper> CPU<M> {
     /// Add 4 cycles to the internal counter
     pub fn add_cycles(&mut self) {
         self.cycles_performed += 4;
+        let mut interrupt = self.mmu.ppu_mut().do_cycle(4);
+        self.add_new_interrupts(interrupt);
+
+        interrupt = self.mmu.timers_mut().tick_timers(4);
+        self.add_new_interrupts(interrupt);
+
+        self.mmu.apu_mut().tick(4);
     }
 
     /// Read the next opcode, advance the PC, and call the execute function for
@@ -70,4 +78,28 @@ impl<M: MemoryMapper> CPU<M> {
         self.write_byte_cycle(address, (value & 0xFF) as u8); // Least significant byte first.
         self.write_byte_cycle(address.wrapping_add(1), (value >> 8) as u8);
     }
+
+    /// Temporary hack to see if we rendered `VBlank` this execution cycle.
+    ///
+    /// Resets `VBlank` to `false` if it was `true`.
+    pub fn added_vblank(&mut self) -> bool {
+        if self.had_vblank {
+            self.had_vblank = false;
+            true
+        }else {
+            false
+        }
+    }
+
+    /// Add a new interrupt to the IF flag.
+    pub fn add_new_interrupts(&mut self, interrupt: Option<InterruptFlags>) {
+        if let Some(intr) = interrupt {
+            if intr.contains(InterruptFlags::VBLANK) {
+                self.had_vblank = true;
+            }
+            self.mmu.interrupts_mut().insert_interrupt(intr);
+        }
+    }
+
+
 }

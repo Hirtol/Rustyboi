@@ -4,15 +4,24 @@ use crate::hardware::memory::MemoryMapper;
 use crate::hardware::registers::Registers;
 use std::cell::RefCell;
 use std::rc::Rc;
+use crate::io::interrupts::InterruptModule;
+use crate::hardware::ppu::PPU;
+use crate::hardware::apu::APU;
+use crate::io::timer::TimerRegisters;
+use bitflags::_core::fmt::{Debug, Formatter};
+use std::fmt;
 
 mod cycle_tests;
 mod instruction_tests;
 
 // Common functionality for the tests.
 
-#[derive(Debug)]
 struct TestMemory {
     mem: Vec<u8>,
+    pub ppu: PPU,
+    pub apu: APU,
+    pub timers: TimerRegisters,
+    pub interrupts: InterruptModule,
 }
 
 impl MemoryMapper for TestMemory {
@@ -31,6 +40,32 @@ impl MemoryMapper for TestMemory {
     fn cartridge(&self) -> Option<&Cartridge> {
         None
     }
+
+    fn interrupts(&self) -> &InterruptModule {
+        &self.interrupts
+    }
+
+    fn interrupts_mut(&mut self) -> &mut InterruptModule {
+        &mut self.interrupts
+    }
+
+    fn ppu_mut(&mut self) -> &mut PPU {
+        &mut self.ppu
+    }
+
+    fn apu_mut(&mut self) -> &mut APU {
+        &mut self.apu
+    }
+
+    fn timers_mut(&mut self) -> &mut TimerRegisters {
+        &mut self.timers
+    }
+}
+
+impl Debug for TestMemory {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        unimplemented!()
+    }
 }
 
 impl<T: MemoryMapper> CPU<T> {
@@ -40,7 +75,7 @@ impl<T: MemoryMapper> CPU<T> {
 }
 
 fn initial_cpu() -> CPU<TestMemory> {
-    let mut cpu = CPU::new(TestMemory { mem: vec![0; 0x10000] });
+    let mut cpu = CPU::new(TestMemory { mem: vec![0; 0x10000], ppu: PPU::new(), apu: APU::new(), timers: Default::default(), interrupts: Default::default() });
     cpu.registers = Registers::new();
     cpu
 }

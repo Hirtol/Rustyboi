@@ -15,8 +15,6 @@ use crate::io::joypad::*;
 /// `4194304 / 59.7275 = 70224 cycles/frame`
 pub const CYCLES_PER_FRAME: u32 = 70224;
 
-pub type MMU<T> = Rc<RefCell<T>>;
-
 pub struct Emulator {
     cpu: CPU<Memory>,
 }
@@ -68,42 +66,23 @@ impl Emulator {
     ///
     /// The delta in clock cycles due to the current emulation, to be used
     /// for timing purposes by the consumer of the emulator.
-    pub fn emulate_cycle(&mut self) -> u64 {
+    ///
+    /// Also returns whether VBlank occurred in this emulator cycle.
+    pub fn emulate_cycle(&mut self) -> (u64, bool) {
         let mut prior_cycles = self.cpu.cycles_performed;
 
         self.handle_interrupts();
 
-        //TODO: Consider ticking PPU/timers here since interrupts do tick timers.?
-        // For example, ticking timers here actually makes instr_timing.gb pass, but causes
-        // a few of the MoonEye timing tests to fail.
-
-        // Could consider moving PPU and timer ticks into the cpu.add_cycles() function (since
-        // it owns the MMU anyway) and query the interrupts that are raised after an instruction.
-
         self.cpu.step_cycle();
 
-        let delta_cycles = self.cpu.cycles_performed - prior_cycles;
-
-        let mut interrupt = self.cpu.mmu.ppu.do_cycle(delta_cycles as u32);
-        self.add_new_interrupts(interrupt);
-
-        interrupt = self.cpu.mmu.timers.tick_timers(delta_cycles);
-        self.add_new_interrupts(interrupt);
-
-        self.cpu.mmu.apu.tick(delta_cycles);
-
-        // For PPU timing, maybe see how many cycles the cpu did, pass this to the PPU,
-        // and have the PPU run until it has done all those, OR reaches an interrupt.
-        // Need some way to remember the to be done cycles then though.
-        // EI checker? Run till EI is enabled sort of thing.
-        delta_cycles
+        (self.cpu.cycles_performed - prior_cycles, self.cpu.added_vblank())
     }
 
     /// Pass the provided `InputKey` to the emulator and ensure it's `pressed` state
     /// is represented for the current running `ROM`.
     pub fn handle_input(&mut self, input: InputKey, pressed: bool) {
         let result = self.handle_external_input(input, pressed);
-        self.add_new_interrupts(result);
+        self.cpu.add_new_interrupts(result);
     }
 
     fn handle_external_input(&mut self, input: InputKey, pressed: bool) -> Option<InterruptFlags> {
@@ -118,23 +97,12 @@ impl Emulator {
         }
     }
 
-    /// Add any inputs to the existing flag register, will as a side effect stop the CPU from
-    /// HALTing.
-    fn add_new_interrupts(&mut self, interrupt: Option<InterruptFlags>) {
-        if let Some(intr) = interrupt {
-            //log::trace!("Adding interrupt: {:?}", intr);
-            let mut interrupts = self.get_interrupts();
-            interrupts.insert(intr);
-            self.cpu.mmu.interrupts_flag = interrupts;
-        }
-    }
-
     fn handle_interrupts(&mut self) {
-        let mut interrupt_flags: InterruptFlags = self.get_interrupts();
+        let mut interrupt_flags: InterruptFlags = self.cpu.mmu.interrupts.interrupt_flag;
 
         if !self.cpu.ime {
             // While we have interrupts pending we can't enter halt mode again.
-            if !(interrupt_flags & self.cpu.mmu.interrupts_enable).is_empty() {
+            if !(interrupt_flags & self.cpu.mmu.interrupts.interrupt_enable).is_empty() {
                 self.cpu.halted = false;
                 self.cpu.add_cycles();
             }
@@ -143,7 +111,7 @@ impl Emulator {
             return;
         }
 
-        let interrupt_enable: InterruptFlags = self.cpu.mmu.interrupts_enable;
+        let interrupt_enable: InterruptFlags = self.cpu.mmu.interrupts.interrupt_enable;
 
         // Thanks to the iterator this should go in order, therefore also giving us the proper
         // priority. This is not at all optimised, so consider changing this for a better performing
@@ -154,16 +122,12 @@ impl Emulator {
                 //log::debug!("Firing {:?} interrupt", interrupt);
                 interrupt_flags.remove(repr_flag);
 
-                self.cpu.mmu.interrupts_flag = interrupt_flags;
+                self.cpu.mmu.interrupts.interrupt_flag = interrupt_flags;
 
                 self.cpu.interrupts_routine(interrupt);
                 // We disable IME after an interrupt routine, thus we should preemptively break this loop.
                 break;
             }
         }
-    }
-
-    fn get_interrupts(&self) -> InterruptFlags {
-        self.cpu.mmu.interrupts_flag
     }
 }

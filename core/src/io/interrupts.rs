@@ -16,6 +16,19 @@ impl Interrupts {
     }
 }
 
+#[derive(Default, Debug, Clone)]
+pub struct InterruptModule {
+    pub interrupt_enable: InterruptFlags,
+    pub interrupt_flag: InterruptFlags,
+    pub pending_interrupts: Vec<Interrupts>,
+}
+
+impl InterruptModule {
+    pub fn insert_interrupt(&mut self, interrupt: InterruptFlags) {
+        self.interrupt_flag.insert(interrupt);
+    }
+}
+
 bitflags! {
     #[derive(Default)]
     pub struct InterruptFlags: u8 {

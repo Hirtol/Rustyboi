@@ -100,7 +100,7 @@ fn main() {
 
     let mut timer = sdl_context.timer().unwrap();
 
-    let mut emulator = create_emulator(_cpu_test, None);
+    let mut emulator = create_emulator(cartridge, None);
 
     let mut cycles = 0;
     let mut loop_cycles = 0;
@@ -135,13 +135,21 @@ fn main() {
             }
         }
         // Emulate exactly one frame's worth.
-        while cycles < CYCLES_PER_FRAME * if fast_forward { FAST_FORWARD_MULTIPLIER } else { 1 } {
-            cycles += emulator.emulate_cycle() as u32;
+        // while cycles < CYCLES_PER_FRAME * if fast_forward { FAST_FORWARD_MULTIPLIER } else { 1 } {
+        //     cycles += emulator.emulate_cycle() as u32;
+        // }
+        //
+        // cycles -= CYCLES_PER_FRAME * if fast_forward { FAST_FORWARD_MULTIPLIER } else { 1 };
+
+        while cycles < if fast_forward { FAST_FORWARD_MULTIPLIER } else { 1 } {
+            if let (_, true) = emulator.emulate_cycle() {
+                cycles += 1;
+            }
         }
 
-        cycles -= CYCLES_PER_FRAME * if fast_forward { FAST_FORWARD_MULTIPLIER } else { 1 };
+        cycles -= if fast_forward { FAST_FORWARD_MULTIPLIER } else { 1 };
 
-        fill_texture_and_copy(
+            fill_texture_and_copy(
             &mut canvas,
             &mut screen_texture,
             &emulator.frame_buffer(),
@@ -337,7 +345,7 @@ fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_textu
             let mut cycles = 0;
             loop {
                 while cycles < CYCLES_PER_FRAME {
-                    cycles += emulator.emulate_cycle() as u32;
+                    cycles += emulator.emulate_cycle().0 as u32;
                 }
 
                 cycles -= CYCLES_PER_FRAME;

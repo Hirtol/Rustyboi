@@ -122,7 +122,7 @@ fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>) {
             let mut remaining_cycles_for_frame = (emu.cycles_performed() % CYCLES_PER_FRAME as u64) as i64;
 
             while remaining_cycles_for_frame > 0 {
-                remaining_cycles_for_frame -= emu.emulate_cycle() as i64;
+                remaining_cycles_for_frame -= emu.emulate_cycle().0 as i64;
             }
 
             save_image(&emu.frame_buffer(), format!("{}.png", file_stem.to_str().unwrap()));

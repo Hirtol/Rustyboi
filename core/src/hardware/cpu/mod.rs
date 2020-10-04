@@ -34,6 +34,8 @@ pub struct CPU<M: MemoryMapper> {
     opcode: u8,
     registers: Registers,
     delayed_ime: bool,
+    /// Temporary hack to determine when VBLANK occurred for rendering.
+    had_vblank: bool,
 }
 
 impl<M: MemoryMapper> CPU<M> {
@@ -48,6 +50,7 @@ impl<M: MemoryMapper> CPU<M> {
             cycles_performed: 0,
             ime: false,
             delayed_ime: false,
+            had_vblank: false
         };
 
         if boot_rom_finished {

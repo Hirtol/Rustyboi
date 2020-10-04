@@ -2,7 +2,7 @@ use crate::hardware::cartridge::Cartridge;
 use crate::hardware::ppu::tiledata::*;
 use crate::hardware::ppu::{DMA_TRANSFER, PPU};
 use crate::io::bootrom::BootRom;
-use crate::io::interrupts::InterruptFlags;
+use crate::io::interrupts::{InterruptFlags, InterruptModule};
 
 use bitflags::_core::fmt::{Debug, Formatter};
 use log::*;
@@ -69,6 +69,11 @@ pub trait MemoryMapper: Debug {
     ///
     /// Should be used for saving functionality.
     fn cartridge(&self) -> Option<&Cartridge>;
+    fn interrupts(&self) -> &InterruptModule;
+    fn interrupts_mut(&mut self) -> &mut InterruptModule;
+    fn ppu_mut(&mut self) -> &mut PPU;
+    fn apu_mut(&mut self) -> &mut APU;
+    fn timers_mut(&mut self) -> &mut TimerRegisters;
 }
 
 pub struct Memory {
@@ -79,8 +84,7 @@ pub struct Memory {
     pub apu: APU,
     pub joypad_register: JoyPad,
     pub timers: TimerRegisters,
-    pub interrupts_enable: InterruptFlags,
-    pub interrupts_flag: InterruptFlags,
+    pub interrupts: InterruptModule,
 }
 
 impl Memory {
@@ -93,8 +97,7 @@ impl Memory {
             apu: APU::new(),
             joypad_register: JoyPad::new(),
             timers: Default::default(),
-            interrupts_enable: Default::default(),
-            interrupts_flag: Default::default(),
+            interrupts: Default::default(),
         }
     }
 
@@ -116,7 +119,7 @@ impl Memory {
             HRAM_START..=HRAM_END => self.memory[address as usize],
             INTERRUPTS_ENABLE => {
                 //log::info!("Reading interrupt enable {:?}", self.interrupts_enable);
-                self.interrupts_enable.bits()
+                self.interrupts.interrupt_enable.bits()
             }
             _ => self.memory[address as usize],
         }
@@ -145,7 +148,7 @@ impl Memory {
             HRAM_START..=HRAM_END => self.memory[usize_address] = value,
             INTERRUPTS_ENABLE => {
                 //log::info!("Writing Interrupt Enable: {:?}", InterruptFlags::from_bits_truncate(value));
-                self.interrupts_enable = InterruptFlags::from_bits_truncate(value)
+                self.interrupts.interrupt_enable = InterruptFlags::from_bits_truncate(value)
             }
             _ => self.memory[usize_address] = value,
         }
@@ -163,7 +166,7 @@ impl Memory {
             TIMER_CONTROL => self.timers.timer_control.to_bits(),
             INTERRUPTS_FLAG => {
                 //log::info!("Reading interrupt flag {:?}", self.interrupts_flag);
-                self.interrupts_flag.bits()
+                self.interrupts.interrupt_flag.bits()
             }
             APU_MEM_START..=APU_MEM_END => {
                 let result = self.apu.read_register(address);
@@ -201,7 +204,7 @@ impl Memory {
             TIMER_MODULO => self.timers.set_tma(value),
             TIMER_CONTROL => self.timers.set_timer_control(value),
             INTERRUPTS_FLAG => {
-                self.interrupts_flag = InterruptFlags::from_bits_truncate(value);
+                self.interrupts.interrupt_flag = InterruptFlags::from_bits_truncate(value);
                 //log::info!("Writing interrupt flag {:?}", self.interrupts_flag);
             }
             APU_MEM_START..=APU_MEM_END => {
@@ -265,6 +268,26 @@ impl MemoryMapper for Memory {
 
     fn cartridge(&self) -> Option<&Cartridge> {
         Some(&self.cartridge)
+    }
+
+    fn interrupts(&self) -> &InterruptModule {
+        &self.interrupts
+    }
+
+    fn interrupts_mut(&mut self) -> &mut InterruptModule {
+        &mut self.interrupts
+    }
+
+    fn ppu_mut(&mut self) -> &mut PPU {
+        &mut self.ppu
+    }
+
+    fn apu_mut(&mut self) -> &mut APU {
+        &mut self.apu
+    }
+
+    fn timers_mut(&mut self) -> &mut TimerRegisters {
+        &mut self.timers
     }
 }
 
