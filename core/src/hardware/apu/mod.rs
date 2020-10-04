@@ -259,7 +259,7 @@ impl APU {
         self.voice1 = SquareWaveChannel::default();
         self.voice2 = SquareWaveChannel::default();
         self.voice3.reset();
-        self.voice4.reset();;
+        self.voice4.reset();
         self.vin_l_enable = false;
         self.vin_r_enable = false;
         self.right_volume = 0;
