@@ -2,13 +2,13 @@ use crate::hardware::cartridge::Cartridge;
 use crate::hardware::ppu::tiledata::*;
 use crate::hardware::ppu::{DMA_TRANSFER, PPU};
 use crate::io::bootrom::BootRom;
-use crate::io::interrupts::{InterruptFlags, InterruptModule};
+use crate::io::interrupts::{InterruptFlags, Interrupts};
 
 use bitflags::_core::fmt::{Debug, Formatter};
 use log::*;
 use std::fmt;
 
-use crate::hardware::apu::{APU, APU_MEM_END, APU_MEM_START, WAVE_SAMPLE_START, WAVE_SAMPLE_END};
+use crate::hardware::apu::{APU, APU_MEM_END, APU_MEM_START, WAVE_SAMPLE_END, WAVE_SAMPLE_START};
 use crate::io::joypad::*;
 use crate::io::timer::*;
 
@@ -69,8 +69,8 @@ pub trait MemoryMapper: Debug {
     ///
     /// Should be used for saving functionality.
     fn cartridge(&self) -> Option<&Cartridge>;
-    fn interrupts(&self) -> &InterruptModule;
-    fn interrupts_mut(&mut self) -> &mut InterruptModule;
+    fn interrupts(&self) -> &Interrupts;
+    fn interrupts_mut(&mut self) -> &mut Interrupts;
     fn ppu_mut(&mut self) -> &mut PPU;
     fn apu_mut(&mut self) -> &mut APU;
     fn timers_mut(&mut self) -> &mut TimerRegisters;
@@ -84,7 +84,7 @@ pub struct Memory {
     pub apu: APU,
     pub joypad_register: JoyPad,
     pub timers: TimerRegisters,
-    pub interrupts: InterruptModule,
+    pub interrupts: Interrupts,
 }
 
 impl Memory {
@@ -170,12 +170,20 @@ impl Memory {
             }
             APU_MEM_START..=APU_MEM_END => {
                 let result = self.apu.read_register(address);
-                log::info!("APU Read on address: 0x{:02X} with return value: 0x{:02X}", address, result);
+                log::info!(
+                    "APU Read on address: 0x{:02X} with return value: 0x{:02X}",
+                    address,
+                    result
+                );
                 result
-            },
+            }
             WAVE_SAMPLE_START..=WAVE_SAMPLE_END => {
                 let result = self.apu.read_wave_sample(address);
-                log::info!("APU Wave_Read on address: 0x{:02X} with return value: 0x{:02X}", address, result);
+                log::info!(
+                    "APU Wave_Read on address: 0x{:02X} with return value: 0x{:02X}",
+                    address,
+                    result
+                );
                 result
             }
             LCD_CONTROL_REGISTER => self.ppu.get_lcd_control(),
@@ -210,7 +218,7 @@ impl Memory {
             APU_MEM_START..=APU_MEM_END => {
                 //log::info!("APU Write on address: 0x{:02X} with value: 0x{:02X}", address, value);
                 self.apu.write_register(address, value)
-            },
+            }
             WAVE_SAMPLE_START..=WAVE_SAMPLE_END => {
                 //log::info!("APU Wave_Write on address: 0x{:02X} with value: 0x{:02X}", address, value);
                 self.apu.write_wave_sample(address, value)
@@ -270,11 +278,11 @@ impl MemoryMapper for Memory {
         Some(&self.cartridge)
     }
 
-    fn interrupts(&self) -> &InterruptModule {
+    fn interrupts(&self) -> &Interrupts {
         &self.interrupts
     }
 
-    fn interrupts_mut(&mut self) -> &mut InterruptModule {
+    fn interrupts_mut(&mut self) -> &mut Interrupts {
         &mut self.interrupts
     }
 

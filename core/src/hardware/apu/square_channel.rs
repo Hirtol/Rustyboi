@@ -1,5 +1,5 @@
 use crate::hardware::apu::channel_features::{EnvelopeFeature, LengthFeature, SweepFeature};
-use crate::hardware::apu::{test_bit, no_length_tick_next_step};
+use crate::hardware::apu::{no_length_tick_next_step, test_bit};
 
 /// Relevant for voice 1 and 2 for the DMG.
 /// This is a rather dirty implementation where voice 1 and 2 are merged, the latter
@@ -89,7 +89,7 @@ impl SquareWaveChannel {
                 if self.envelope.volume_load == 0 {
                     self.trigger = false;
                 }
-            },
+            }
             0x13 | 0x18 => self.frequency = (self.frequency & 0x0700) | value as u16,
             0x14 | 0x19 => {
                 let old_length_enable = self.length.length_enable;
@@ -99,7 +99,8 @@ impl SquareWaveChannel {
                 self.frequency = (self.frequency & 0xFF) | (((value & 0x07) as u16) << 8);
 
                 if no_l_next {
-                    self.length.second_half_enable_tick(&mut self.trigger, old_length_enable);
+                    self.length
+                        .second_half_enable_tick(&mut self.trigger, old_length_enable);
                 }
 
                 // We specifically only trigger if the current write value is setting the trigger bit.

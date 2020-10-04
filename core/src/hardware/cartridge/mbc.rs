@@ -297,8 +297,6 @@ impl MBC for MBC5 {
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
     use crate::hardware::cartridge::header::RamSizes::KB32;

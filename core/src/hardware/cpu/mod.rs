@@ -9,7 +9,7 @@ use crate::hardware::cpu::traits::{SetU16, SetU8, ToU16, ToU8};
 use crate::hardware::memory::*;
 use crate::hardware::registers::Reg8::A;
 use crate::hardware::registers::{Flags, Reg16, Registers};
-use crate::io::interrupts::{Interrupts, InterruptFlags};
+use crate::io::interrupts::{InterruptFlags, Interrupts};
 
 use crate::hardware::cpu::execute::JumpModifier::Always;
 use crate::hardware::cpu::instructions::get_assembly_from_opcode;
@@ -50,7 +50,7 @@ impl<M: MemoryMapper> CPU<M> {
             cycles_performed: 0,
             ime: false,
             delayed_ime: false,
-            had_vblank: false
+            had_vblank: false,
         };
 
         if boot_rom_finished {
@@ -126,7 +126,7 @@ impl<M: MemoryMapper> CPU<M> {
             InterruptFlags::TIMER => 0x0050,
             InterruptFlags::SERIAL => 0x0058,
             InterruptFlags::JOYPAD => 0x0060,
-            _ => panic!("Invalid interrupt passed to interrupt handler!")
+            _ => panic!("Invalid interrupt passed to interrupt handler!"),
         };
     }
 

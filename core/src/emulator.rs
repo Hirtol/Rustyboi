@@ -71,7 +71,6 @@ impl Emulator {
     pub fn emulate_cycle(&mut self) -> (u64, bool) {
         let mut prior_cycles = self.cpu.cycles_performed;
 
-        //self.handle_interrupts();
         self.cpu.step_cycle();
 
         (self.cpu.cycles_performed - prior_cycles, self.cpu.added_vblank())

@@ -1,15 +1,15 @@
+use crate::hardware::apu::APU;
 use crate::hardware::cartridge::Cartridge;
 use crate::hardware::cpu::CPU;
 use crate::hardware::memory::MemoryMapper;
-use crate::hardware::registers::Registers;
-use std::cell::RefCell;
-use std::rc::Rc;
-use crate::io::interrupts::InterruptModule;
 use crate::hardware::ppu::PPU;
-use crate::hardware::apu::APU;
+use crate::hardware::registers::Registers;
+use crate::io::interrupts::Interrupts;
 use crate::io::timer::TimerRegisters;
 use bitflags::_core::fmt::{Debug, Formatter};
+use std::cell::RefCell;
 use std::fmt;
+use std::rc::Rc;
 
 mod cycle_tests;
 mod instruction_tests;
@@ -21,7 +21,7 @@ struct TestMemory {
     pub ppu: PPU,
     pub apu: APU,
     pub timers: TimerRegisters,
-    pub interrupts: InterruptModule,
+    pub interrupts: Interrupts,
 }
 
 impl MemoryMapper for TestMemory {
@@ -41,11 +41,11 @@ impl MemoryMapper for TestMemory {
         None
     }
 
-    fn interrupts(&self) -> &InterruptModule {
+    fn interrupts(&self) -> &Interrupts {
         &self.interrupts
     }
 
-    fn interrupts_mut(&mut self) -> &mut InterruptModule {
+    fn interrupts_mut(&mut self) -> &mut Interrupts {
         &mut self.interrupts
     }
 
@@ -75,7 +75,13 @@ impl<T: MemoryMapper> CPU<T> {
 }
 
 fn initial_cpu() -> CPU<TestMemory> {
-    let mut cpu = CPU::new(TestMemory { mem: vec![0; 0x10000], ppu: PPU::new(), apu: APU::new(), timers: Default::default(), interrupts: Default::default() });
+    let mut cpu = CPU::new(TestMemory {
+        mem: vec![0; 0x10000],
+        ppu: PPU::new(),
+        apu: APU::new(),
+        timers: Default::default(),
+        interrupts: Default::default(),
+    });
     cpu.registers = Registers::new();
     cpu
 }

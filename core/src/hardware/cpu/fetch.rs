@@ -47,7 +47,7 @@ impl<M: MemoryMapper> CPU<M> {
         opcode
     }
 
-    pub fn handle_interrupts(&mut self) -> bool{
+    pub fn handle_interrupts(&mut self) -> bool {
         if !self.ime {
             if self.mmu.interrupts().interrupts_pending() {
                 self.halted = false;
@@ -121,7 +121,7 @@ impl<M: MemoryMapper> CPU<M> {
         if self.had_vblank {
             self.had_vblank = false;
             true
-        }else {
+        } else {
             false
         }
     }
@@ -135,6 +135,4 @@ impl<M: MemoryMapper> CPU<M> {
             self.mmu.interrupts_mut().insert_interrupt(intr);
         }
     }
-
-
 }

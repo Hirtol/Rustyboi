@@ -157,7 +157,7 @@ impl APU {
                 set_bit(&mut output, 1, self.voice2.triggered());
                 set_bit(&mut output, 0, self.voice1.triggered());
                 output
-            },
+            }
             0x27..=0x2F => 0xFF, // Unused registers, always read 0xFF
             _ => panic!("Out of bound APU register read: {}", address),
         }
@@ -169,7 +169,7 @@ impl APU {
         // It's not possible to access any registers beside 0x26 while the sound is disabled.
         // *Caveat*: In DMG mode you CAN write to the Length registers while disabled (f.e 0x20).
         // TODO: However in CGB mode this is not possible, and should thus not be allowed.
-        if !self.global_sound_enable && address != 0x26 && ![0x20, 0x1B].contains(&address){
+        if !self.global_sound_enable && address != 0x26 && ![0x20, 0x1B].contains(&address) {
             log::warn!("Tried to write APU while inaccessible to address: 0x{:02X}", address);
             return;
         }
@@ -198,9 +198,12 @@ impl APU {
                 if !self.global_sound_enable {
                     self.reset();
                 }
-            },
+            }
             0x27..=0x2F => {} // Writes to unused registers are silently ignored.
-            _ => panic!("Attempt to write to an unknown audio register: 0xFF{:02X} with val: {}", address, value),
+            _ => panic!(
+                "Attempt to write to an unknown audio register: 0xFF{:02X} with val: {}",
+                address, value
+            ),
         }
     }
 

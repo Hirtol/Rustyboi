@@ -1,7 +1,7 @@
 use num_integer::Integer;
 
 use crate::hardware::apu::channel_features::LengthFeature;
-use crate::hardware::apu::{test_bit, no_length_tick_next_step};
+use crate::hardware::apu::{no_length_tick_next_step, test_bit};
 
 /// Relevant for voice 3 for the DMG.
 ///
@@ -27,7 +27,10 @@ impl WaveformChannel {
         WaveformChannel {
             // The DMG initialisation values, the game R-Type relies on these
             // CGB are different.
-            sample_buffer: [0x8, 0x4, 0x4, 0x0, 0x4, 0x3, 0xA, 0xA, 0x2, 0xD, 0x7, 0x8, 0x9, 0x2, 0x3, 0xC, 0x6, 0x0, 0x5, 0x9, 0x5, 0x9, 0xB, 0x0, 0x3, 0x4, 0xB, 0x8, 0x2, 0xE, 0xD, 0xA],
+            sample_buffer: [
+                0x8, 0x4, 0x4, 0x0, 0x4, 0x3, 0xA, 0xA, 0x2, 0xD, 0x7, 0x8, 0x9, 0x2, 0x3, 0xC, 0x6, 0x0, 0x5, 0x9,
+                0x5, 0x9, 0xB, 0x0, 0x3, 0x4, 0xB, 0x8, 0x2, 0xE, 0xD, 0xA,
+            ],
             ..Default::default()
         }
     }
@@ -68,11 +71,23 @@ impl WaveformChannel {
         // Expect the address to already have had an & 0xFF
         // The read values are taken from gbdev
         match address {
-            0x1A => if self.dac_power { 0xFF } else { 0x7F },
+            0x1A => {
+                if self.dac_power {
+                    0xFF
+                } else {
+                    0x7F
+                }
+            }
             0x1B => 0xFF,
             0x1C => 0x9F | self.volume_load,
             0x1D => 0xFF,
-            0x1E => if self.length.length_enable { 0xFF } else { 0xBF },
+            0x1E => {
+                if self.length.length_enable {
+                    0xFF
+                } else {
+                    0xBF
+                }
+            }
             0x30..=0x3F => {
                 // If the wave channel is enabled, accessing any byte from $FF30-$FF3F is equivalent
                 // to accessing the current byte selected by the waveform position.
@@ -81,8 +96,8 @@ impl WaveformChannel {
                 // if made at any other time, reads return $FF and writes have no effect.
                 let offset_address = if self.trigger {
                     if self.sample_pointer % 2 == 1 {
-                        (self.sample_pointer-1) as usize
-                    }else {
+                        (self.sample_pointer - 1) as usize
+                    } else {
                         self.sample_pointer as usize
                     }
                 } else {
@@ -102,7 +117,7 @@ impl WaveformChannel {
                 if !self.dac_power {
                     self.trigger = false;
                 }
-            },
+            }
             0x1B => self.length.write_register_256(value),
             0x1C => self.set_volume_from_val(value),
             0x1D => self.frequency = (self.frequency & 0x0700) | value as u16,
@@ -114,7 +129,8 @@ impl WaveformChannel {
                 self.frequency = (self.frequency & 0x00FF) | (((value & 0x07) as u16) << 8);
 
                 if no_l_next {
-                    self.length.second_half_enable_tick(&mut self.trigger, old_length_enable);
+                    self.length
+                        .second_half_enable_tick(&mut self.trigger, old_length_enable);
                 }
 
                 if test_bit(value, 7) {

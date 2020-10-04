@@ -1,8 +1,8 @@
 use crate::hardware::cartridge::header::CartridgeHeader;
 use crate::hardware::cartridge::mbc::{MBC, MBC0, MBC1, MBC5};
+use crate::hardware::cartridge::mbc3::MBC3;
 use bitflags::_core::fmt::{Debug, Formatter};
 use std::fmt;
-use crate::hardware::cartridge::mbc3::MBC3;
 
 pub mod header;
 pub mod mbc;

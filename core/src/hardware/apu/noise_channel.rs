@@ -1,5 +1,5 @@
 use crate::hardware::apu::channel_features::{EnvelopeFeature, LengthFeature};
-use crate::hardware::apu::{test_bit, no_length_tick_next_step};
+use crate::hardware::apu::{no_length_tick_next_step, test_bit};
 
 /// Relevant for voice 4 for the DMG.
 ///
@@ -77,8 +77,14 @@ impl NoiseChannel {
             0x1F => 0xFF,
             0x20 => 0xFF,
             0x21 => self.envelope.read_register(),
-            0x22 => (self.clock_shift << 4) | if self.width_mode {0x8} else {0x0} | self.divisor_code,
-            0x23 => if self.length.length_enable { 0xFF } else { 0xBF },
+            0x22 => (self.clock_shift << 4) | if self.width_mode { 0x8 } else { 0x0 } | self.divisor_code,
+            0x23 => {
+                if self.length.length_enable {
+                    0xFF
+                } else {
+                    0xBF
+                }
+            }
             _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address),
         }
     }
@@ -86,7 +92,7 @@ impl NoiseChannel {
     pub fn write_register(&mut self, address: u16, value: u8, next_frame_sequencer_step: u8) {
         // Expect the address to already have had an & 0xFF
         match address {
-            0x1F => {},
+            0x1F => {}
             0x20 => self.length.write_register(value),
             0x21 => {
                 self.envelope.write_register(value);
@@ -94,12 +100,12 @@ impl NoiseChannel {
                 if self.envelope.volume_load == 0 {
                     self.trigger = false;
                 }
-            },
+            }
             0x22 => {
                 self.clock_shift = value >> 4;
                 self.divisor_code = value & 0x7;
                 self.width_mode = test_bit(value, 3)
-            },
+            }
             0x23 => {
                 let old_length_enable = self.length.length_enable;
                 let no_l_next = no_length_tick_next_step(next_frame_sequencer_step);
@@ -107,7 +113,8 @@ impl NoiseChannel {
                 self.length.length_enable = test_bit(value, 6);
 
                 if no_l_next {
-                    self.length.second_half_enable_tick(&mut self.trigger, old_length_enable);
+                    self.length
+                        .second_half_enable_tick(&mut self.trigger, old_length_enable);
                 }
 
                 if test_bit(value, 7) {
@@ -139,7 +146,10 @@ impl NoiseChannel {
     pub fn reset(&mut self) {
         self.length.length_enable = false;
         //TODO: In CGB mode we should not save the length here, instead fully reset the channel.
-        *self = Self {length: self.length, ..Default::default()};
+        *self = Self {
+            length: self.length,
+            ..Default::default()
+        };
     }
 
     fn get_divisor_from_code(&self) -> u16 {
@@ -156,4 +166,3 @@ impl NoiseChannel {
         }
     }
 }
-

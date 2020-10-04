@@ -22,7 +22,7 @@ use crate::display::{DisplayColour, RGB};
 use hound::{SampleFormat, WavSpec};
 use sdl2::audio::{AudioQueue, AudioSpecDesired};
 use sdl2::event::Event;
-use std::io::{Write, BufWriter};
+use std::io::{BufWriter, Write};
 use std::ops::Div;
 
 mod actions;
@@ -149,7 +149,7 @@ fn main() {
 
         cycles -= if fast_forward { FAST_FORWARD_MULTIPLIER } else { 1 };
 
-            fill_texture_and_copy(
+        fill_texture_and_copy(
             &mut canvas,
             &mut screen_texture,
             &emulator.frame_buffer(),
@@ -351,13 +351,14 @@ fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_textu
                 cycles -= CYCLES_PER_FRAME;
                 frame_count += 1;
                 if frame_count > 20_000 {
-                    println!("Rendered: {} frames per second after 20_000 frames!", frame_count as f64/start_time.elapsed().as_secs_f64());
+                    println!(
+                        "Rendered: {} frames per second after 20_000 frames!",
+                        frame_count as f64 / start_time.elapsed().as_secs_f64()
+                    );
                     break;
                 }
             }
         }
-
-
 
         fill_texture_and_copy(
             &mut canvas,

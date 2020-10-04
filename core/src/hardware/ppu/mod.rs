@@ -286,8 +286,7 @@ impl PPU {
         let current_address: usize = self.current_y as usize * RESOLUTION_WIDTH;
 
         // Copy the value of the current scanline to the framebuffer.
-        self.frame_buffer[current_address..current_address + RESOLUTION_WIDTH]
-            .copy_from_slice(&self.scanline_buffer);
+        self.frame_buffer[current_address..current_address + RESOLUTION_WIDTH].copy_from_slice(&self.scanline_buffer);
 
         self.current_y = self.current_y.wrapping_add(1);
     }
