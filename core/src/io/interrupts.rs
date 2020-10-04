@@ -20,12 +20,36 @@ impl Interrupts {
 pub struct InterruptModule {
     pub interrupt_enable: InterruptFlags,
     pub interrupt_flag: InterruptFlags,
-    pub pending_interrupts: Vec<Interrupts>,
 }
 
 impl InterruptModule {
     pub fn insert_interrupt(&mut self, interrupt: InterruptFlags) {
         self.interrupt_flag.insert(interrupt);
+    }
+
+    /// Check if `IF != 0` and that the corresponding bit is also set in `IE`
+    pub fn interrupts_pending(&self) -> bool {
+        !(self.interrupt_flag & self.interrupt_enable).is_empty()
+    }
+
+    pub fn interrupt_should_trigger(&self, interrupt: InterruptFlags) -> bool {
+        !(interrupt & self.interrupt_flag & self.interrupt_enable).is_empty()
+    }
+
+    pub fn get_immediate_interrupt(&self) -> InterruptFlags {
+        if self.interrupt_should_trigger(InterruptFlags::VBLANK) {
+            InterruptFlags::VBLANK
+        } else if self.interrupt_should_trigger(InterruptFlags::LCD) {
+            InterruptFlags::LCD
+        } else if self.interrupt_should_trigger(InterruptFlags::TIMER) {
+            InterruptFlags::TIMER
+        } else if self.interrupt_should_trigger(InterruptFlags::SERIAL) {
+            InterruptFlags::SERIAL
+        } else if self.interrupt_should_trigger(InterruptFlags::JOYPAD) {
+            InterruptFlags::JOYPAD
+        } else {
+            panic!("No flag available when immediate_interrupt was called!")
+        }
     }
 }
 

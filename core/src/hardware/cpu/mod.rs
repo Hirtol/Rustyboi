@@ -9,7 +9,7 @@ use crate::hardware::cpu::traits::{SetU16, SetU8, ToU16, ToU8};
 use crate::hardware::memory::*;
 use crate::hardware::registers::Reg8::A;
 use crate::hardware::registers::{Flags, Reg16, Registers};
-use crate::io::interrupts::Interrupts;
+use crate::io::interrupts::{Interrupts, InterruptFlags};
 
 use crate::hardware::cpu::execute::JumpModifier::Always;
 use crate::hardware::cpu::instructions::get_assembly_from_opcode;
@@ -71,6 +71,7 @@ impl<M: MemoryMapper> CPU<M> {
     pub fn step_cycle(&mut self) {
         if self.halted {
             self.add_cycles();
+            // Since we don't call for an opcode we'll have to handle interrupts here.
             self.handle_interrupts();
             return;
         }
@@ -107,8 +108,7 @@ impl<M: MemoryMapper> CPU<M> {
 
     /// The routine to be used whenever any kind of `interrupt` is called.
     /// This will reset the `ime` flag and jump to the proper interrupt address.
-    pub fn interrupts_routine(&mut self, interrupt: Interrupts) {
-        use Interrupts::*;
+    pub fn interrupts_routine(&mut self, interrupt: InterruptFlags) {
         // Two wait cycles
         self.add_cycles();
         self.add_cycles();
@@ -121,11 +121,12 @@ impl<M: MemoryMapper> CPU<M> {
         //self.add_cycles();
 
         self.registers.pc = match interrupt {
-            VBLANK => 0x0040,
-            LcdStat => 0x0048,
-            TIMER => 0x0050,
-            SERIAL => 0x0058,
-            JOYPAD => 0x0060,
+            InterruptFlags::VBLANK => 0x0040,
+            InterruptFlags::LCD => 0x0048,
+            InterruptFlags::TIMER => 0x0050,
+            InterruptFlags::SERIAL => 0x0058,
+            InterruptFlags::JOYPAD => 0x0060,
+            _ => panic!("Invalid interrupt passed to interrupt handler!")
         };
     }
 

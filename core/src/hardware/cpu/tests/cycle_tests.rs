@@ -1,6 +1,6 @@
 use crate::hardware::cpu::tests::{initial_cpu, set_short};
 
-use crate::io::interrupts::Interrupts;
+use crate::io::interrupts::{Interrupts, InterruptFlags};
 
 #[test]
 fn basic_cycle_test() {
@@ -27,7 +27,7 @@ fn basic_cycle_test() {
 fn test_interrupt_cycles() {
     let mut cpu = initial_cpu();
 
-    cpu.interrupts_routine(Interrupts::TIMER);
+    cpu.interrupts_routine(InterruptFlags::TIMER);
 
     assert_eq!(cpu.cycles_performed, 20);
     assert_eq!(cpu.registers.pc, 0x50);

@@ -72,7 +72,6 @@ impl Emulator {
         let mut prior_cycles = self.cpu.cycles_performed;
 
         //self.handle_interrupts();
-        //self.cpu.handle_interrupts();
         self.cpu.step_cycle();
 
         (self.cpu.cycles_performed - prior_cycles, self.cpu.added_vblank())
@@ -94,40 +93,6 @@ impl Emulator {
         } else {
             inputs.release_key(input);
             None
-        }
-    }
-
-    fn handle_interrupts(&mut self) {
-        let mut interrupt_flags: InterruptFlags = self.cpu.mmu.interrupts.interrupt_flag;
-
-        if !self.cpu.ime {
-            // While we have interrupts pending we can't enter halt mode again.
-            if !(interrupt_flags & self.cpu.mmu.interrupts.interrupt_enable).is_empty() {
-                self.cpu.halted = false;
-                self.cpu.add_cycles();
-            }
-            return;
-        } else if interrupt_flags.is_empty() {
-            return;
-        }
-
-        let interrupt_enable: InterruptFlags = self.cpu.mmu.interrupts.interrupt_enable;
-
-        // Thanks to the iterator this should go in order, therefore also giving us the proper
-        // priority. This is not at all optimised, so consider changing this for a better performing
-        // version. Something without bitflags mayhap.
-        for interrupt in Interrupts::iter() {
-            let repr_flag = InterruptFlags::from_bits_truncate(interrupt as u8);
-            if !(repr_flag & interrupt_flags & interrupt_enable).is_empty() {
-                //log::debug!("Firing {:?} interrupt", interrupt);
-                interrupt_flags.remove(repr_flag);
-
-                self.cpu.mmu.interrupts.interrupt_flag = interrupt_flags;
-
-                self.cpu.interrupts_routine(interrupt);
-                // We disable IME after an interrupt routine, thus we should preemptively break this loop.
-                break;
-            }
         }
     }
 }
