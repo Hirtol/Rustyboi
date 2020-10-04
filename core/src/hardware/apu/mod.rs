@@ -168,7 +168,7 @@ impl APU {
 
         // It's not possible to access any registers beside 0x26 while the sound is disabled.
         if !self.global_sound_enable && address != 0x26 {
-            log::warn!("Tried to write APU while inaccessible");
+            log::warn!("Tried to write APU while inaccessible to address: 0x{:02X}", address);
             return;
         }
 
@@ -216,22 +216,24 @@ impl APU {
         let mut result = 0f32;
         // Voice 1 (Square wave)
         if voice_enables[0] {
-            result += (self.voice1.output_volume() as f32 / 100.0);
+            result += (self.voice1.output_volume() as f32);
         }
         // Voice 2 (Square wave)
         if voice_enables[1] {
-            result += (self.voice2.output_volume() as f32 / 100.0);
+            result += (self.voice2.output_volume() as f32);
         }
         // Voice 3 (Wave)
         if voice_enables[2] {
-            result += (self.voice3.output_volume() as f32 / 100.0);
+            // The volume shift of the wave channel doesn't seem quite enough to balance it
+            // compared to the other channels, so this extra division is to soften is slightly.
+            result += (self.voice3.output_volume() as f32 / 2.0);
         }
         // Voice 4 (Noise)
         if voice_enables[3] {
-            result += (self.voice4.output_volume() as f32 / 100.0)
+            result += (self.voice4.output_volume() as f32);
         }
 
-        self.output_buffer.push(result * final_volume);
+        self.output_buffer.push((result / 100.0) * final_volume);
     }
 
     fn tick_length(&mut self) {
@@ -255,7 +257,7 @@ impl APU {
         self.voice1 = SquareWaveChannel::default();
         self.voice2 = SquareWaveChannel::default();
         self.voice3.reset();
-        self.voice4 = NoiseChannel::default();
+        self.voice4.reset();;
         self.vin_l_enable = false;
         self.vin_r_enable = false;
         self.right_volume = 0;

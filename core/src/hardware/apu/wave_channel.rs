@@ -105,17 +105,13 @@ impl WaveformChannel {
             },
             0x1B => self.length.write_register_256(value),
             0x1C => self.set_volume_from_val(value),
-            0x1D => {
-                self.frequency = (self.frequency & 0x0700) | value as u16;
-                self.timer = (2048 - self.frequency) * 2;
-            },
+            0x1D => self.frequency = (self.frequency & 0x0700) | value as u16,
             0x1E => {
                 let old_length_enable = self.length.length_enable;
                 let no_l_next = no_length_tick_next_step(next_frame_sequencer_step);
 
                 self.length.length_enable = test_bit(value, 6);
                 self.frequency = (self.frequency & 0x00FF) | (((value & 0x07) as u16) << 8);
-                self.timer = (2048 - self.frequency) * 2;
 
                 if no_l_next {
                     self.length.second_half_enable_tick(&mut self.trigger, old_length_enable);

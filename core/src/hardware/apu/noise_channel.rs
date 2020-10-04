@@ -78,7 +78,7 @@ impl NoiseChannel {
             0x20 => 0xFF,
             0x21 => self.envelope.read_register(),
             0x22 => (self.clock_shift << 4) | if self.width_mode {0x8} else {0x0} | self.divisor_code,
-            0x23 => 0xBF | if self.length.length_enable { 0x40 } else { 0x0 },
+            0x23 => if self.length.length_enable { 0xFF } else { 0x0 },
             _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address),
         }
     }
@@ -134,6 +134,10 @@ impl NoiseChannel {
         if self.envelope.volume_load == 0 && !self.envelope.envelope_add_mode {
             self.trigger = false;
         }
+    }
+
+    pub fn reset(&mut self) {
+        *self = Self {length: self.length, ..Default::default()};
     }
 
     fn get_divisor_from_code(&self) -> u16 {

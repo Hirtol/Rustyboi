@@ -68,7 +68,7 @@ impl EnvelopeFeature {
     }
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, Copy)]
 pub struct LengthFeature {
     pub length_enable: bool,
     pub length_timer: u16,
@@ -86,6 +86,7 @@ impl LengthFeature {
             self.length_timer -= 1;
 
             if self.length_timer == 0 {
+                log::warn!("OFF");
                 *channel_enable = false;
             }
         }
@@ -107,7 +108,6 @@ impl LengthFeature {
 
     pub fn write_register(&mut self, value: u8) {
         let length_load = value & 0x3F;
-        // I think this is correct, not sure.
         self.length_timer = 64 - length_load as u16;
     }
 
@@ -124,7 +124,6 @@ impl LengthFeature {
     }
 
     pub fn write_register_256(&mut self, value: u8) {
-        // I think this is correct, not sure.
         self.length_timer = 256 - value as u16;
     }
 
