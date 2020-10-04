@@ -71,8 +71,12 @@ impl<M: MemoryMapper> CPU<M> {
     pub fn step_cycle(&mut self) {
         if self.halted {
             self.add_cycles();
+            self.handle_interrupts();
             return;
         }
+
+        self.opcode = self.get_next_opcode();
+
         // For the EI instruction, kinda dirty atm.
         // TODO:Think of a better architecture to accommodate delayed instructions
         //  (as DI will need it for GBC)
@@ -80,8 +84,6 @@ impl<M: MemoryMapper> CPU<M> {
             self.ime = true;
             self.delayed_ime = false;
         }
-
-        self.opcode = self.get_instr_u8();
 
         // info!(
         //     "Executing opcode: {:04X} - registers: {}",
@@ -113,7 +115,10 @@ impl<M: MemoryMapper> CPU<M> {
 
         self.ime = false;
         self.halted = false;
-        self.push_helper(self.registers.pc);
+        // Stack push
+        self.registers.sp = self.registers.sp.wrapping_sub(2);
+        self.write_short_cycle(self.registers.sp, self.registers.pc);
+        //self.add_cycles();
 
         self.registers.pc = match interrupt {
             VBLANK => 0x0040,

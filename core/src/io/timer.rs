@@ -44,13 +44,12 @@ impl TimerRegisters {
         (self.system_clock >> 8) as u8
     }
 
-    pub fn tick_timers(&mut self, mut delta_cycles: u64) -> Option<InterruptFlags> {
+    pub fn tick_timers(&mut self) -> Option<InterruptFlags> {
         let mut to_return = None;
         self.just_overflowed = false;
 
         // Whenever an overflow occurs we delay by 4 cycles (1 nop)
-        // We call this tick_timers() method every instruction, so we're getting close enough by just delaying
-        // it by one tick_timers() iteration as we're doing now.
+        // Since we clock timers every 4 cycles we just use this hacky way.
         if self.timer_overflowed {
             self.timer_counter = self.timer_modulo;
             self.timer_overflowed = false;
@@ -58,21 +57,15 @@ impl TimerRegisters {
             to_return = Some(InterruptFlags::TIMER)
         }
 
-        // We need to gradually add since we can have > 16 cycles being added at once,
-        // which would screw over the timer when we are in C16 mode.
-        while delta_cycles > 0 {
-            let old_sys_clock = self.system_clock;
-            self.system_clock = self.system_clock.wrapping_add(4);
+        let old_sys_clock = self.system_clock;
+        self.system_clock = self.system_clock.wrapping_add(4);
 
-            if self.timer_control.timer_enabled {
-                let select_bit = self.timer_control.input_select.to_relevant_bit();
+        if self.timer_control.timer_enabled {
+            let select_bit = self.timer_control.input_select.to_relevant_bit();
 
-                if self.fallen_sys_clock(old_sys_clock, select_bit) {
-                    self.tick_timer();
-                }
+            if self.fallen_sys_clock(old_sys_clock, select_bit) {
+                self.tick_timer();
             }
-
-            delta_cycles -= 4;
         }
 
         to_return

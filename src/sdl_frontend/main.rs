@@ -22,7 +22,7 @@ use crate::display::{DisplayColour, RGB};
 use hound::{SampleFormat, WavSpec};
 use sdl2::audio::{AudioQueue, AudioSpecDesired};
 use sdl2::event::Event;
-use std::io::Write;
+use std::io::{Write, BufWriter};
 use std::ops::Div;
 
 mod actions;
@@ -89,7 +89,7 @@ fn main() {
     let bootrom_file = read("roms\\DMG_ROM.bin").unwrap();
 
     let cartridge = "roms/Zelda.gb";
-    let _cpu_test = "test roms/blargg/mem_timing/individual/02-write_timing.gb";
+    let _cpu_test = "test roms/mooneye/tests/acceptance/timer/rapid_toggle.gb";
     let _cpu_test2 = "test roms/mooneye/tests/emulator-only/mbc5/mbc5_rom_512kb.gb";
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
@@ -100,7 +100,7 @@ fn main() {
 
     let mut timer = sdl_context.timer().unwrap();
 
-    let mut emulator = create_emulator(cartridge, None);
+    let mut emulator = create_emulator(_cpu_test, None);
 
     let mut cycles = 0;
     let mut loop_cycles = 0;
