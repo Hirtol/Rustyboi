@@ -72,11 +72,9 @@ pub trait MemoryMapper: Debug {
     fn cartridge(&self) -> Option<&Cartridge>;
     fn interrupts(&self) -> &Interrupts;
     fn interrupts_mut(&mut self) -> &mut Interrupts;
-    fn ppu_mut(&mut self) -> &mut PPU;
-    fn apu_mut(&mut self) -> &mut APU;
-    fn timers_mut(&mut self) -> &mut TimerRegisters;
-    fn scheduler_mut(&mut self) -> &mut Scheduler;
-    fn tick_scheduler(&mut self) -> bool;
+    /// Perform one M-cycle (4 cycles) on all components of the system.
+    /// Returns if V-blank occured
+    fn do_m_cycle(&mut self) -> bool;
 }
 
 pub struct Memory {
@@ -304,6 +302,14 @@ impl Memory {
         }
         vblank_occurred
     }
+
+    /// Add a new interrupt to the IF flag.
+    #[inline]
+    pub fn add_new_interrupts(&mut self, interrupt: Option<InterruptFlags>) {
+        if let Some(intr) = interrupt {
+            self.interrupts.insert_interrupt(intr);
+        }
+    }
 }
 
 impl MemoryMapper for Memory {
@@ -331,24 +337,19 @@ impl MemoryMapper for Memory {
         &mut self.interrupts
     }
 
-    fn ppu_mut(&mut self) -> &mut PPU {
-        &mut self.ppu
-    }
+    #[inline]
+    fn do_m_cycle(&mut self) -> bool {
+        let mut result = false;
 
-    fn apu_mut(&mut self) -> &mut APU {
-        &mut self.apu
-    }
+        if self.tick_scheduler() {
+            result = true;
+        }
 
-    fn timers_mut(&mut self) -> &mut TimerRegisters {
-        &mut self.timers
-    }
+        let interrupt = self.timers.tick_timers();
+        self.add_new_interrupts(interrupt);
 
-    fn scheduler_mut(&mut self) -> &mut Scheduler {
-        &mut self.scheduler
-    }
-
-    fn tick_scheduler(&mut self) -> bool {
-        self.tick_scheduler()
+        self.apu.tick(4);
+        result
     }
 }
 

@@ -80,7 +80,7 @@ impl Emulator {
     /// is represented for the current running `ROM`.
     pub fn handle_input(&mut self, input: InputKey, pressed: bool) {
         let result = self.handle_external_input(input, pressed);
-        self.cpu.add_new_interrupts(result);
+        self.cpu.mmu.add_new_interrupts(result);
     }
 
     fn handle_external_input(&mut self, input: InputKey, pressed: bool) -> Option<InterruptFlags> {

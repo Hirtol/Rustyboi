@@ -50,23 +50,7 @@ impl MemoryMapper for TestMemory {
         &mut self.interrupts
     }
 
-    fn ppu_mut(&mut self) -> &mut PPU {
-        &mut self.ppu
-    }
-
-    fn apu_mut(&mut self) -> &mut APU {
-        &mut self.apu
-    }
-
-    fn timers_mut(&mut self) -> &mut TimerRegisters {
-        &mut self.timers
-    }
-
-    fn scheduler_mut(&mut self) -> &mut Scheduler {
-        unimplemented!()
-    }
-
-    fn tick_scheduler(&mut self) -> bool {
+    fn do_m_cycle(&mut self) -> bool {
         false
     }
 }
