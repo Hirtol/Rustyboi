@@ -6,6 +6,7 @@
 use crate::hardware::apu::noise_channel::NoiseChannel;
 use crate::hardware::apu::square_channel::SquareWaveChannel;
 use crate::hardware::apu::wave_channel::WaveformChannel;
+use crate::scheduler::{Scheduler, EventType};
 
 mod channel_features;
 mod noise_channel;
@@ -15,6 +16,8 @@ mod wave_channel;
 // Currently chose for 44100/60 = 739 samples per frame to make it 'kinda' sync up.
 // In all likelihood this will cause issues due to scheduling delays so this should go up probably.
 pub const SAMPLE_SIZE_BUFFER: usize = 739;
+pub const FRAME_SEQUENCE_CYCLES: u64 = 8192;
+pub const SAMPLE_CYCLES: u64 = 95;
 
 pub const APU_MEM_START: u16 = 0xFF10;
 pub const APU_MEM_END: u16 = 0xFF2F;
@@ -36,8 +39,6 @@ pub struct APU {
     right_channel_enable: [bool; 4],
     global_sound_enable: bool,
     output_buffer: Vec<f32>,
-    sampling_handler: u8,
-    frame_sequencer: u16,
     frame_sequencer_step: u8,
 }
 
@@ -56,60 +57,62 @@ impl APU {
             right_channel_enable: [true, true, false, false],
             // Start the APU with 2 frames of audio buffered
             output_buffer: Vec::with_capacity(SAMPLE_SIZE_BUFFER * 2),
-            frame_sequencer: 0,
-            sampling_handler: 0,
             global_sound_enable: true,
             frame_sequencer_step: 0,
         }
     }
 
+    /// Tick function called every 4 `cycles`
     pub fn tick(&mut self, mut delta_cycles: u16) {
         if !self.global_sound_enable {
             return;
         }
-        // These values are purely personal preference, may even want to defer this to the emulator
-        // consumer.
-        let left_final_volume = self.left_volume as f32 / 6.0;
-        let right_final_volume = self.right_volume as f32 / 6.0;
 
         self.voice1.tick_timer(delta_cycles);
         self.voice2.tick_timer(delta_cycles);
         self.voice3.tick_timer(delta_cycles);
         self.voice4.tick_timer(delta_cycles);
+    }
 
-        self.frame_sequencer += delta_cycles;
-        if self.frame_sequencer >= 8192 {
-            // The frame sequencer component clocks at 512Hz apparently.
-            // 4194304/512 = 8192
-            self.frame_sequencer -= 8192;
-            match self.frame_sequencer_step {
-                0 | 4 => self.tick_length(),
-                2 | 6 => {
-                    self.tick_length();
-                    self.tick_sweep();
-                }
-                7 => self.tick_envelop(),
-                _ => {}
+    /// Ticked by the `Scheduler` every `8192` cycles.
+    ///
+    /// See `MMU` for function call.
+    pub fn tick_frame_sequencer(&mut self) {
+        // The frame sequencer component clocks at 512Hz apparently.
+        // 4194304/512 = 8192 cycles
+        match self.frame_sequencer_step {
+            0 | 4 => self.tick_length(),
+            2 | 6 => {
+                self.tick_length();
+                self.tick_sweep();
             }
-            self.frame_sequencer_step = (self.frame_sequencer_step + 1) % 8;
+            7 => self.tick_envelop(),
+            _ => { },
         }
+        self.frame_sequencer_step = (self.frame_sequencer_step + 1) % 8;
+    }
 
+    /// Ticked by the `Scheduler` every `95` cycles.
+    /// This is a close enough value such that we get one sample every ~1/44100 seconds
+    ///
+    /// See `MMU` for function call.
+    pub fn tick_sampling_handler(&mut self) {
         // This block is here such that we get ~44100 samples per second, otherwise we'd generate
         // far more than we could consume.
         // TODO: Add actual downsampling instead of the selective audio pick.
         // Refer to: https://www.reddit.com/r/EmuDev/comments/g5czyf/sound_emulation/
         // Alternatively, we could go to 93207 sampling rate, which would give the sampling
-        // hanlder a value of *almost* exactly 45.
-        self.sampling_handler += delta_cycles as u8;
-        if self.sampling_handler >= 95 {
-            // Close enough value such that we get one sample every ~1/44100
-            self.sampling_handler -= 95;
+        // handler a value of *almost* exactly 45.
 
-            // Left Audio
-            self.generate_audio(self.left_channel_enable, left_final_volume);
-            // Right Audio
-            self.generate_audio(self.right_channel_enable, right_final_volume);
-        }
+        // These values are purely personal preference, may even want to defer this to the emulator
+        // consumer.
+        let left_final_volume = self.left_volume as f32 / 6.0;
+        let right_final_volume = self.right_volume as f32 / 6.0;
+
+        // Left Audio
+        self.generate_audio(self.left_channel_enable, left_final_volume);
+        // Right Audio
+        self.generate_audio(self.right_channel_enable, right_final_volume);
     }
 
     pub fn get_audio_buffer(&self) -> &[f32] {
@@ -159,7 +162,7 @@ impl APU {
         }
     }
 
-    pub fn write_register(&mut self, address: u16, value: u8) {
+    pub fn write_register(&mut self, address: u16, value: u8, scheduler: &mut Scheduler) {
         let address = address & 0xFF;
 
         // It's not possible to access any registers beside 0x26 while the sound is disabled.
@@ -190,9 +193,14 @@ impl APU {
                 }
             }
             0x26 => {
+                let previous_enable = self.global_sound_enable;
                 self.global_sound_enable = test_bit(value, 7);
                 if !self.global_sound_enable {
-                    self.reset();
+                    self.reset(scheduler);
+                } else if !previous_enable {
+                    // Re-add the frame sequence event.
+                    scheduler.push_relative(EventType::APUFrameSequencer, FRAME_SEQUENCE_CYCLES);
+                    scheduler.push_relative(EventType::APUSample, SAMPLE_CYCLES);
                 }
             }
             0x27..=0x2F => {} // Writes to unused registers are silently ignored.
@@ -254,7 +262,7 @@ impl APU {
         self.voice1.tick_sweep();
     }
 
-    fn reset(&mut self) {
+    fn reset(&mut self, scheduler: &mut Scheduler) {
         self.voice1 = SquareWaveChannel::default();
         self.voice2 = SquareWaveChannel::default();
         self.voice3.reset();
@@ -265,7 +273,8 @@ impl APU {
         self.left_volume = 0;
         self.left_channel_enable = [false; 4];
         self.right_channel_enable = [false; 4];
-        self.frame_sequencer = 0;
+        scheduler.remove_event_type(EventType::APUFrameSequencer);
+        scheduler.remove_event_type(EventType::APUSample);
         self.frame_sequencer_step = 0;
     }
 }

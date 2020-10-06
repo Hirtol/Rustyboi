@@ -3,7 +3,7 @@ use std::fmt;
 use bitflags::_core::fmt::{Debug, Formatter};
 use log::*;
 
-use crate::hardware::apu::{APU, APU_MEM_END, APU_MEM_START, WAVE_SAMPLE_END, WAVE_SAMPLE_START};
+use crate::hardware::apu::{APU, APU_MEM_END, APU_MEM_START, WAVE_SAMPLE_END, WAVE_SAMPLE_START, FRAME_SEQUENCE_CYCLES, SAMPLE_CYCLES};
 use crate::hardware::cartridge::Cartridge;
 use crate::hardware::ppu::tiledata::*;
 use crate::hardware::ppu::{DMA_TRANSFER, PPU};
@@ -212,7 +212,7 @@ impl Memory {
             }
             APU_MEM_START..=APU_MEM_END => {
                 //log::info!("APU Write on address: 0x{:02X} with value: 0x{:02X}", address, value);
-                self.apu.write_register(address, value)
+                self.apu.write_register(address, value, &mut self.scheduler)
             }
             WAVE_SAMPLE_START..=WAVE_SAMPLE_END => {
                 //log::info!("APU Wave_Write on address: 0x{:02X} with value: 0x{:02X}", address, value);
@@ -265,8 +265,9 @@ impl Memory {
             match event.event_type {
                 EventType::NONE => {
                     // On startup we should add OAM
-                    self.scheduler
-                        .push_full_event(event.update_self(EventType::OamSearch, 0));
+                    self.scheduler.push_full_event(event.update_self(EventType::OamSearch, 0));
+                    self.scheduler.push_event(EventType::APUFrameSequencer, 8192);
+                    self.scheduler.push_event(EventType::APUSample, 95);
                 }
                 EventType::VBLANK => {
                     self.ppu.vblank(&mut self.interrupts);
@@ -305,6 +306,14 @@ impl Memory {
                         self.scheduler
                             .push_full_event(event.update_self(EventType::OamSearch, 456));
                     }
+                }
+                EventType::APUFrameSequencer => {
+                    self.apu.tick_frame_sequencer();
+                    self.scheduler.push_full_event(event.update_self(EventType::APUFrameSequencer, FRAME_SEQUENCE_CYCLES));
+                }
+                EventType::APUSample => {
+                    self.apu.tick_sampling_handler();
+                    self.scheduler.push_full_event(event.update_self(EventType::APUSample, SAMPLE_CYCLES));
                 }
             };
         }

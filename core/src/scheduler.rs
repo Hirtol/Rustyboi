@@ -9,6 +9,8 @@ pub enum EventType {
     LcdTransfer = 2,
     HBLANK      = 3,
     VblankWait  = 4,
+    APUFrameSequencer = 5,
+    APUSample = 6,
 }
 
 #[derive(Debug, Copy, Clone, Eq)]
