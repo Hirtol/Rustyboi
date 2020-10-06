@@ -10,6 +10,7 @@ use bitflags::_core::fmt::{Debug, Formatter};
 use std::cell::RefCell;
 use std::fmt;
 use std::rc::Rc;
+use crate::scheduler::Scheduler;
 
 mod cycle_tests;
 mod instruction_tests;
@@ -59,6 +60,14 @@ impl MemoryMapper for TestMemory {
 
     fn timers_mut(&mut self) -> &mut TimerRegisters {
         &mut self.timers
+    }
+
+    fn scheduler_mut(&mut self) -> &mut Scheduler {
+        unimplemented!()
+    }
+
+    fn tick_scheduler(&mut self) -> bool {
+        false
     }
 }
 
