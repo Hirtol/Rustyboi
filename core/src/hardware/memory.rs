@@ -265,37 +265,45 @@ impl Memory {
             match event.event_type {
                 EventType::NONE => {
                     // On startup we should add OAM
-                    self.scheduler.push_full_event(event.update_self(EventType::OamSearch, 0));
+                    self.scheduler
+                        .push_full_event(event.update_self(EventType::OamSearch, 0));
                 }
                 EventType::VBLANK => {
                     self.ppu.vblank(&mut self.interrupts);
-                    self.scheduler.push_full_event(event.update_self(EventType::VblankWait, 456));
+                    self.scheduler
+                        .push_full_event(event.update_self(EventType::VblankWait, 456));
                     vblank_occurred = true;
                 }
                 EventType::OamSearch => {
                     self.ppu.oam_search(&mut self.interrupts);
-                    self.scheduler.push_full_event(event.update_self(EventType::LcdTransfer, 80));
+                    self.scheduler
+                        .push_full_event(event.update_self(EventType::LcdTransfer, 80));
                 }
                 EventType::LcdTransfer => {
                     self.ppu.lcd_transfer();
-                    self.scheduler.push_full_event(event.update_self(EventType::HBLANK, 172));
+                    self.scheduler
+                        .push_full_event(event.update_self(EventType::HBLANK, 172));
                 }
                 EventType::HBLANK => {
                     self.ppu.hblank(&mut self.interrupts);
                     // First 144 lines
                     if self.ppu.current_y != 144 {
-                        self.scheduler.push_full_event(event.update_self(EventType::OamSearch, 204));
+                        self.scheduler
+                            .push_full_event(event.update_self(EventType::OamSearch, 204));
                     } else {
-                        self.scheduler.push_full_event(event.update_self(EventType::VBLANK, 204));
+                        self.scheduler
+                            .push_full_event(event.update_self(EventType::VBLANK, 204));
                     }
                 }
                 EventType::VblankWait => {
                     self.ppu.vblank_wait(&mut self.interrupts);
 
                     if self.ppu.current_y != 0 {
-                        self.scheduler.push_full_event(event.update_self(EventType::VblankWait, 456));
+                        self.scheduler
+                            .push_full_event(event.update_self(EventType::VblankWait, 456));
                     } else {
-                        self.scheduler.push_full_event(event.update_self(EventType::OamSearch, 456));
+                        self.scheduler
+                            .push_full_event(event.update_self(EventType::OamSearch, 456));
                     }
                 }
             };

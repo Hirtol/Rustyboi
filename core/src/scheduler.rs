@@ -8,7 +8,7 @@ pub enum EventType {
     OamSearch   = 1,
     LcdTransfer = 2,
     HBLANK      = 3,
-    VblankWait = 4,
+    VblankWait  = 4,
 }
 
 #[derive(Debug, Copy, Clone, Eq)]

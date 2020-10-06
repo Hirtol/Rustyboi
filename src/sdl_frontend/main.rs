@@ -22,7 +22,7 @@ use crate::display::{DisplayColour, RGB};
 use hound::{SampleFormat, WavSpec};
 use sdl2::audio::{AudioQueue, AudioSpecDesired};
 use sdl2::event::Event;
-use std::io::{BufWriter, Write};
+use std::io::Write;
 use std::ops::Div;
 
 mod actions;
@@ -292,7 +292,7 @@ fn fill_texture_and_copy(
 
 fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_texture: &mut Texture, cpu_test: &Vec<u8>) {
     let mut emulator = Emulator::new(Option::None, &cpu_test, None);
-    let mut count: u128 = 0;
+    let count: u128 = 0;
 
     let mut event_pump = sdl_context.event_pump().unwrap();
 

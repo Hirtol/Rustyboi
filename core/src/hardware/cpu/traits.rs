@@ -1,4 +1,4 @@
-use crate::hardware::cpu::execute::{InstructionAddress};
+use crate::hardware::cpu::execute::InstructionAddress;
 use crate::hardware::cpu::CPU;
 use crate::hardware::memory::MemoryMapper;
 use crate::hardware::registers::{Reg16, Reg8};
