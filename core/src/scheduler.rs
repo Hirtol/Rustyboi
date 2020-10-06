@@ -1,5 +1,5 @@
-use bitflags::_core::cmp::Ordering;
 use binary_heap_plus::{BinaryHeap, MinComparator};
+use bitflags::_core::cmp::Ordering;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Eq)]
 pub enum EventType {
@@ -35,6 +35,17 @@ impl Ord for Event {
     }
 }
 
+impl Event {
+    /// Update the current event with new data.
+    ///
+    /// `delta_timestamp` will add the given time to the current `Event`'s `timestamp`.
+    pub fn update_self(mut self, new_event_type: EventType, delta_timestamp: u64) -> Self {
+        self.timestamp += delta_timestamp;
+        self.event_type = new_event_type;
+        self
+    }
+}
+
 #[derive(Debug)]
 pub struct Scheduler {
     // Want the smallest timestamp first, so MinComparator
@@ -45,8 +56,14 @@ pub struct Scheduler {
 impl Scheduler {
     #[inline]
     pub fn new() -> Self {
-        let mut result = Self{ event_queue: BinaryHeap::with_capacity_min(64), current_time: 0 };
-        result.event_queue.push(Event{ timestamp: 0, event_type: EventType::NONE });
+        let mut result = Self {
+            event_queue: BinaryHeap::with_capacity_min(64),
+            current_time: 0,
+        };
+        result.event_queue.push(Event {
+            timestamp: 0,
+            event_type: EventType::NONE,
+        });
         result
     }
 
@@ -54,22 +71,38 @@ impl Scheduler {
     /// which is at or below the `current_time` for the `Scheduler`
     #[inline]
     pub fn pop_closest(&mut self) -> Option<Event> {
-         if let Some(event) = self.event_queue.peek() {
-             if event.timestamp <= self.current_time {
-                 return self.event_queue.pop();
-             }
-         }
+        if let Some(event) = self.event_queue.peek() {
+            if event.timestamp <= self.current_time {
+                return self.event_queue.pop();
+            }
+        }
         None
     }
 
-    /// Add an event to the `Scheduler`.
+    /// Add a new event to the `Scheduler`.
     #[inline]
     pub fn push_event(&mut self, event_type: EventType, timestamp: u64) {
-        self.event_queue.push(Event{ timestamp, event_type });
+        self.event_queue.push(Event { timestamp, event_type });
+    }
+
+    /// Add an event to the `Scheduler`.
+    /// This function is best used when we want to avoid an allocation for a new event,
+    /// say in the `pop_closest()` loop for the scheduler. Instead we can then reuse that event
+    /// and push it back in here.
+    pub fn push_full_event(&mut self, event: Event) {
+        self.event_queue.push(event);
     }
 
     pub fn remove_event_type(&mut self, event_type: EventType) {
-        self.event_queue = BinaryHeap::from_vec(self.event_queue.clone().into_iter().filter(|e| e.event_type != event_type).collect());
+        // Very inefficient way of doing this, but until we start needing to do more dynamic
+        // removal of events it doesn't really matter.
+        self.event_queue = BinaryHeap::from_vec(
+            self.event_queue
+                .clone()
+                .into_iter()
+                .filter(|e| e.event_type != event_type)
+                .collect(),
+        );
     }
 
     #[inline]

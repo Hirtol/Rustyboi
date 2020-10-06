@@ -1,4 +1,4 @@
-use crate::hardware::ppu::palette::DmgColor::{BLACK, DarkGrey, LightGrey, WHITE};
+use crate::hardware::ppu::palette::DmgColor::{DarkGrey, LightGrey, BLACK, WHITE};
 
 #[derive(Debug, PartialOrd, PartialEq, Copy, Clone)]
 pub enum DmgColor {
@@ -15,7 +15,6 @@ pub struct Palette {
     color_1: DmgColor,
     color_2: DmgColor,
     color_3: DmgColor,
-
 }
 
 impl Palette {
@@ -98,7 +97,7 @@ impl From<u8> for DmgColor {
 
 #[cfg(test)]
 mod test {
-    use crate::hardware::ppu::palette::DmgColor::{BLACK, DarkGrey, LightGrey, WHITE};
+    use crate::hardware::ppu::palette::DmgColor::{DarkGrey, LightGrey, BLACK, WHITE};
     use crate::hardware::ppu::palette::Palette;
 
     #[test]

@@ -6,11 +6,11 @@ use crate::hardware::ppu::PPU;
 use crate::hardware::registers::Registers;
 use crate::io::interrupts::Interrupts;
 use crate::io::timer::TimerRegisters;
+use crate::scheduler::Scheduler;
 use bitflags::_core::fmt::{Debug, Formatter};
 use std::cell::RefCell;
 use std::fmt;
 use std::rc::Rc;
-use crate::scheduler::Scheduler;
 
 mod cycle_tests;
 mod instruction_tests;

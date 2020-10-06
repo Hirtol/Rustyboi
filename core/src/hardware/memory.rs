@@ -5,13 +5,13 @@ use log::*;
 
 use crate::hardware::apu::{APU, APU_MEM_END, APU_MEM_START, WAVE_SAMPLE_END, WAVE_SAMPLE_START};
 use crate::hardware::cartridge::Cartridge;
-use crate::hardware::ppu::{DMA_TRANSFER, PPU};
 use crate::hardware::ppu::tiledata::*;
+use crate::hardware::ppu::{DMA_TRANSFER, PPU};
 use crate::io::bootrom::BootRom;
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::io::joypad::*;
 use crate::io::timer::*;
-use crate::scheduler::{Scheduler, EventType, Event};
+use crate::scheduler::{Event, EventType, Scheduler};
 
 pub const MEMORY_SIZE: usize = 0x10000;
 /// 16 KB ROM bank, usually 00. From Cartridge, read-only
@@ -260,51 +260,50 @@ impl Memory {
     /// Ticks the scheduler by 4 cycles, executes any events if they come up.
     /// Returns true if a vblank interrupt happened.
     fn tick_scheduler(&mut self) -> bool {
+        let mut vblank_occurred = false;
         self.scheduler.add_cycles(4);
 
-        while let Some(event) = self.scheduler.pop_closest() {
+        while let Some(mut event) = self.scheduler.pop_closest() {
             match event.event_type {
                 EventType::NONE => {
-                    // First time we should add OAM
-                    self.scheduler.push_event(EventType::OamSearch, 0);
-                },
+                    // On startup we should add OAM
+                    self.scheduler.push_full_event(event.update_self(EventType::OamSearch, 0));
+                }
                 EventType::VBLANK => {
                     self.ppu.vblank(&mut self.interrupts);
-                    self.scheduler.push_event(EventType::VblankWait,event.timestamp + 456);
-                    return true;
+                    self.scheduler.push_full_event(event.update_self(EventType::VblankWait, 456));
+                    vblank_occurred = true;
                 }
                 EventType::OamSearch => {
                     self.ppu.oam_search(&mut self.interrupts);
-                    self.scheduler.push_event(EventType::LcdTransfer, event.timestamp + 80);
+                    self.scheduler.push_full_event(event.update_self(EventType::LcdTransfer, 80));
                 }
                 EventType::LcdTransfer => {
-                    self.ppu.lcd_transfer(&mut self.interrupts);
-                    self.scheduler.push_event(EventType::HBLANK, event.timestamp + 172);
+                    self.ppu.lcd_transfer();
+                    self.scheduler.push_full_event(event.update_self(EventType::HBLANK, 172));
                 }
                 EventType::HBLANK => {
                     self.ppu.hblank(&mut self.interrupts);
                     // First 144 lines
                     if self.ppu.current_y != 144 {
-                        self.scheduler.push_event(EventType::OamSearch, event.timestamp + 204);
+                        self.scheduler.push_full_event(event.update_self(EventType::OamSearch, 204));
                     } else {
-                        self.scheduler.push_event(EventType::VBLANK, event.timestamp + 204);
+                        self.scheduler.push_full_event(event.update_self(EventType::VBLANK, 204));
                     }
                 }
                 EventType::VblankWait => {
                     self.ppu.vblank_wait(&mut self.interrupts);
 
                     if self.ppu.current_y != 0 {
-                        self.scheduler.push_event(EventType::VblankWait, event.timestamp + 456);
+                        self.scheduler.push_full_event(event.update_self(EventType::VblankWait, 456));
                     } else {
-                        self.scheduler.push_event(EventType::OamSearch, event.timestamp + 456);
-                        //log::warn!("Starting OAM in timestamp: {} after current timestamp: {}", event.timestamp + 456, self.scheduler.current_time);
+                        self.scheduler.push_full_event(event.update_self(EventType::OamSearch, 456));
                     }
                 }
             };
         }
-        false
+        vblank_occurred
     }
-
 }
 
 impl MemoryMapper for Memory {

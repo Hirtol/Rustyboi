@@ -2,14 +2,12 @@ use itertools::Itertools;
 use num_integer::Integer;
 
 use crate::emulator::CYCLES_PER_FRAME;
-
 use crate::hardware::ppu::palette::{DmgColor, Palette};
-use crate::hardware::ppu::Mode::{HBlank, LcdTransfer, OamSearch, VBlank};
-
 use crate::hardware::ppu::register_flags::*;
 use crate::hardware::ppu::tiledata::*;
+use crate::hardware::ppu::Mode::{HBlank, LcdTransfer, OamSearch, VBlank};
 use crate::io::interrupts::{InterruptFlags, Interrupts};
-use crate::scheduler::{Scheduler, Event, EventType};
+use crate::scheduler::{Event, EventType, Scheduler};
 
 pub const RESOLUTION_WIDTH: usize = 160;
 pub const RESOLUTION_HEIGHT: usize = 144;
@@ -150,180 +148,63 @@ impl PPU {
     }
 
     pub fn oam_search(&mut self, interrupts: &mut Interrupts) {
-        if self.lcd_status.mode_flag() != OamSearch {
-            // After V-Blank we don't want to trigger the interrupt immediately.
-            if self.lcd_status.mode_flag() != VBlank {
-                self.ly_lyc_compare(&mut interrupts.interrupt_flag);
-            }
+        // After V-Blank we don't want to trigger the interrupt immediately.
+        if self.lcd_status.mode_flag() != VBlank {
+            self.ly_lyc_compare(&mut interrupts.interrupt_flag);
+        }
 
-            self.lcd_status.set_mode_flag(Mode::OamSearch);
-            // OAM Interrupt
-            if self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT) {
-                interrupts.insert_interrupt(InterruptFlags::LCD);
-            }
+        self.lcd_status.set_mode_flag(Mode::OamSearch);
+        // OAM Interrupt
+        if self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT) {
+            interrupts.insert_interrupt(InterruptFlags::LCD);
         }
     }
 
-    pub fn lcd_transfer(&mut self, interrupts: &mut Interrupts) {
+    pub fn lcd_transfer(&mut self) {
         // Drawing (Mode 3)
-        if self.lcd_status.mode_flag() != LcdTransfer {
-            self.lcd_status.set_mode_flag(LcdTransfer);
+        self.lcd_status.set_mode_flag(LcdTransfer);
 
-            // Draw our actual line once we enter Drawing mode.
-            self.draw_scanline();
-        }
+        // Draw our actual line once we enter Drawing mode.
+        self.draw_scanline();
     }
 
     pub fn hblank(&mut self, interrupts: &mut Interrupts) {
-        if self.lcd_status.mode_flag() != HBlank {
-            self.lcd_status.set_mode_flag(HBlank);
+        self.lcd_status.set_mode_flag(HBlank);
 
-            if self.lcd_status.contains(LcdStatus::MODE_0_H_INTERRUPT) {
-                interrupts.insert_interrupt(InterruptFlags::LCD);
-            }
+        if self.lcd_status.contains(LcdStatus::MODE_0_H_INTERRUPT) {
+            interrupts.insert_interrupt(InterruptFlags::LCD);
         }
     }
 
     pub fn vblank(&mut self, interrupts: &mut Interrupts) {
-        if self.lcd_status.mode_flag() != VBlank {
-            self.lcd_status.set_mode_flag(VBlank);
-            // Check for a line 143 lyc check. TODO: Consider moving to HBlank/LcdTransfer
-            self.ly_lyc_compare(&mut interrupts.interrupt_flag);
+        self.lcd_status.set_mode_flag(VBlank);
+        // Check for a line 143 lyc check. TODO: Consider moving to HBlank/LcdTransfer
+        self.ly_lyc_compare(&mut interrupts.interrupt_flag);
 
-            // Check for line 144 lyc check.
-            self.current_y = self.current_y.wrapping_add(1);
-            self.ly_lyc_compare(&mut interrupts.interrupt_flag);
+        // Check for line 144 lyc check.
+        self.current_y = self.current_y.wrapping_add(1);
+        self.ly_lyc_compare(&mut interrupts.interrupt_flag);
 
-            self.window_counter = 0;
-            self.window_triggered = false;
+        self.window_counter = 0;
+        self.window_triggered = false;
 
-            if self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT) {
-                interrupts.insert_interrupt(InterruptFlags::LCD);
-            }
-
-            interrupts.insert_interrupt(InterruptFlags::VBLANK);
+        if self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT) {
+            interrupts.insert_interrupt(InterruptFlags::LCD);
         }
+
+        interrupts.insert_interrupt(InterruptFlags::VBLANK);
     }
 
     pub fn vblank_wait(&mut self, interrupts: &mut Interrupts) {
         if self.current_y == 153 {
             // 153 check
             self.ly_lyc_compare(&mut interrupts.interrupt_flag);
+            // 0 Check (Was this required?)
             self.current_y = 0;
-            // Should remove this maybe? Not sure about the Vblank test.
             self.ly_lyc_compare(&mut interrupts.interrupt_flag);
         } else {
             self.current_y = self.current_y.wrapping_add(1);
             self.ly_lyc_compare(&mut interrupts.interrupt_flag);
-        }
-    }
-
-    /// Run the PPU and potentially render a scanline/advance state depending
-    /// on the passed `cpu_clock_increment`
-    ///
-    /// # Returns
-    ///
-    /// Any interrupts that may have occurred during this `do_cycle`.
-    pub fn do_cycle(&mut self, cpu_clock_increment: u64, scheduler: &mut Scheduler) -> Option<InterruptFlags> {
-        self.current_cycles += cpu_clock_increment;
-        //TODO: Reimplement in scheduler.
-        if !self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
-            return None;
-        }
-
-        let mut pending_interrupts = InterruptFlags::default();
-
-        // Everything but V-Blank, 144*456
-        if self.current_cycles < 65664 {
-            // Modulo scanline to determine which mode we're in currently.
-            let local_cycles = self.current_cycles % 456;
-
-            if local_cycles < 80 {
-                // Searching objects (Mode 2)
-                if self.lcd_status.mode_flag() != OamSearch {
-                    // After V-Blank we don't want to trigger the interrupt immediately.
-                    if self.lcd_status.mode_flag() != VBlank {
-                        self.ly_lyc_compare(&mut pending_interrupts);
-                    }
-
-                    self.lcd_status.set_mode_flag(Mode::OamSearch);
-                    // OAM Interrupt
-                    if self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT) {
-                        pending_interrupts.insert(InterruptFlags::LCD);
-                    }
-                }
-            } else if local_cycles < 252 {
-                // Drawing (Mode 3)
-                if self.lcd_status.mode_flag() != LcdTransfer {
-                    self.lcd_status.set_mode_flag(LcdTransfer);
-
-                    // Draw our actual line once we enter Drawing mode.
-                    self.draw_scanline();
-                }
-            } else {
-                // H-Blank for the remainder of the line.
-                if self.lcd_status.mode_flag() != HBlank {
-                    self.lcd_status.set_mode_flag(HBlank);
-
-                    if self.lcd_status.contains(LcdStatus::MODE_0_H_INTERRUPT) {
-                        pending_interrupts.insert(InterruptFlags::LCD);
-                    }
-                }
-            }
-        } else {
-            // V-Blank
-            if self.lcd_status.mode_flag() != VBlank {
-                self.lcd_status.set_mode_flag(VBlank);
-
-                self.ly_lyc_compare(&mut pending_interrupts);
-
-                // We used to increment this immediately, but in hindsight I'm not sure this
-                // makes sense so it's commented out for now.
-                // This does precipitate changes in the lcdon_timing-GS (still failing)
-                // TODO: Analyse these changes.
-                // self.current_y = self.current_y.wrapping_add(1);
-                // self.ly_lyc_compare(&mut pending_interrupts);
-
-                // A rather hacky way (also taken from GBE Plus) but it'll suffice for now.
-                self.vblank_cycles = self.current_cycles - 65664;
-                self.window_counter = 0;
-                self.window_triggered = false;
-
-                if self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT) {
-                    pending_interrupts.insert(InterruptFlags::LCD);
-                }
-
-                pending_interrupts.insert(InterruptFlags::VBLANK);
-            } else if self.current_cycles < CYCLES_PER_FRAME {
-                self.vblank_cycles += cpu_clock_increment;
-                if self.vblank_cycles >= 456 {
-                    self.vblank_cycles -= 456;
-
-                    if self.current_y == 154 {
-                        // This should be -= CYCLES_PER_FRAME, but in debug mode that
-                        // seemed to cause a wrapping subtract.
-                        // Makes sense considering the condition we set < CYCLES_PER_FRAME.
-                        // TODO: Overhaul
-                        self.current_cycles = 0;
-                        self.current_y = 0;
-                        self.ly_lyc_compare(&mut pending_interrupts);
-                    } else {
-                        self.current_y = self.current_y.wrapping_add(1);
-                        self.ly_lyc_compare(&mut pending_interrupts);
-                    }
-                }
-            } else {
-                // We have exceeded the 70224 cycles, reset for the next frame.
-                self.current_cycles -= CYCLES_PER_FRAME;
-                self.current_y = 0;
-                self.ly_lyc_compare(&mut pending_interrupts);
-            }
-        }
-
-        if !pending_interrupts.is_empty() {
-            Some(pending_interrupts)
-        } else {
-            None
         }
     }
 
