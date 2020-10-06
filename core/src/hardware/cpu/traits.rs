@@ -1,4 +1,4 @@
-use crate::hardware::cpu::execute::{InstructionAddress, WrapperEnum};
+use crate::hardware::cpu::execute::{InstructionAddress};
 use crate::hardware::cpu::CPU;
 use crate::hardware::memory::MemoryMapper;
 use crate::hardware::registers::{Reg16, Reg8};
@@ -127,24 +127,6 @@ impl<T: MemoryMapper> SetU8<InstructionAddress> for CPU<T> {
                 self.write_byte_cycle(IO_START + addition, value);
             }
             IoC => self.write_byte_cycle(IO_START + self.registers.c as u16, value),
-        }
-    }
-}
-
-impl<T: MemoryMapper> ToU8<WrapperEnum> for CPU<T> {
-    fn read_u8_value(&mut self, target: WrapperEnum) -> u8 {
-        match target {
-            WrapperEnum::Reg8(result) => self.read_u8_value(result),
-            WrapperEnum::InstructionAddress(result) => self.read_u8_value(result),
-        }
-    }
-}
-
-impl<T: MemoryMapper> SetU8<WrapperEnum> for CPU<T> {
-    fn set_u8_value(&mut self, target: WrapperEnum, value: u8) {
-        match target {
-            WrapperEnum::Reg8(result) => self.set_u8_value(result, value),
-            WrapperEnum::InstructionAddress(result) => self.set_u8_value(result, value),
         }
     }
 }
