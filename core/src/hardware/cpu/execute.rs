@@ -1,6 +1,6 @@
 use crate::hardware::cpu::execute::InstructionAddress::HLI;
 use crate::hardware::cpu::CPU;
-use crate::hardware::memory::MemoryMapper;
+use crate::hardware::mmu::MemoryMapper;
 use crate::hardware::registers::Reg16::HL;
 use crate::hardware::registers::Reg8;
 use crate::hardware::registers::Reg8::{A, B, C, D, E, H, L};

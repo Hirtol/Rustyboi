@@ -6,7 +6,7 @@ use crate::hardware::cpu::execute::{InstructionAddress, JumpModifier, WrapperEnu
 
 use crate::hardware::cpu::traits::{SetU16, SetU8, ToU16, ToU8};
 
-use crate::hardware::memory::*;
+use crate::hardware::mmu::*;
 use crate::hardware::registers::Reg8::A;
 use crate::hardware::registers::{Flags, Reg16, Registers};
 use crate::io::interrupts::{InterruptFlags, Interrupts};

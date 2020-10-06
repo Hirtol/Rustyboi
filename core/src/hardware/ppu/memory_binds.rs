@@ -1,7 +1,7 @@
 //! This module is purely used for providing access to PPU memory resources
 //! to the MMU.
 use super::*;
-use crate::hardware::memory::OAM_ATTRIBUTE_START;
+use crate::hardware::mmu::OAM_ATTRIBUTE_START;
 
 use crate::hardware::ppu::PPU;
 use crate::print_array_raw;

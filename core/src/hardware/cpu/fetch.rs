@@ -2,7 +2,7 @@
 //! too cluttered.
 
 use crate::hardware::cpu::CPU;
-use crate::hardware::memory::MemoryMapper;
+use crate::hardware::mmu::MemoryMapper;
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::scheduler::{Event, EventType};
 

@@ -1,6 +1,6 @@
 use crate::hardware::cpu::execute::InstructionAddress;
 use crate::hardware::cpu::CPU;
-use crate::hardware::memory::MemoryMapper;
+use crate::hardware::mmu::MemoryMapper;
 use crate::hardware::registers::{Reg16, Reg8};
 
 /// This trait should be used where we might pass either a direct
@@ -59,7 +59,7 @@ impl<T: MemoryMapper> SetU8<Reg8> for CPU<T> {
 
 impl<T: MemoryMapper> ToU8<InstructionAddress> for CPU<T> {
     fn read_u8_value(&mut self, target: InstructionAddress) -> u8 {
-        use crate::hardware::memory::IO_START;
+        use crate::hardware::mmu::IO_START;
         use InstructionAddress::*;
 
         match target {
@@ -93,7 +93,7 @@ impl<T: MemoryMapper> ToU8<InstructionAddress> for CPU<T> {
 
 impl<T: MemoryMapper> SetU8<InstructionAddress> for CPU<T> {
     fn set_u8_value(&mut self, target: InstructionAddress, value: u8) {
-        use crate::hardware::memory::IO_START;
+        use crate::hardware::mmu::IO_START;
         use InstructionAddress::*;
 
         match target {

@@ -11,7 +11,7 @@
 // }
 
 use crate::hardware::cartridge::header::RamSizes;
-use crate::hardware::memory::*;
+use crate::hardware::mmu::*;
 
 // 8 KB
 pub const EXTERNAL_RAM_SIZE: usize = 8192;

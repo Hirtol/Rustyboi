@@ -54,7 +54,6 @@ pub struct Scheduler {
 }
 
 impl Scheduler {
-    #[inline]
     pub fn new() -> Self {
         let mut result = Self {
             event_queue: BinaryHeap::with_capacity_min(64),
@@ -69,7 +68,6 @@ impl Scheduler {
 
     /// Returns a `Some(&Event)` if there is an event available which has a timestamp
     /// which is at or below the `current_time` for the `Scheduler`
-    #[inline]
     pub fn pop_closest(&mut self) -> Option<Event> {
         if let Some(event) = self.event_queue.peek() {
             if event.timestamp <= self.current_time {
@@ -80,9 +78,13 @@ impl Scheduler {
     }
 
     /// Add a new event to the `Scheduler`.
-    #[inline]
     pub fn push_event(&mut self, event_type: EventType, timestamp: u64) {
         self.event_queue.push(Event { timestamp, event_type });
+    }
+
+
+    pub fn push_relative(&mut self, event_type: EventType, relative_timestamp: u64) {
+        self.event_queue.push(Event { timestamp: self.current_time + relative_timestamp, event_type });
     }
 
     /// Add an event to the `Scheduler`.

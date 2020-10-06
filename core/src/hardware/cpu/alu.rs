@@ -2,7 +2,7 @@
 //! CPU instructions which occur more than once (f.e, several bit shifts occur twice)
 use crate::hardware::cpu::traits::{SetU8, ToU8};
 use crate::hardware::cpu::CPU;
-use crate::hardware::memory::MemoryMapper;
+use crate::hardware::mmu::MemoryMapper;
 
 impl<M: MemoryMapper> CPU<M> {
     /// Rotate the register `target` left

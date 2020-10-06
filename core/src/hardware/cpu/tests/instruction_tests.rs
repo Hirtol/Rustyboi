@@ -2,7 +2,7 @@ use crate::hardware::cpu::execute::InstructionAddress::HLI;
 use crate::hardware::cpu::execute::{InstructionAddress, JumpModifier};
 use crate::hardware::cpu::tests::{initial_cpu, read_short, set_short};
 
-use crate::hardware::memory::MemoryMapper;
+use crate::hardware::mmu::MemoryMapper;
 use crate::hardware::registers::{Flags, Reg16::*, Reg8::*};
 
 #[test]

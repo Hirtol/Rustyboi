@@ -4,7 +4,7 @@ use bitflags::_core::cell::RefCell;
 
 use crate::hardware::cpu::CPU;
 
-use crate::hardware::memory::{Memory, MemoryMapper};
+use crate::hardware::mmu::{Memory, MemoryMapper};
 use crate::hardware::ppu::palette::DmgColor;
 use crate::hardware::ppu::{FRAMEBUFFER_SIZE, PPU};
 

@@ -1,6 +1,6 @@
 use crate::hardware::cartridge::header::RamSizes;
 use crate::hardware::cartridge::mbc::{EXTERNAL_RAM_SIZE, MBC, ROM_BANK_SIZE};
-use crate::hardware::memory::{EXTERNAL_RAM_END, EXTERNAL_RAM_START, INVALID_READ};
+use crate::hardware::mmu::{EXTERNAL_RAM_END, EXTERNAL_RAM_START, INVALID_READ};
 
 //TODO: Create MBC3 + Timer
 pub struct MBC3 {

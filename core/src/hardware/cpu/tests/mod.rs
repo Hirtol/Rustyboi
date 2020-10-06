@@ -1,7 +1,7 @@
 use crate::hardware::apu::APU;
 use crate::hardware::cartridge::Cartridge;
 use crate::hardware::cpu::CPU;
-use crate::hardware::memory::MemoryMapper;
+use crate::hardware::mmu::MemoryMapper;
 use crate::hardware::ppu::PPU;
 use crate::hardware::registers::Registers;
 use crate::io::interrupts::Interrupts;
