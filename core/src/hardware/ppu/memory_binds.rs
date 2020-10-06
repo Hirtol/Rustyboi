@@ -118,14 +118,14 @@ impl PPU {
         // If we turn OFF the display
         if !new_control.contains(LcdControl::LCD_DISPLAY) && self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
             log::debug!("Turning off LCD");
-            self.current_y = 0;
-            self.window_counter = 0;
-            self.lcd_status.set_mode_flag(Mode::HBlank);
+            // self.current_y = 0;
+            // self.window_counter = 0;
+            // self.lcd_status.set_mode_flag(Mode::HBlank);
         }
         // If we turn ON the display
         if new_control.contains(LcdControl::LCD_DISPLAY) && !self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
             log::debug!("Turning on LCD");
-            self.lcd_status.set_mode_flag(Mode::HBlank);
+            //self.lcd_status.set_mode_flag(Mode::HBlank);
         }
 
         self.lcd_control = new_control;

@@ -11,7 +11,7 @@ use crate::io::bootrom::BootRom;
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::io::joypad::*;
 use crate::io::timer::*;
-use crate::scheduler::Scheduler;
+use crate::scheduler::{Scheduler, EventType, Event};
 
 pub const MEMORY_SIZE: usize = 0x10000;
 /// 16 KB ROM bank, usually 00. From Cartridge, read-only
@@ -75,6 +75,8 @@ pub trait MemoryMapper: Debug {
     fn ppu_mut(&mut self) -> &mut PPU;
     fn apu_mut(&mut self) -> &mut APU;
     fn timers_mut(&mut self) -> &mut TimerRegisters;
+    fn scheduler_mut(&mut self) -> &mut Scheduler;
+    fn tick_scheduler(&mut self) -> bool;
 }
 
 pub struct Memory {
@@ -254,6 +256,54 @@ impl Memory {
         warn!("ROM Accessed non usable memory: {:4X}", address);
         0xFF
     }
+
+    /// Ticks the scheduler by 4 cycles, executes any events if they come up.
+    /// Returns true if a vblank interrupt happened.
+    fn tick_scheduler(&mut self) -> bool {
+        self.scheduler.add_cycles(4);
+
+        while let Some(event) = self.scheduler.pop_closest() {
+            match event.event_type {
+                EventType::NONE => {
+                    // First time we should add OAM
+                    self.scheduler.push_event(EventType::OamSearch, 0);
+                },
+                EventType::VBLANK => {
+                    self.ppu.vblank(&mut self.interrupts);
+                    self.scheduler.push_event(EventType::VblankWait,event.timestamp + 456);
+                    return true;
+                }
+                EventType::OamSearch => {
+                    self.ppu.oam_search(&mut self.interrupts);
+                    self.scheduler.push_event(EventType::LcdTransfer, event.timestamp + 80);
+                }
+                EventType::LcdTransfer => {
+                    self.ppu.lcd_transfer(&mut self.interrupts);
+                    self.scheduler.push_event(EventType::HBLANK, event.timestamp + 172);
+                }
+                EventType::HBLANK => {
+                    self.ppu.hblank(&mut self.interrupts);
+                    // First 144 lines
+                    if self.ppu.current_y != 144 {
+                        self.scheduler.push_event(EventType::OamSearch, event.timestamp + 204);
+                    } else {
+                        self.scheduler.push_event(EventType::VBLANK, event.timestamp + 204);
+                    }
+                }
+                EventType::VblankWait => {
+                    self.ppu.vblank_wait(&mut self.interrupts);
+
+                    if self.ppu.current_y != 0 {
+                        self.scheduler.push_event(EventType::VblankWait, event.timestamp + 456);
+                    } else {
+                        self.scheduler.push_event(EventType::OamSearch, event.timestamp + 456);
+                    }
+                }
+            };
+        }
+        false
+    }
+
 }
 
 impl MemoryMapper for Memory {
@@ -291,6 +341,14 @@ impl MemoryMapper for Memory {
 
     fn timers_mut(&mut self) -> &mut TimerRegisters {
         &mut self.timers
+    }
+
+    fn scheduler_mut(&mut self) -> &mut Scheduler {
+        &mut self.scheduler
+    }
+
+    fn tick_scheduler(&mut self) -> bool {
+        self.tick_scheduler()
     }
 }
 

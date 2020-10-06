@@ -1,6 +1,6 @@
 use bitflags::*;
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, Copy)]
 pub struct Interrupts {
     pub interrupt_enable: InterruptFlags,
     pub interrupt_flag: InterruptFlags,

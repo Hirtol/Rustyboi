@@ -2,18 +2,19 @@ use bitflags::_core::cmp::Ordering;
 use binary_heap_plus::{BinaryHeap, MinComparator};
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Eq)]
-enum EventType {
+pub enum EventType {
     NONE        = 255,
     VBLANK      = 0,
     OamSearch   = 1,
     LcdTransfer = 2,
     HBLANK      = 3,
+    VblankWait = 4,
 }
 
 #[derive(Debug, Copy, Clone, Eq)]
 pub struct Event {
-    timestamp: u64,
-    event_type: EventType,
+    pub timestamp: u64,
+    pub event_type: EventType,
 }
 
 impl PartialEq for Event {
@@ -38,13 +39,15 @@ impl Ord for Event {
 pub struct Scheduler {
     // Want the smallest timestamp first, so MinComparator
     event_queue: BinaryHeap<Event, MinComparator>,
-    current_time: u64,
+    pub current_time: u64,
 }
 
 impl Scheduler {
     #[inline]
     pub fn new() -> Self {
-        Self{ event_queue: BinaryHeap::with_capacity_min(64), current_time: 0 }
+        let mut result = Self{ event_queue: BinaryHeap::with_capacity_min(64), current_time: 0 };
+        result.event_queue.push(Event{ timestamp: 0, event_type: EventType::NONE });
+        result
     }
 
     /// Returns a `Some(&Event)` if there is an event available which has a timestamp
@@ -61,8 +64,8 @@ impl Scheduler {
 
     /// Add an event to the `Scheduler`.
     #[inline]
-    pub fn push_event(&mut self, event: Event) {
-        self.event_queue.push(event);
+    pub fn push_event(&mut self, event_type: EventType, timestamp: u64) {
+        self.event_queue.push(Event{ timestamp, event_type });
     }
 
     #[inline]

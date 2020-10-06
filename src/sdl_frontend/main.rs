@@ -94,13 +94,13 @@ fn main() {
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
-    test_fast(sdl_context, &mut canvas, &mut screen_texture, &read(cartridge).unwrap());
-
-    return;
+    // test_fast(sdl_context, &mut canvas, &mut screen_texture, &read(cartridge).unwrap());
+    //
+    // return;
 
     let mut timer = sdl_context.timer().unwrap();
 
-    let mut emulator = create_emulator(_cpu_test, None);
+    let mut emulator = create_emulator(cartridge, None);
 
     let mut cycles = 0;
     let mut loop_cycles = 0;
@@ -345,7 +345,7 @@ fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_textu
             let mut cycles = 0;
             loop {
                 while cycles < CYCLES_PER_FRAME {
-                    cycles += emulator.emulate_cycle().0 as u32;
+                    cycles += emulator.emulate_cycle().0;
                 }
 
                 cycles -= CYCLES_PER_FRAME;

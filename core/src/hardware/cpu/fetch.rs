@@ -4,15 +4,18 @@
 use crate::hardware::cpu::CPU;
 use crate::hardware::memory::MemoryMapper;
 use crate::io::interrupts::{InterruptFlags, Interrupts};
+use crate::scheduler::{Event, EventType};
 
 impl<M: MemoryMapper> CPU<M> {
     /// Add 4 cycles to the internal counter
     pub fn add_cycles(&mut self) {
         self.cycles_performed += 4;
-        let mut interrupt = self.mmu.ppu_mut().do_cycle(4);
-        self.add_new_interrupts(interrupt);
 
-        interrupt = self.mmu.timers_mut().tick_timers();
+        if self.mmu.tick_scheduler() {
+            self.had_vblank = true;
+        }
+
+        let interrupt = self.mmu.timers_mut().tick_timers();
         self.add_new_interrupts(interrupt);
 
         self.mmu.apu_mut().tick(4);
