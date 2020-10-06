@@ -62,7 +62,7 @@ impl APU {
         }
     }
 
-    /// Tick function called every 4 `cycles`
+    /// Tick all channels, not including the frame sequencer and sampler.
     pub fn tick(&mut self, mut delta_cycles: u16) {
         if !self.global_sound_enable {
             return;
