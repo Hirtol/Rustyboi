@@ -337,19 +337,13 @@ impl MemoryMapper for Memory {
         &mut self.interrupts
     }
 
-    #[inline]
     fn do_m_cycle(&mut self) -> bool {
-        let mut result = false;
-
-        if self.tick_scheduler() {
-            result = true;
-        }
-
         let interrupt = self.timers.tick_timers();
         self.add_new_interrupts(interrupt);
 
         self.apu.tick(4);
-        result
+
+        self.tick_scheduler()
     }
 }
 
