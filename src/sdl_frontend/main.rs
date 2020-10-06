@@ -104,7 +104,6 @@ fn main() {
 
     let mut cycles = 0;
     let mut loop_cycles = 0;
-    let mut delta_acc = Duration::new(0, 0);
 
     let mut event_pump = sdl_context.event_pump().unwrap();
 
@@ -134,20 +133,16 @@ fn main() {
                 break 'mainloop;
             }
         }
-        // Emulate exactly one frame's worth.
-        // while cycles < CYCLES_PER_FRAME * if fast_forward { FAST_FORWARD_MULTIPLIER } else { 1 } {
-        //     cycles += emulator.emulate_cycle() as u32;
-        // }
-        //
-        // cycles -= CYCLES_PER_FRAME * if fast_forward { FAST_FORWARD_MULTIPLIER } else { 1 };
 
-        while cycles < if fast_forward { FAST_FORWARD_MULTIPLIER } else { 1 } {
+        let cycle_count_to_reach = if fast_forward { FAST_FORWARD_MULTIPLIER } else { 1 };
+
+        while cycles < cycle_count_to_reach {
             if let (_, true) = emulator.emulate_cycle() {
                 cycles += 1;
             }
         }
 
-        cycles -= if fast_forward { FAST_FORWARD_MULTIPLIER } else { 1 };
+        cycles -= cycle_count_to_reach;
 
         fill_texture_and_copy(
             &mut canvas,
@@ -164,22 +159,19 @@ fn main() {
 
         if FRAME_DELAY.as_millis() as i32 > frame_time {
             let sleeptime = (FRAME_DELAY.as_millis() as i32 - frame_time) as u64;
-            delta_acc += Duration::from_millis((FRAME_DELAY.as_millis() as i32 - frame_time) as u64);
             std::thread::sleep(Duration::from_millis(sleeptime));
         }
 
         loop_cycles += 1;
 
         if loop_cycles == 10 {
-            let average_delta = delta_acc.div(9);
+            let average_delta = last_update_time.elapsed().div(10);
             loop_cycles = 0;
-            delta_acc = Duration::default();
             canvas
                 .window_mut()
-                .set_title(format!("RustyBoi - {:.2} FPS", 1.0 / average_delta.as_secs_f64()).as_str());
+                .set_title(format!("RustyBoi - {:.2} FPS", (1.0 / average_delta.as_secs_f64() * (if fast_forward { FAST_FORWARD_MULTIPLIER } else { 1 } as f64))).as_str());
+            last_update_time = Instant::now();
         }
-
-        last_update_time = frame_start;
     }
 
     let out_file = File::create("output.wav").unwrap();

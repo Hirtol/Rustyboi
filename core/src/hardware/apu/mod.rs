@@ -87,7 +87,7 @@ impl APU {
                 self.tick_sweep();
             }
             7 => self.tick_envelop(),
-            _ => { },
+            _ => {},
         }
         self.frame_sequencer_step = (self.frame_sequencer_step + 1) % 8;
     }
