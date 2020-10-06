@@ -112,20 +112,28 @@ impl PPU {
         self.window_x
     }
 
-    pub fn set_lcd_control(&mut self, value: u8) {
+    pub fn set_lcd_control(&mut self, value: u8, scheduler: &mut Scheduler) {
         let new_control = LcdControl::from_bits_truncate(value);
 
         // If we turn OFF the display
         if !new_control.contains(LcdControl::LCD_DISPLAY) && self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
             log::debug!("Turning off LCD");
-            // self.current_y = 0;
-            // self.window_counter = 0;
-            // self.lcd_status.set_mode_flag(Mode::HBlank);
+            self.current_y = 0;
+            self.window_counter = 0;
+            self.lcd_status.set_mode_flag(Mode::HBlank);
+            // Turn PPU off by removing all scheduled events. TODO: Find cleaner way to do this.
+            scheduler.remove_event_type(EventType::HBLANK);
+            scheduler.remove_event_type(EventType::VblankWait);
+            scheduler.remove_event_type(EventType::VBLANK);
+            scheduler.remove_event_type(EventType::LcdTransfer);
+            scheduler.remove_event_type(EventType::OamSearch);
         }
         // If we turn ON the display
         if new_control.contains(LcdControl::LCD_DISPLAY) && !self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
             log::debug!("Turning on LCD");
-            //self.lcd_status.set_mode_flag(Mode::HBlank);
+            self.lcd_status.set_mode_flag(Mode::HBlank);
+            // Turn PPU back on.
+            scheduler.push_event(EventType::OamSearch, scheduler.current_time);
         }
 
         self.lcd_control = new_control;

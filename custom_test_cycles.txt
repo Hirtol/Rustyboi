@@ -1,7 +1,7 @@
-11-op a,(hl)=10000000
+11-op a,(hl)=12000000
 10-bit ops=10000000
 oam_bug=13000000
 cpu_instrs=28000000
-09-op r,r=7000000
-mbc1_bits_ramg=5000000
-7-timing_effect=5000000
+09-op r,r=9000000
+mbc1_bits_ramg=7000000
+7-timing_effect=7000000

@@ -206,8 +206,11 @@ impl PPU {
     }
 
     pub fn vblank_wait(&mut self, interrupts: &mut Interrupts) {
-        if self.current_y == 154 {
+        if self.current_y == 153 {
+            // 153 check
+            self.ly_lyc_compare(&mut interrupts.interrupt_flag);
             self.current_y = 0;
+            // Should remove this maybe? Not sure about the Vblank test.
             self.ly_lyc_compare(&mut interrupts.interrupt_flag);
         } else {
             self.current_y = self.current_y.wrapping_add(1);

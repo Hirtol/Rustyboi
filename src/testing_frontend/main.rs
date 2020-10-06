@@ -108,7 +108,7 @@ fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>) {
         let list_copy = custom_list.clone();
         threads.push(spawn(move || {
             let file_stem = path.file_stem().unwrap().to_owned();
-            let mut cycles_to_do = 4_000_000;
+            let mut cycles_to_do = 5_000_000;
             let mut emu = Emulator::new(boot_rom, &read(path).unwrap(), None);
 
             if let Some(cycles) = list_copy.get(file_stem.to_str().unwrap_or_default()) {

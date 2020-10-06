@@ -220,7 +220,7 @@ impl Memory {
                 //log::info!("APU Wave_Write on address: 0x{:02X} with value: 0x{:02X}", address, value);
                 self.apu.write_wave_sample(address, value)
             }
-            LCD_CONTROL_REGISTER => self.ppu.set_lcd_control(value),
+            LCD_CONTROL_REGISTER => self.ppu.set_lcd_control(value, &mut self.scheduler),
             LCD_STATUS_REGISTER => self.ppu.set_lcd_status(value),
             SCY_REGISTER => self.ppu.set_scy(value),
             SCX_REGISTER => self.ppu.set_scx(value),
@@ -297,6 +297,7 @@ impl Memory {
                         self.scheduler.push_event(EventType::VblankWait, event.timestamp + 456);
                     } else {
                         self.scheduler.push_event(EventType::OamSearch, event.timestamp + 456);
+                        //log::warn!("Starting OAM in timestamp: {} after current timestamp: {}", event.timestamp + 456, self.scheduler.current_time);
                     }
                 }
             };

@@ -68,6 +68,10 @@ impl Scheduler {
         self.event_queue.push(Event{ timestamp, event_type });
     }
 
+    pub fn remove_event_type(&mut self, event_type: EventType) {
+        self.event_queue = BinaryHeap::from_vec(self.event_queue.clone().into_iter().filter(|e| e.event_type != event_type).collect());
+    }
+
     #[inline]
     pub fn add_cycles(&mut self, delta_cycles: u64) {
         self.current_time += delta_cycles;
