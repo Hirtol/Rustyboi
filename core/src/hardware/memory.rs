@@ -11,6 +11,7 @@ use crate::io::bootrom::BootRom;
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::io::joypad::*;
 use crate::io::timer::*;
+use crate::scheduler::Scheduler;
 
 pub const MEMORY_SIZE: usize = 0x10000;
 /// 16 KB ROM bank, usually 00. From Cartridge, read-only
@@ -80,6 +81,7 @@ pub struct Memory {
     memory: Vec<u8>,
     boot_rom: BootRom,
     cartridge: Cartridge,
+    pub scheduler: Scheduler,
     pub ppu: PPU,
     pub apu: APU,
     pub joypad_register: JoyPad,
@@ -93,6 +95,7 @@ impl Memory {
             memory: vec![0xFFu8; MEMORY_SIZE],
             boot_rom: BootRom::new(boot_rom),
             cartridge: Cartridge::new(cartridge, saved_ram),
+            scheduler: Scheduler::new(),
             ppu: PPU::new(),
             apu: APU::new(),
             joypad_register: JoyPad::new(),

@@ -1,4 +1,5 @@
 pub mod emulator;
+mod scheduler;
 pub use crate::hardware::ppu::palette::DmgColor;
 pub use crate::io::joypad::InputKey;
 
