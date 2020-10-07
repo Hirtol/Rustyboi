@@ -213,10 +213,13 @@ impl PPU {
         }
 
         if self.lcd_control.contains(LcdControl::BG_WINDOW_PRIORITY) {
-            self.draw_bg_scanline();
-
             if self.lcd_control.contains(LcdControl::WINDOW_DISPLAY) {
+                if self.window_x > 7 {
+                    self.draw_bg_scanline();
+                }
                 self.draw_window_scanline();
+            } else {
+                self.draw_bg_scanline()
             }
         } else {
             let bgcolour = self.bg_window_palette.color_0();
