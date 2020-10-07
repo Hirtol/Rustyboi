@@ -214,7 +214,7 @@ impl PPU {
 
         if self.lcd_control.contains(LcdControl::BG_WINDOW_PRIORITY) {
             if self.lcd_control.contains(LcdControl::WINDOW_DISPLAY) {
-                if self.window_x > 7 {
+                if !self.window_triggered || self.window_x > 7 {
                     self.draw_bg_scanline();
                 }
                 self.draw_window_scanline();
@@ -283,14 +283,24 @@ impl PPU {
 
             let (top_pixel_data, bottom_pixel_data) = self.tiles[tile_address].get_pixel_line(tile_line_y);
 
-            for j in (0..=7).rev() {
-                if x_remainder > 0 || pixel_counter > 159 {
-                    x_remainder -= 1;
-                    continue;
+            // If we can draw 8 pixels in one go, we should.
+            if x_remainder <= 0 && pixel_counter+8 < 160 {
+                self.draw_contiguous_bg_window_block(pixel_counter as usize, top_pixel_data, bottom_pixel_data);
+                pixel_counter += 8;
+            }else {
+                for j in (0..=7).rev() {
+                    // We've exceeded the amount we need to draw, no need to do anything more.
+                    if pixel_counter > 159 {
+                        break;
+                    }
+                    if x_remainder > 0 {
+                        x_remainder -= 1;
+                        continue;
+                    }
+                    let colour = self.get_pixel_colour(j, top_pixel_data, bottom_pixel_data);
+                    self.scanline_buffer[pixel_counter as usize] = self.bg_window_palette.colour(colour);
+                    pixel_counter += 1;
                 }
-                let colour = self.get_pixel_colour(j, top_pixel_data, bottom_pixel_data);
-                self.scanline_buffer[pixel_counter as usize] = self.bg_window_palette.colour(colour);
-                pixel_counter += 1;
             }
         }
     }
@@ -315,9 +325,6 @@ impl PPU {
 
         let mut pixel_counter = window_x;
 
-        // Normally I'd have an x-remainder here, but the window doesn't seem to need
-        // to be able to draw partial tiles. In fact, it caused a few rendering glitches.
-
         // Increment the window counter for future cycles.
         self.window_counter += 1;
 
@@ -334,14 +341,26 @@ impl PPU {
 
             let (top_pixel_data, bottom_pixel_data) = self.tiles[tile_address].get_pixel_line(tile_pixel_y);
 
-            for j in (0..=7).rev() {
-                if pixel_counter < 0 || pixel_counter > 159 {
+            // If we can draw 8 pixels in one go, we should.
+            if pixel_counter >= 0 && pixel_counter+8 < 160 {
+                self.draw_contiguous_bg_window_block(pixel_counter as usize, top_pixel_data, bottom_pixel_data);
+                pixel_counter += 8;
+            }else {
+                for j in (0..=7).rev() {
+                    // We've exceeded the amount we need to draw, no need to do anything more.
+                    if pixel_counter > 159 {
+                        break;
+                    }
+                    // Window_x started negative, skip first few pixels.
+                    if pixel_counter < 0 {
+                        pixel_counter += 1;
+                        continue;
+                    }
+
+                    let colour = self.get_pixel_colour(j, top_pixel_data, bottom_pixel_data);
+                    self.scanline_buffer[pixel_counter as usize] = self.bg_window_palette.colour(colour);
                     pixel_counter += 1;
-                    continue;
                 }
-                let colour = self.get_pixel_colour(j, top_pixel_data, bottom_pixel_data);
-                self.scanline_buffer[pixel_counter as usize] = self.bg_window_palette.colour(colour);
-                pixel_counter += 1;
             }
         }
     }
@@ -426,6 +445,20 @@ impl PPU {
                 }
             }
         }
+    }
+
+    /// This function will immediately draw 8 pixels, skipping several checks and manual
+    /// get_pixel_calls().
+    #[inline(always)]
+    fn draw_contiguous_bg_window_block(&mut self, pixel_counter: usize, top_pixel_data: u8, bottom_pixel_data: u8) {
+        self.scanline_buffer[pixel_counter + 7] = self.bg_window_palette.colour(top_pixel_data & 0x1 | ((bottom_pixel_data & 0x1) << 1));
+        self.scanline_buffer[pixel_counter + 6] = self.bg_window_palette.colour((top_pixel_data & 0x2) >> 1 | (bottom_pixel_data & 0x2));
+        self.scanline_buffer[pixel_counter + 5] = self.bg_window_palette.colour((top_pixel_data & 4) >> 2 | ((bottom_pixel_data & 4) >> 1));
+        self.scanline_buffer[pixel_counter + 4] = self.bg_window_palette.colour((top_pixel_data & 8) >> 3 | ((bottom_pixel_data & 8) >> 2));
+        self.scanline_buffer[pixel_counter + 3] = self.bg_window_palette.colour((top_pixel_data & 16) >> 4 | ((bottom_pixel_data & 16) >> 3));
+        self.scanline_buffer[pixel_counter + 2] = self.bg_window_palette.colour((top_pixel_data & 32) >> 5 | ((bottom_pixel_data & 32) >> 4));
+        self.scanline_buffer[pixel_counter + 1] = self.bg_window_palette.colour((top_pixel_data & 64) >> 6 | ((bottom_pixel_data & 64) >> 5));
+        self.scanline_buffer[pixel_counter] = self.bg_window_palette.colour((top_pixel_data & 128) >> 7 | ((bottom_pixel_data & 128) >> 6));
     }
 
     fn get_pixel_colour(&self, bit_offset: u8, top_pixel_data: u8, bottom_pixel_data: u8) -> u8 {
