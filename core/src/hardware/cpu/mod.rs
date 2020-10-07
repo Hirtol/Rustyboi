@@ -351,9 +351,19 @@ impl<M: MemoryMapper> CPU<M> {
 
     /// `halt until interrupt occurs (low power)`
     fn halt(&mut self) {
-        log::trace!("Entering halt");
-        self.halted = true;
-        self.add_cycles();
+        // Halt bug
+        if !self.ime && self.mmu.interrupts().interrupts_pending() {
+            // We execute the next opcode immediately without incrementing PC.
+            // No need to check for interrupts since ime is disabled anyway.
+            self.opcode = self.get_instr_u8();
+            self.registers.pc -= 1;
+
+            self.execute(self.opcode);
+        } else {
+            // Normal halt
+            self.halted = true;
+            self.add_cycles();
+        }
     }
 
     /// `A=A+r` OR `A=A+n` OR `A=A+(HL)`

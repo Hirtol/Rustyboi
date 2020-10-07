@@ -168,7 +168,7 @@ impl Memory {
             TIMER_MODULO => self.timers.timer_modulo,
             TIMER_CONTROL => self.timers.timer_control.to_bits(),
             INTERRUPTS_FLAG => {
-                //log::info!("Reading interrupt flag {:?}", self.interrupts_flag);
+                //log::info!("Reading interrupt flag {:?}", self.interrupts.interrupt_flag);
                 self.interrupts.interrupt_flag.bits()
             }
             APU_MEM_START..=APU_MEM_END => {
@@ -207,8 +207,11 @@ impl Memory {
             TIMER_MODULO => self.timers.set_tma(value),
             TIMER_CONTROL => self.timers.set_timer_control(value),
             INTERRUPTS_FLAG => {
-                self.interrupts.interrupt_flag = InterruptFlags::from_bits_truncate(value);
-                //log::info!("Writing interrupt flag {:?}", self.interrupts_flag);
+                // The most significant 3 bits *should* be free to be set by the user, however we wouldn't
+                // pass halt_bug otherwise so I'm assuming they're supposed to be unmodifiable
+                // by the user after all, and instead are set to 1.
+                self.interrupts.interrupt_flag = InterruptFlags::from_bits_truncate(0xE0 | value);
+                //log::info!("Writing interrupt flag {:?} from value: {:02x}", self.interrupts.interrupt_flag, value);
             }
             APU_MEM_START..=APU_MEM_END => {
                 //log::info!("APU Write on address: 0x{:02X} with value: 0x{:02X}", address, value);

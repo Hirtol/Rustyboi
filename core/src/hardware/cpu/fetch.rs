@@ -49,7 +49,6 @@ impl<M: MemoryMapper> CPU<M> {
         if !self.ime {
             if self.mmu.interrupts().interrupts_pending() {
                 self.halted = false;
-                self.add_cycles();
             }
         } else if self.mmu.interrupts().interrupts_pending() {
             let interrupt = self.mmu.interrupts().get_immediate_interrupt();

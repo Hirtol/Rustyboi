@@ -24,7 +24,6 @@ use sdl2::audio::{AudioQueue, AudioSpecDesired};
 use sdl2::event::Event;
 use std::io::Write;
 use std::ops::Div;
-use rustyboi_core::hardware::ppu::PPU;
 
 mod actions;
 mod display;
@@ -95,9 +94,9 @@ fn main() {
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
-    test_fast(sdl_context, &mut canvas, &mut screen_texture, &read(cartridge).unwrap());
-
-    return;
+    // test_fast(sdl_context, &mut canvas, &mut screen_texture, &read(cartridge).unwrap());
+    //
+    // return;
 
     let mut timer = sdl_context.timer().unwrap();
 

@@ -13,7 +13,7 @@ impl Interrupts {
 
     /// Check if `IF != 0` and that the corresponding bit is also set in `IE`
     pub fn interrupts_pending(&self) -> bool {
-        !(self.interrupt_flag & self.interrupt_enable).is_empty()
+        (self.interrupt_flag.bits & self.interrupt_enable.bits & 0x1F) != 0
     }
 
     pub fn interrupt_should_trigger(&self, interrupt: InterruptFlags) -> bool {
