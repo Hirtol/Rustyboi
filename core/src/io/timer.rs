@@ -1,5 +1,6 @@
 use crate::io::interrupts::InterruptFlags;
 use crate::io::timer::InputClock::C256;
+use crate::scheduler::{Scheduler, EventType};
 
 /// This register is incremented at rate of 16384Hz (~16779Hz on SGB).
 /// Writing any value to this register resets it to 00h.
@@ -44,18 +45,17 @@ impl TimerRegisters {
         (self.system_clock >> 8) as u8
     }
 
-    pub fn tick_timers(&mut self) -> Option<InterruptFlags> {
-        let mut to_return = None;
+    pub fn tick_timers(&mut self, scheduler: &mut Scheduler) {
         self.just_overflowed = false;
 
         // Whenever an overflow occurs we delay by 4 cycles (1 nop)
         // Since we clock timers every 4 cycles we just use this hacky way.
-        if self.timer_overflowed {
-            self.timer_counter = self.timer_modulo;
-            self.timer_overflowed = false;
-            self.just_overflowed = true;
-            to_return = Some(InterruptFlags::TIMER)
-        }
+        // if self.timer_overflowed {
+        //     self.timer_counter = self.timer_modulo;
+        //     self.timer_overflowed = false;
+        //     self.just_overflowed = true;
+        //     to_return = Some(InterruptFlags::TIMER)
+        // }
 
         let old_sys_clock = self.system_clock;
         self.system_clock = self.system_clock.wrapping_add(4);
@@ -64,36 +64,46 @@ impl TimerRegisters {
             let select_bit = self.timer_control.input_select.to_relevant_bit();
 
             if self.fallen_sys_clock(old_sys_clock, select_bit) {
-                self.tick_timer();
+                self.tick_timer(scheduler);
             }
         }
+    }
 
-        to_return
+    pub fn timer_overflow(&mut self) {
+        // Whenever an overflow occurs we delay by 4 cycles (1 nop)
+        // Called by the Scheduler
+        self.timer_counter = self.timer_modulo;
+        self.timer_overflowed = false;
+        self.just_overflowed = true;
     }
 
     fn fallen_sys_clock(&self, old_clock: u16, select_bit: u16) -> bool {
         (old_clock & select_bit) != 0 && (self.system_clock & select_bit) == 0
     }
 
-    fn tick_timer(&mut self) {
+    fn tick_timer(&mut self, scheduler: &mut Scheduler) {
         let (new_value, overflowed) = self.timer_counter.overflowing_add(1);
 
         self.timer_counter = new_value;
         // If we overflow, we'll set the timer_counter and send the interrupt in the next iteration.
-        self.timer_overflowed = overflowed;
+        if overflowed {
+            self.timer_overflowed = overflowed;
+            scheduler.push_relative(EventType::TimerOverflow, 4);
+        }
     }
 
     /// Write to the `TIMA` register (`timer_counter` internally).
     ///
     /// If written to in the 4 clock period before an overflow interrupt, then the interrupt
     /// will be cancelled.
-    pub fn set_timer_counter(&mut self, value: u8) {
+    pub fn set_timer_counter(&mut self, value: u8, scheduler: &mut Scheduler) {
         // If you write to the TIMA register in the 4 clocks that it has overflowed, but
         // not yet reset then you can prevent the interrupt and TMA load from happening.
         // We check for self.timer_counter == 0 to ensure that we've not JUST loaded TMA
         // into TIMA, for if we did then we should ignore this write.
         if self.timer_overflowed && self.timer_counter == 0 {
             self.timer_overflowed = false;
+            scheduler.remove_event_type(EventType::TimerOverflow);
         }
 
         // If you write to TIMA during the cycle that TMA is being loaded to it [B], the write will be ignored
@@ -117,18 +127,18 @@ impl TimerRegisters {
     }
 
     /// Write to the divider register, this will always reset it to 0x00.
-    pub fn set_divider(&mut self) {
+    pub fn set_divider(&mut self, scheduler: &mut Scheduler) {
         let old_sys_clock = self.system_clock;
         self.system_clock = 0;
 
         // If we've already halfway passed our cycle count then we'll increase our timer
         // due to the falling edge detector in the DMG.
         if self.fallen_sys_clock(old_sys_clock, self.timer_control.input_select.to_relevant_bit()) {
-            self.tick_timer();
+            self.tick_timer(scheduler);
         }
     }
 
-    pub fn set_timer_control(&mut self, value: u8) {
+    pub fn set_timer_control(&mut self, value: u8, scheduler: &mut Scheduler) {
         let old_control = self.timer_control;
         self.timer_control = TimerControl::from(value);
         let old_select_bit = old_control.input_select.to_relevant_bit();
@@ -137,7 +147,7 @@ impl TimerRegisters {
         // When disabling the timer the DMG will increment the timer register if our system clock
         // was already half way through it's cycle due to the falling edge detector.
         if old_control.timer_enabled && !self.timer_control.timer_enabled && (self.system_clock & (select_bit)) != 0 {
-            self.tick_timer();
+            self.tick_timer(scheduler);
         }
 
         // if the old selected bit by the multiplexer was 0, the new one is
@@ -149,7 +159,7 @@ impl TimerRegisters {
             && (self.system_clock & (old_select_bit)) != 0
             && (self.system_clock & (select_bit)) == 0
         {
-            self.tick_timer()
+            self.tick_timer(scheduler)
         }
     }
 }
@@ -199,6 +209,15 @@ impl InputClock {
             InputClock::C64 => 0x0020,
             InputClock::C256 => 0x0080,
             InputClock::C1024 => 0x0200,
+        }
+    }
+
+    pub fn to_clocks(&self) -> u64 {
+        match self {
+            InputClock::C16 => 16,
+            InputClock::C64 => 64,
+            InputClock::C256 => 256,
+            InputClock::C1024 => 1024,
         }
     }
 }

@@ -204,10 +204,10 @@ impl Memory {
         use crate::hardware::ppu::*;
         match address {
             JOYPAD_REGISTER => self.joypad_register.set_register(value),
-            DIVIDER_REGISTER => self.timers.set_divider(),
-            TIMER_COUNTER => self.timers.set_timer_counter(value),
+            DIVIDER_REGISTER => self.timers.set_divider(&mut self.scheduler),
+            TIMER_COUNTER => self.timers.set_timer_counter(value, &mut self.scheduler),
             TIMER_MODULO => self.timers.set_tma(value),
-            TIMER_CONTROL => self.timers.set_timer_control(value),
+            TIMER_CONTROL => self.timers.set_timer_control(value, &mut self.scheduler),
             INTERRUPTS_FLAG => {
                 // The most significant 3 bits *should* be free to be set by the user, however we wouldn't
                 // pass halt_bug otherwise so I'm assuming they're supposed to be unmodifiable
@@ -326,6 +326,14 @@ impl Memory {
                     self.scheduler
                         .push_full_event(event.update_self(EventType::APUSample, SAMPLE_CYCLES));
                 }
+                EventType::TickTimer => {
+                    self.timers.tick_timers(&mut self.scheduler);
+                    self.scheduler.push_full_event(event.update_self(EventType::TickTimer, 16));
+                }
+                EventType::TimerOverflow => {
+                    self.timers.timer_overflow();
+                    self.add_new_interrupts(Some(InterruptFlags::TIMER))
+                }
             };
         }
         vblank_occurred
@@ -366,12 +374,13 @@ impl MemoryMapper for Memory {
     }
 
     fn do_m_cycle(&mut self) -> bool {
-        let interrupt = self.timers.tick_timers();
-        self.add_new_interrupts(interrupt);
+
 
         self.apu.tick(4);
 
-        self.tick_scheduler()
+        let result = self.tick_scheduler();
+        self.timers.tick_timers(&mut self.scheduler);
+        result
     }
 }
 

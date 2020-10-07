@@ -11,6 +11,8 @@ pub enum EventType {
     VblankWait  = 4,
     APUFrameSequencer = 5,
     APUSample = 6,
+    TickTimer = 7,
+    TimerOverflow = 8,
 }
 
 #[derive(Debug, Copy, Clone, Eq)]
