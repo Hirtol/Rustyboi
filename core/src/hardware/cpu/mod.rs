@@ -33,7 +33,6 @@ pub struct CPU<M: MemoryMapper> {
     pub mmu: M,
     opcode: u8,
     registers: Registers,
-    delayed_ime: bool,
     /// Temporary hack to determine when VBLANK occurred for rendering.
     had_vblank: bool,
 }
@@ -49,7 +48,6 @@ impl<M: MemoryMapper> CPU<M> {
             halted: false,
             cycles_performed: 0,
             ime: false,
-            delayed_ime: false,
             had_vblank: false,
         };
 
@@ -78,19 +76,6 @@ impl<M: MemoryMapper> CPU<M> {
 
         self.opcode = self.get_next_opcode();
 
-        // For the EI instruction, kinda dirty atm.
-        // TODO:Think of a better architecture to accommodate delayed instructions
-        //  (as DI will need it for GBC)
-        if self.delayed_ime {
-            self.ime = true;
-            self.delayed_ime = false;
-        }
-
-        // info!(
-        //     "Executing opcode: {:04X} - registers: {}",
-        //     self.opcode,
-        //     self.registers,
-        // );
         // let ie = self.mmu.read_byte(INTERRUPTS_ENABLE);
         // let if_flag = self.mmu.read_byte(INTERRUPTS_FLAG);
         // trace!(
@@ -607,7 +592,8 @@ impl<M: MemoryMapper> CPU<M> {
     /// For now we'll panic, but it may be that some games call them erroneously, so consider
     /// just returning instead.
     fn unknown(&mut self) {
-        panic!("Unknown function was called, opcode: {}", self.opcode)
+        log::warn!("Unknown function was called, opcode: 0x{:02X}", self.opcode);
+        //panic!("Unknown function was called, opcode: {}", self.opcode)
     }
 
     /// Return from subroutine and enable interrupts.
@@ -685,7 +671,13 @@ impl<M: MemoryMapper> CPU<M> {
     /// Enable Interrupts by setting the IME flag.
     /// The flag is only set after the instruction following EI.
     fn ei(&mut self) {
-        self.delayed_ime = true;
+        // First execute the next instruction, since we're setting IME here it's reasonable to
+        // assume that IME is false, so that no interrupt will be fired.
+        self.opcode = self.get_next_opcode();
+        // Set ime to true after we have delayed one cycle.
+        self.ime = true;
+        // Execute the opcode, since we have no way of only retrieving an opcode this'll have to do.
+        self.execute(self.opcode);
     }
 
     /*

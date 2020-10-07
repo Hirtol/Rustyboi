@@ -311,6 +311,9 @@ impl Memory {
                     }
                 }
                 EventType::APUFrameSequencer => {
+                    // Both APU events rely on the scheduler being called after the APU tick
+                    // (at least, that's how I used to do it in the APU tick function)
+                    // Be careful about reordering.
                     self.apu.tick_frame_sequencer();
                     self.scheduler.push_full_event(event.update_self(EventType::APUFrameSequencer, FRAME_SEQUENCE_CYCLES));
                 }
