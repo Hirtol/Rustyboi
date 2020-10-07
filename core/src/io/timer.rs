@@ -73,7 +73,7 @@ impl TimerRegisters {
         let (new_value, overflowed) = self.timer_counter.overflowing_add(1);
 
         self.timer_counter = new_value;
-        // If we overflow, we'll set the timer_counter and send the interrupt in the next iteration.
+        // If we overflow, we'll set the timer_overflowed and send the interrupt after 4 cycles.
         if overflowed {
             self.timer_overflowed = overflowed;
             scheduler.push_relative(EventType::TimerOverflow, 4);
