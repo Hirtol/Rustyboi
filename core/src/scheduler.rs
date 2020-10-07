@@ -84,9 +84,11 @@ impl Scheduler {
         self.event_queue.push(Event { timestamp, event_type });
     }
 
-
     pub fn push_relative(&mut self, event_type: EventType, relative_timestamp: u64) {
-        self.event_queue.push(Event { timestamp: self.current_time + relative_timestamp, event_type });
+        self.event_queue.push(Event {
+            timestamp: self.current_time + relative_timestamp,
+            event_type,
+        });
     }
 
     /// Add an event to the `Scheduler`.

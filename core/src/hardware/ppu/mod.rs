@@ -284,10 +284,10 @@ impl PPU {
             let (top_pixel_data, bottom_pixel_data) = self.tiles[tile_address].get_pixel_line(tile_line_y);
 
             // If we can draw 8 pixels in one go, we should.
-            if x_remainder <= 0 && pixel_counter+8 < 160 {
+            if x_remainder <= 0 && pixel_counter + 8 < 160 {
                 self.draw_contiguous_bg_window_block(pixel_counter as usize, top_pixel_data, bottom_pixel_data);
                 pixel_counter += 8;
-            }else {
+            } else {
                 for j in (0..=7).rev() {
                     // We've exceeded the amount we need to draw, no need to do anything more.
                     if pixel_counter > 159 {
@@ -342,10 +342,10 @@ impl PPU {
             let (top_pixel_data, bottom_pixel_data) = self.tiles[tile_address].get_pixel_line(tile_pixel_y);
 
             // If we can draw 8 pixels in one go, we should.
-            if pixel_counter >= 0 && pixel_counter+8 < 160 {
+            if pixel_counter >= 0 && pixel_counter + 8 < 160 {
                 self.draw_contiguous_bg_window_block(pixel_counter as usize, top_pixel_data, bottom_pixel_data);
                 pixel_counter += 8;
-            }else {
+            } else {
                 for j in (0..=7).rev() {
                     // We've exceeded the amount we need to draw, no need to do anything more.
                     if pixel_counter > 159 {

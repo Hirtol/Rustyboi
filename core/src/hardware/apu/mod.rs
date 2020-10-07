@@ -6,7 +6,7 @@
 use crate::hardware::apu::noise_channel::NoiseChannel;
 use crate::hardware::apu::square_channel::SquareWaveChannel;
 use crate::hardware::apu::wave_channel::WaveformChannel;
-use crate::scheduler::{Scheduler, EventType};
+use crate::scheduler::{EventType, Scheduler};
 
 mod channel_features;
 mod noise_channel;
@@ -87,7 +87,7 @@ impl APU {
                 self.tick_sweep();
             }
             7 => self.tick_envelop(),
-            _ => {},
+            _ => {}
         }
         self.frame_sequencer_step = (self.frame_sequencer_step + 1) % 8;
     }

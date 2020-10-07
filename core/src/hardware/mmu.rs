@@ -3,7 +3,9 @@ use std::fmt;
 use bitflags::_core::fmt::{Debug, Formatter};
 use log::*;
 
-use crate::hardware::apu::{APU, APU_MEM_END, APU_MEM_START, WAVE_SAMPLE_END, WAVE_SAMPLE_START, FRAME_SEQUENCE_CYCLES, SAMPLE_CYCLES};
+use crate::hardware::apu::{
+    APU, APU_MEM_END, APU_MEM_START, FRAME_SEQUENCE_CYCLES, SAMPLE_CYCLES, WAVE_SAMPLE_END, WAVE_SAMPLE_START,
+};
 use crate::hardware::cartridge::Cartridge;
 use crate::hardware::ppu::tiledata::*;
 use crate::hardware::ppu::{DMA_TRANSFER, PPU};
@@ -268,7 +270,8 @@ impl Memory {
             match event.event_type {
                 EventType::NONE => {
                     // On startup we should add OAM
-                    self.scheduler.push_full_event(event.update_self(EventType::OamSearch, 0));
+                    self.scheduler
+                        .push_full_event(event.update_self(EventType::OamSearch, 0));
                     self.scheduler.push_event(EventType::APUFrameSequencer, 8192);
                     self.scheduler.push_event(EventType::APUSample, 95);
                 }
@@ -315,11 +318,13 @@ impl Memory {
                     // (at least, that's how I used to do it in the APU tick function)
                     // Be careful about reordering.
                     self.apu.tick_frame_sequencer();
-                    self.scheduler.push_full_event(event.update_self(EventType::APUFrameSequencer, FRAME_SEQUENCE_CYCLES));
+                    self.scheduler
+                        .push_full_event(event.update_self(EventType::APUFrameSequencer, FRAME_SEQUENCE_CYCLES));
                 }
                 EventType::APUSample => {
                     self.apu.tick_sampling_handler();
-                    self.scheduler.push_full_event(event.update_self(EventType::APUSample, SAMPLE_CYCLES));
+                    self.scheduler
+                        .push_full_event(event.update_self(EventType::APUSample, SAMPLE_CYCLES));
                 }
             };
         }
