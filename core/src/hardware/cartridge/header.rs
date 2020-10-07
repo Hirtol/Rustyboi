@@ -156,7 +156,9 @@ fn read_global_checksum(rom: &[u8]) -> u16 {
 impl RamSizes {
     pub fn to_usize(&self) -> usize {
         match self {
-            NONE => 0,
+            // NONE is used by some test roms when they SHOULD have a ram size (*Cough* halt_bug)
+            // In these cases instead of returning 0 we'll return the default (2kb)
+            NONE => 2048,
             KB2 => 2048,
             KB8 => 8192,
             KB32 => 32768,

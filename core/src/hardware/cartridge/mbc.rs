@@ -87,6 +87,7 @@ impl MBC1 {
             rom.len(),
             (rom.len() / ROM_BANK_SIZE)
         );
+
         let mut result = MBC1 {
             ram_enabled: false,
             has_battery,
@@ -135,10 +136,7 @@ impl MBC1 {
     }
 
     fn write_ram(&mut self, address: u16, value: u8) {
-        // The second condition is only required due to certain test roms accessing ram when they
-        // don't have any, yet still enable ram and write to it. *Cough* halt_bug
-        // TODO: Remove to increase performance for every normal game, since only Homebrew fucks this up.
-        if self.ram_enabled && self.ram.len() != 0 {
+        if self.ram_enabled {
             let result_address = (address & 0x1FFF) as usize;
             if !self.banking_mode_select {
                 self.ram[result_address] = value

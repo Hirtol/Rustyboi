@@ -5,3 +5,5 @@ cpu_instrs=28000000
 09-op r,r=9000000
 mbc1_bits_ramg=7000000
 7-timing_effect=7000000
+2_02-len ctr=7000000
+2_03-trigger=10000000
