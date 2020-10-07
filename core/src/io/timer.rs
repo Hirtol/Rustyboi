@@ -199,13 +199,4 @@ impl InputClock {
             InputClock::C1024 => 0x0200,
         }
     }
-
-    pub fn to_clocks(&self) -> u64 {
-        match self {
-            InputClock::C16 => 16,
-            InputClock::C64 => 64,
-            InputClock::C256 => 256,
-            InputClock::C1024 => 1024,
-        }
-    }
 }
