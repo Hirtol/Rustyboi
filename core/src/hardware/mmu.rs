@@ -326,13 +326,15 @@ impl Memory {
                     self.scheduler
                         .push_full_event(event.update_self(EventType::APUSample, SAMPLE_CYCLES));
                 }
-                EventType::TickTimer => {
-                    self.timers.tick_timers(&mut self.scheduler);
-                    self.scheduler.push_full_event(event.update_self(EventType::TickTimer, 16));
-                }
                 EventType::TimerOverflow => {
                     self.timers.timer_overflow();
-                    self.add_new_interrupts(Some(InterruptFlags::TIMER))
+                    self.add_new_interrupts(Some(InterruptFlags::TIMER));
+                    // In the 4 cycles after an overflow certain special options are available,
+                    // see timer.rs for more details.
+                    self.scheduler.push_relative(EventType::TimerPostOverflow, 4);
+                }
+                EventType::TimerPostOverflow => {
+                    self.timers.just_overflowed = false;
                 }
             };
         }
@@ -374,12 +376,12 @@ impl MemoryMapper for Memory {
     }
 
     fn do_m_cycle(&mut self) -> bool {
-
-
         self.apu.tick(4);
 
         let result = self.tick_scheduler();
+        // Timer has to be ticked after the Scheduler to make timings work out for MoonEye tests.
         self.timers.tick_timers(&mut self.scheduler);
+
         result
     }
 }

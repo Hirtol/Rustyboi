@@ -36,8 +36,8 @@ pub struct TimerRegisters {
     pub timer_counter: u8,
     pub timer_modulo: u8,
     pub timer_control: TimerControl,
+    pub just_overflowed: bool,
     timer_overflowed: bool,
-    just_overflowed: bool,
 }
 
 impl TimerRegisters {
@@ -46,32 +46,20 @@ impl TimerRegisters {
     }
 
     pub fn tick_timers(&mut self, scheduler: &mut Scheduler) {
-        self.just_overflowed = false;
-
-        // Whenever an overflow occurs we delay by 4 cycles (1 nop)
-        // Since we clock timers every 4 cycles we just use this hacky way.
-        // if self.timer_overflowed {
-        //     self.timer_counter = self.timer_modulo;
-        //     self.timer_overflowed = false;
-        //     self.just_overflowed = true;
-        //     to_return = Some(InterruptFlags::TIMER)
-        // }
-
-        let old_sys_clock = self.system_clock;
         self.system_clock = self.system_clock.wrapping_add(4);
 
         if self.timer_control.timer_enabled {
             let select_bit = self.timer_control.input_select.to_relevant_bit();
-
-            if self.fallen_sys_clock(old_sys_clock, select_bit) {
+            // Subtract 4 for the old clock since we increment it by 4 before here.
+            if self.fallen_sys_clock(self.system_clock.wrapping_sub(4), select_bit) {
                 self.tick_timer(scheduler);
             }
         }
     }
 
+    /// Is called 4 cycles after an overflow actually occurred by the `Scheduler`.
     pub fn timer_overflow(&mut self) {
         // Whenever an overflow occurs we delay by 4 cycles (1 nop)
-        // Called by the Scheduler
         self.timer_counter = self.timer_modulo;
         self.timer_overflowed = false;
         self.just_overflowed = true;
