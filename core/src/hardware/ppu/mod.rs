@@ -115,9 +115,6 @@ pub struct PPU {
     window_y: u8,
     window_counter: u8,
     window_triggered: bool,
-
-    current_cycles: u64,
-    vblank_cycles: u64,
 }
 
 impl PPU {
@@ -142,8 +139,6 @@ impl PPU {
             window_y: 0,
             window_counter: 0,
             window_triggered: false,
-            current_cycles: 0,
-            vblank_cycles: 0,
         }
     }
 

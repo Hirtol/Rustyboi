@@ -90,10 +90,7 @@ fn read_title(rom: &[u8], cgb_mode: bool) -> String {
 fn read_cgb_flag(rom: &[u8]) -> bool {
     let cgb_flag = rom[0x143];
 
-    match cgb_flag {
-        0x80 | 0xC0 => true,
-        _ => false,
-    }
+    cgb_flag == 0x80 || cgb_flag == 0xC0
 }
 
 fn read_new_licensee(rom: &[u8]) -> u16 {
@@ -120,7 +117,6 @@ fn read_rom_size(rom: &[u8]) -> u8 {
 
 fn read_ram_size(rom: &[u8]) -> RamSizes {
     let r_size = rom[0x149];
-    //TODO: Make properly functional.
     match r_size {
         0x0 => NONE,
         0x1 => KB2,
