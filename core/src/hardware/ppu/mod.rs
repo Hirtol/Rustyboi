@@ -419,8 +419,12 @@ impl PPU {
             self.draw_contiguous_bg_window_block(*pixel_counter as usize, top_pixel_data, bottom_pixel_data);
             *pixel_counter += 8;
         } else {
-            // We have to render a partial tile, so skip the first pixels_to_skip and render the rest.
-            for j in (*pixels_to_skip..=7).rev() {
+            for j in (0..=7).rev() {
+                // We have to render a partial tile, so skip the first pixels_to_skip and render the rest.
+                if *pixels_to_skip > 0 {
+                    *pixels_to_skip -= 1;
+                    continue;
+                }
                 // We've exceeded the amount we need to draw, no need to do anything more.
                 if *pixel_counter > 159 {
                     break;
@@ -429,8 +433,6 @@ impl PPU {
                 self.scanline_buffer[*pixel_counter as usize] = self.bg_window_palette.colour(colour);
                 *pixel_counter += 1;
             }
-            // Afterward we can just set pixels_to_skip to 0 since we've skipped the appropriate amount.
-            *pixels_to_skip = 0;
         }
     }
 
