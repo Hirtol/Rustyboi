@@ -256,7 +256,7 @@ impl PPU {
         // The amount of pixels to skip from the first tile in the sequence, and partially render
         // the remainder of that tile.
         // (for cases where self.scroll_x % 8 != 0, and thus not nicely aligned on tile boundaries)
-        let mut pixels_to_skip = (self.scroll_x % 8) as i16;
+        let mut pixels_to_skip = self.scroll_x % 8;
         // If the tile is not nicely aligned on % 8 boundaries we'll need an additional tile for the
         // last 8-pixels_to_skip pixels of the scanline.
         if pixels_to_skip != 0 {
@@ -307,7 +307,7 @@ impl PPU {
 
         // If window is less than 0 we want to skip those amount of pixels, otherwise we render as normal.
         // This means that we must take the absolute value of window_x for the pixels_skip, therefore the -
-        let (mut pixel_counter, mut pixels_to_skip) = if window_x >= 0 { (window_x, 0) } else { (0, -window_x) };
+        let (mut pixel_counter, mut pixels_to_skip) = if window_x >= 0 { (window_x, 0) } else { (0, (-window_x) as u8) };
 
         // Increment the window counter for future cycles.
         self.window_counter += 1;
@@ -412,19 +412,15 @@ impl PPU {
 
     /// Draw a tile in a way appropriate for both the window, as well as the background.
     /// `pixels_to_skip` will skip pixels so long as it's greater than 0
-    fn draw_background_window_line(&mut self, pixel_counter: &mut i16, pixels_to_skip: &mut i16, top_pixel_data: u8, bottom_pixel_data: u8) {
+    fn draw_background_window_line(&mut self, pixel_counter: &mut i16, pixels_to_skip: &mut u8, top_pixel_data: u8, bottom_pixel_data: u8) {
         // If we can draw 8 pixels in one go, we should.
         // pixel_counter Should be less than 152 otherwise we'd go over the 160 allowed pixels.
         if *pixels_to_skip == 0 && *pixel_counter < 152 {
             self.draw_contiguous_bg_window_block(*pixel_counter as usize, top_pixel_data, bottom_pixel_data);
             *pixel_counter += 8;
         } else {
-            for j in (0..=7).rev() {
-                // We have to render a partial tile, so skip the first pixels_to_skip and render the rest.
-                if *pixels_to_skip > 0 {
-                    *pixels_to_skip -= 1;
-                    continue;
-                }
+            // We have to render a partial tile, so skip the first pixels_to_skip and render the rest.
+            for j in (*pixels_to_skip..=7).rev() {
                 // We've exceeded the amount we need to draw, no need to do anything more.
                 if *pixel_counter > 159 {
                     break;
@@ -433,6 +429,8 @@ impl PPU {
                 self.scanline_buffer[*pixel_counter as usize] = self.bg_window_palette.colour(colour);
                 *pixel_counter += 1;
             }
+            // Afterward we can just set pixels_to_skip to 0 since we've skipped the appropriate amount.
+            *pixels_to_skip = 0;
         }
     }
 
