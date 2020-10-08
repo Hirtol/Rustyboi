@@ -276,7 +276,7 @@ impl PPU {
             let mut tile_address = tile_relative_address;
 
             // If we've selected the 8800-97FF mode we need to add a 256 offset, and then
-            // add/subtract the relative address.
+            // add/subtract the relative address. (since we can then reach tiles 128-384)
             if !self.lcd_control.contains(LcdControl::BG_WINDOW_TILE_SELECT) {
                 tile_address = (256_usize).wrapping_add((tile_relative_address as i8) as usize);
             }
