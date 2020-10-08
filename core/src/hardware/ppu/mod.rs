@@ -253,12 +253,14 @@ impl PPU {
         let tile_line_y = scanline_to_be_rendered % 8;
         // How many pixels we've drawn so far on this scanline.
         let mut pixel_counter: i16 = 0;
-        // The amount of pixels to partially render from the first tile in the sequence
+        // The amount of pixels to skip from the first tile in the sequence, and partially render
+        // the remainder of that tile.
         // (for cases where self.scroll_x % 8 != 0, and thus not nicely aligned on tile boundaries)
-        let mut x_remainder = (self.scroll_x % 8) as i8;
+        // -3 will mean we skip 3 pixels.
+        let mut pixels_to_skip = -((self.scroll_x % 8) as i16);
         // If the tile is not nicely aligned on % 8 boundaries we'll need an additional tile for the
-        // last 8-x_remainder pixels of the scanline.
-        if x_remainder != 0 {
+        // last 8+pixels_to_skip pixels of the scanline.
+        if pixels_to_skip != 0 {
             tile_higher_bound += 1;
         }
 
@@ -272,36 +274,17 @@ impl PPU {
             }
             // Modulo for the y-wraparound if scroll_y > 111
             let mut tile_relative_address = self.get_tile_address_bg(i % BACKGROUND_TILE_SIZE as u16) as usize;
+            let mut tile_address = tile_relative_address;
 
-            let offset: usize = if self.lcd_control.bg_window_tile_address() == TILE_BLOCK_0_START {
-                0
-            } else {
-                tile_relative_address = (tile_relative_address as i8) as usize;
-                256
-            };
-            let tile_address: usize = offset.wrapping_add(tile_relative_address);
+            // If we've selected the 8800-97FF mode we need to add a 256 offset, and then
+            // add/subtract the relative address.
+            if !self.lcd_control.contains(LcdControl::BG_WINDOW_TILE_SELECT) {
+                tile_address = (256_usize).wrapping_add((tile_relative_address as i8) as usize);
+            }
 
             let (top_pixel_data, bottom_pixel_data) = self.tiles[tile_address].get_pixel_line(tile_line_y);
 
-            // If we can draw 8 pixels in one go, we should.
-            if x_remainder <= 0 && pixel_counter + 8 < 160 {
-                self.draw_contiguous_bg_window_block(pixel_counter as usize, top_pixel_data, bottom_pixel_data);
-                pixel_counter += 8;
-            } else {
-                for j in (0..=7).rev() {
-                    // We've exceeded the amount we need to draw, no need to do anything more.
-                    if pixel_counter > 159 {
-                        break;
-                    }
-                    if x_remainder > 0 {
-                        x_remainder -= 1;
-                        continue;
-                    }
-                    let colour = self.get_pixel_colour(j, top_pixel_data, bottom_pixel_data);
-                    self.scanline_buffer[pixel_counter as usize] = self.bg_window_palette.colour(colour);
-                    pixel_counter += 1;
-                }
-            }
+            self.draw_background_window_line(&mut pixel_counter, &mut pixels_to_skip, top_pixel_data, bottom_pixel_data)
         }
     }
 
@@ -323,45 +306,26 @@ impl PPU {
 
         let tile_pixel_y = self.window_counter % 8;
 
-        let mut pixel_counter = window_x;
+        // If window is less than 0 we want to skip those amount of pixels, otherwise we render as normal.
+        // This means that we
+        let (mut pixel_counter, mut pixels_to_skip) = if window_x >= 0 { (window_x, 0) } else { (0, window_x) };
 
         // Increment the window counter for future cycles.
         self.window_counter += 1;
 
         for i in tile_lower_bound..tile_higher_bound {
             let mut tile_relative_address = self.get_tile_address_window(i) as usize;
+            let mut tile_address = tile_relative_address;
 
-            let offset: usize = if self.lcd_control.bg_window_tile_address() == TILE_BLOCK_0_START {
-                0
-            } else {
-                tile_relative_address = (tile_relative_address as i8) as usize;
-                256
-            };
-            let tile_address: usize = offset.wrapping_add(tile_relative_address);
+            // If we've selected the 8800-97FF mode we need to add a 256 offset, and then
+            // add/subtract the relative address.
+            if !self.lcd_control.contains(LcdControl::BG_WINDOW_TILE_SELECT) {
+                tile_address = (256_usize).wrapping_add((tile_relative_address as i8) as usize);
+            }
 
             let (top_pixel_data, bottom_pixel_data) = self.tiles[tile_address].get_pixel_line(tile_pixel_y);
 
-            // If we can draw 8 pixels in one go, we should.
-            if pixel_counter >= 0 && pixel_counter + 8 < 160 {
-                self.draw_contiguous_bg_window_block(pixel_counter as usize, top_pixel_data, bottom_pixel_data);
-                pixel_counter += 8;
-            } else {
-                for j in (0..=7).rev() {
-                    // We've exceeded the amount we need to draw, no need to do anything more.
-                    if pixel_counter > 159 {
-                        break;
-                    }
-                    // Window_x started negative, skip first few pixels.
-                    if pixel_counter < 0 {
-                        pixel_counter += 1;
-                        continue;
-                    }
-
-                    let colour = self.get_pixel_colour(j, top_pixel_data, bottom_pixel_data);
-                    self.scanline_buffer[pixel_counter as usize] = self.bg_window_palette.colour(colour);
-                    pixel_counter += 1;
-                }
-            }
+            self.draw_background_window_line(&mut pixel_counter, &mut pixels_to_skip, top_pixel_data, bottom_pixel_data);
         }
     }
 
@@ -443,6 +407,32 @@ impl PPU {
                 if colour != 0x0 {
                     self.scanline_buffer[pixel as usize] = self.get_sprite_palette(sprite).colour(colour);
                 }
+            }
+        }
+    }
+
+    /// Draw a tile in a way appropriate for both the window, as well as the background.
+    /// `pixels_to_skip` will skip pixels so long as it's less than 0.
+    fn draw_background_window_line(&mut self, pixel_counter: &mut i16, pixels_to_skip: &mut i16, top_pixel_data: u8, bottom_pixel_data: u8) {
+        // If we can draw 8 pixels in one go, we should.
+        // Should be < 152 otherwise we'd go over the 160 allowed pixels.
+        if *pixels_to_skip >= 0 && *pixel_counter < 152 {
+            self.draw_contiguous_bg_window_block(*pixel_counter as usize, top_pixel_data, bottom_pixel_data);
+            *pixel_counter += 8;
+        } else {
+            for j in (0..=7).rev() {
+                // We have to render a partial tile, so skip the first x_remainder and render the rest.
+                if *pixels_to_skip < 0 {
+                    *pixels_to_skip += 1;
+                    continue;
+                }
+                // We've exceeded the amount we need to draw, no need to do anything more.
+                if *pixel_counter > 159 {
+                    break;
+                }
+                let colour = self.get_pixel_colour(j, top_pixel_data, bottom_pixel_data);
+                self.scanline_buffer[*pixel_counter as usize] = self.bg_window_palette.colour(colour);
+                *pixel_counter += 1;
             }
         }
     }
