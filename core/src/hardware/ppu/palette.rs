@@ -40,14 +40,15 @@ impl Palette {
     /// Retrieve the appropriate colour for the provided pixel value.
     ///
     /// Due to the aforementioned the `colour_value` should have at most 2 bits in use.
-    #[inline(always)]
     pub fn colour(&self, color_value: u8) -> DmgColor {
+        //TODO: Check if the performance benefit of omitting a panic stays, or is simply cache realignment
+        // (at time of writing increases fps ~200)
         match color_value {
             0 => self.color_0,
             1 => self.color_1,
             2 => self.color_2,
-            3 => self.color_3,
-            _ => panic!("This should not be reached, colour value: {}", color_value),
+            _ => self.color_3,
+            //_ => panic!("This should not be reached, colour value: {}", color_value),
         }
     }
 }
