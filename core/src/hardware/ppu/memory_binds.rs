@@ -1,11 +1,11 @@
 //! This module is purely used for providing access to PPU memory resources
 //! to the MMU.
-use super::*;
 use crate::hardware::mmu::OAM_ATTRIBUTE_START;
-
 use crate::hardware::ppu::PPU;
 use crate::print_array_raw;
-use crate::scheduler::EventType::{VBLANK, HBLANK};
+use crate::scheduler::EventType::{HBLANK, VBLANK};
+
+use super::*;
 
 impl PPU {
     pub fn get_tile_byte(&self, address: u16) -> u8 {
@@ -121,7 +121,7 @@ impl PPU {
         self.window_x
     }
 
-    pub fn set_lcd_control(&mut self, value: u8, scheduler: &mut Scheduler) {
+    pub fn set_lcd_control(&mut self, value: u8, scheduler: &mut Scheduler, interrupts: &mut Interrupts) {
         let new_control = LcdControl::from_bits_truncate(value);
 
         // If we turn OFF the display
@@ -130,6 +130,7 @@ impl PPU {
             self.current_y = 0;
             self.window_counter = 0;
             self.lcd_status.set_mode_flag(Mode::HBlank);
+            self.check_all_interrupts(interrupts);
             // Turn PPU off by removing all scheduled events. TODO: Find cleaner way to do this.
             scheduler.remove_event_type(EventType::HBLANK);
             scheduler.remove_event_type(EventType::VblankWait);
@@ -155,15 +156,7 @@ impl PPU {
         self.lcd_status = LcdStatus::from_bits_truncate((value & 0x78) | read_only_bits);
 
         // If we're in a mode where the interrupt should occur we need to fire those interrupts.
-        if self.lcd_status.mode_flag() == VBlank && self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT) {
-            interrupts.insert_interrupt(InterruptFlags::LCD);
-            log::warn!("Adding vblank stat special");
-        }else if self.lcd_status.mode_flag() == OamSearch && self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT) {
-            interrupts.insert_interrupt(InterruptFlags::LCD);
-        }else if self.lcd_status.mode_flag() == HBlank && self.lcd_status.contains(LcdStatus::MODE_0_H_INTERRUPT) {
-            interrupts.insert_interrupt(InterruptFlags::LCD);
-        }
-        self.ly_lyc_compare(&mut interrupts.interrupt_flag);
+        self.check_all_interrupts(interrupts);
     }
 
     pub fn set_scy(&mut self, value: u8) {
@@ -203,6 +196,20 @@ impl PPU {
 
     pub fn set_window_x(&mut self, value: u8) {
         self.window_x = value
+    }
+
+    /// Checks all possible LCD STAT interrupts, and fires them
+    /// if available.
+    fn check_all_interrupts(&mut self, interrupts: &mut Interrupts) {
+        self.ly_lyc_compare(&mut interrupts.interrupt_flag);
+        if self.lcd_status.mode_flag() == VBlank && self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT) {
+            interrupts.insert_interrupt(InterruptFlags::LCD);
+            log::warn!("Adding vblank stat special");
+        } else if self.lcd_status.mode_flag() == OamSearch && self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT) {
+            interrupts.insert_interrupt(InterruptFlags::LCD);
+        } else if self.lcd_status.mode_flag() == HBlank && self.lcd_status.contains(LcdStatus::MODE_0_H_INTERRUPT) {
+            interrupts.insert_interrupt(InterruptFlags::LCD);
+        }
     }
 }
 

@@ -591,8 +591,7 @@ impl<M: MemoryMapper> CPU<M> {
     /// For now we'll panic, but it may be that some games call them erroneously, so consider
     /// just returning instead.
     fn unknown(&mut self) {
-        log::warn!("Unknown function was called, opcode: 0x{:02X}", self.opcode);
-        //panic!("Unknown function was called, opcode: {}", self.opcode)
+        panic!("Unknown function was called, opcode: {}", self.opcode)
     }
 
     /// Return from subroutine and enable interrupts.
