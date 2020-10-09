@@ -94,9 +94,6 @@ impl PPU {
     }
 
     pub fn get_ly(&self) -> u8 {
-        // We subtract by one since the way we do counting (increment current_y in lcd transfer mode)
-        // causes us to 'desync', making ly report that we're in vblank (scanline 144) when we're
-        // not actually.
         self.current_y
     }
 

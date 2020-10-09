@@ -310,7 +310,7 @@ impl Memory {
                             .push_full_event(event.update_self(EventType::VblankWait, 456));
                     } else {
                         self.scheduler
-                            .push_full_event(event.update_self(EventType::OamSearch, 456));
+                            .push_full_event(event.update_self(EventType::OamSearch, 0));
                     }
                 }
                 EventType::APUFrameSequencer => {

@@ -175,8 +175,6 @@ impl PPU {
     pub fn vblank(&mut self, interrupts: &mut Interrupts) {
         //log::warn!("VBLANK ON: {}", self.current_y);
         self.lcd_status.set_mode_flag(VBlank);
-        // Check for a line 143 lyc. TODO: Consider moving to HBlank/LcdTransfer
-        //self.ly_lyc_compare(&mut interrupts.interrupt_flag);
 
         // Check for line 144 lyc.
         self.current_y = self.current_y.wrapping_add(1);
@@ -194,9 +192,7 @@ impl PPU {
 
     pub fn vblank_wait(&mut self, interrupts: &mut Interrupts) {
         if self.current_y == 153 {
-            // 153 check
-            self.ly_lyc_compare(&mut interrupts.interrupt_flag);
-            // 0 Check (Was this required?)
+            // Not sure if we should immediately set to 0 (add a bit of delay?)
             self.current_y = 0;
             self.ly_lyc_compare(&mut interrupts.interrupt_flag);
         } else {
