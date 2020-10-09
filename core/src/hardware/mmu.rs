@@ -294,7 +294,7 @@ impl Memory {
                 EventType::HBLANK => {
                     self.ppu.hblank(&mut self.interrupts);
                     // First 144 lines
-                    if self.ppu.current_y != 144 {
+                    if self.ppu.current_y != 143 {
                         self.scheduler
                             .push_full_event(event.update_self(EventType::OamSearch, 204));
                     } else {

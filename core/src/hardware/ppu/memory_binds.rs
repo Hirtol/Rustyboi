@@ -97,7 +97,7 @@ impl PPU {
         // We subtract by one since the way we do counting (increment current_y in lcd transfer mode)
         // causes us to 'desync', making ly report that we're in vblank (scanline 144) when we're
         // not actually.
-        self.current_y.saturating_sub(1)
+        self.current_y
     }
 
     pub fn get_lyc(&self) -> u8 {
@@ -166,6 +166,7 @@ impl PPU {
         }else if self.lcd_status.mode_flag() == HBlank && self.lcd_status.contains(LcdStatus::MODE_0_H_INTERRUPT) {
             interrupts.insert_interrupt(InterruptFlags::LCD);
         }
+        self.ly_lyc_compare(&mut interrupts.interrupt_flag);
     }
 
     pub fn set_scy(&mut self, value: u8) {

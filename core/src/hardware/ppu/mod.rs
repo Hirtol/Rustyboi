@@ -127,7 +127,7 @@ impl PPU {
             tile_map_9c00: TileMap::new(),
             oam: [SpriteAttribute::default(); 40],
             lcd_control: LcdControl::from_bits_truncate(0b1001_0011),
-            lcd_status: Default::default(),
+            lcd_status: LcdStatus::from_bits_truncate(0b0000_0001),
             bg_window_palette: Palette::default(),
             oam_palette_0: Palette::default(),
             oam_palette_1: Palette::default(),
@@ -145,6 +145,7 @@ impl PPU {
     pub fn oam_search(&mut self, interrupts: &mut Interrupts) {
         // After V-Blank we don't want to trigger the interrupt immediately.
         if self.lcd_status.mode_flag() != VBlank {
+            self.current_y = self.current_y.wrapping_add(1);
             self.ly_lyc_compare(&mut interrupts.interrupt_flag);
         }
 
@@ -161,8 +162,6 @@ impl PPU {
 
         // Draw our actual line once we enter Drawing mode.
         self.draw_scanline();
-        self.current_y = self.current_y.wrapping_add(1);
-        //log::info!("Drawing, line: {}!", self.current_y);
     }
 
     pub fn hblank(&mut self, interrupts: &mut Interrupts) {
@@ -174,11 +173,12 @@ impl PPU {
     }
 
     pub fn vblank(&mut self, interrupts: &mut Interrupts) {
+        //log::warn!("VBLANK ON: {}", self.current_y);
         self.lcd_status.set_mode_flag(VBlank);
-        // Check for a line 144 lyc. TODO: Consider moving to HBlank/LcdTransfer
-        self.ly_lyc_compare(&mut interrupts.interrupt_flag);
+        // Check for a line 143 lyc. TODO: Consider moving to HBlank/LcdTransfer
+        //self.ly_lyc_compare(&mut interrupts.interrupt_flag);
 
-        // Check for line 145 lyc.
+        // Check for line 144 lyc.
         self.current_y = self.current_y.wrapping_add(1);
         self.ly_lyc_compare(&mut interrupts.interrupt_flag);
 
