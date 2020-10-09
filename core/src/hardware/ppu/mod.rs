@@ -161,6 +161,8 @@ impl PPU {
 
         // Draw our actual line once we enter Drawing mode.
         self.draw_scanline();
+        self.current_y = self.current_y.wrapping_add(1);
+        //log::info!("Drawing, line: {}!", self.current_y);
     }
 
     pub fn hblank(&mut self, interrupts: &mut Interrupts) {
@@ -173,10 +175,10 @@ impl PPU {
 
     pub fn vblank(&mut self, interrupts: &mut Interrupts) {
         self.lcd_status.set_mode_flag(VBlank);
-        // Check for a line 143 lyc check. TODO: Consider moving to HBlank/LcdTransfer
+        // Check for a line 144 lyc. TODO: Consider moving to HBlank/LcdTransfer
         self.ly_lyc_compare(&mut interrupts.interrupt_flag);
 
-        // Check for line 144 lyc check.
+        // Check for line 145 lyc.
         self.current_y = self.current_y.wrapping_add(1);
         self.ly_lyc_compare(&mut interrupts.interrupt_flag);
 
@@ -236,8 +238,6 @@ impl PPU {
 
         // Copy the value of the current scanline to the framebuffer.
         self.frame_buffer[current_address..current_address + RESOLUTION_WIDTH].copy_from_slice(&self.scanline_buffer);
-
-        self.current_y = self.current_y.wrapping_add(1);
     }
 
     fn draw_bg_scanline(&mut self) {
@@ -489,6 +489,9 @@ impl PPU {
             if self.lcd_status.contains(LcdStatus::COINCIDENCE_INTERRUPT) {
                 pending_interrupts.set(InterruptFlags::LCD, true);
             }
+        } else {
+            //TODO: Verify if this is correct.
+            self.lcd_status.set(LcdStatus::COINCIDENCE_FLAG, false);
         }
     }
 

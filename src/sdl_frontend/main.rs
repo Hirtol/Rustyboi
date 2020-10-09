@@ -89,18 +89,18 @@ fn main() {
     let bootrom_file = read("roms\\DMG_ROM.bin").unwrap();
 
     let cartridge = "roms/Zelda.gb";
-    let _cpu_test = "test roms/mooneye/tests/acceptance/interrupts/ie_push.gb";
+    let _cpu_test = "test roms/mooneye/tests/acceptance/ppu/stat_irq_blocking.gb";
     let _cpu_test2 = "test roms/mooneye/tests/emulator-only/mbc5/mbc5_rom_512kb.gb";
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
-    test_fast(sdl_context, &mut canvas, &mut screen_texture, &read(cartridge).unwrap());
-
-    return;
+    // test_fast(sdl_context, &mut canvas, &mut screen_texture, &read(cartridge).unwrap());
+    //
+    // return;
 
     let mut timer = sdl_context.timer().unwrap();
 
-    let mut emulator = create_emulator(cartridge, Option::Some(vec_to_bootrom(&bootrom_file)));
+    let mut emulator = create_emulator(_cpu_test, None);
 
     let mut cycles = 0;
     let mut loop_cycles = 0;

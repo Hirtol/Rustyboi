@@ -103,7 +103,6 @@ impl<M: MemoryMapper> CPU<M> {
         // Stack push
         self.registers.sp = self.registers.sp.wrapping_sub(2);
         self.write_short_cycle(self.registers.sp, self.registers.pc);
-        //self.add_cycles();
 
         self.registers.pc = match interrupt {
             InterruptFlags::VBLANK => 0x0040,
@@ -142,7 +141,7 @@ impl<M: MemoryMapper> CPU<M> {
     {
         let source_value = self.read_u8_value(source);
 
-        trace!("LD {:?} 0x{:02X}", destination, source_value);
+        //trace!("LD {:?} 0x{:02X}", destination, source_value);
 
         self.set_u8_value(destination, source_value);
     }

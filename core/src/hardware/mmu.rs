@@ -224,7 +224,7 @@ impl Memory {
                 self.apu.write_wave_sample(address, value)
             }
             LCD_CONTROL_REGISTER => self.ppu.set_lcd_control(value, &mut self.scheduler),
-            LCD_STATUS_REGISTER => self.ppu.set_lcd_status(value),
+            LCD_STATUS_REGISTER => self.ppu.set_lcd_status(value, &mut self.interrupts),
             SCY_REGISTER => self.ppu.set_scy(value),
             SCX_REGISTER => self.ppu.set_scx(value),
             LY_REGISTER => self.ppu.set_ly(value),

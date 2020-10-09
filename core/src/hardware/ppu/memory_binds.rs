@@ -5,6 +5,7 @@ use crate::hardware::mmu::OAM_ATTRIBUTE_START;
 
 use crate::hardware::ppu::PPU;
 use crate::print_array_raw;
+use crate::scheduler::EventType::{VBLANK, HBLANK};
 
 impl PPU {
     pub fn get_tile_byte(&self, address: u16) -> u8 {
@@ -38,15 +39,21 @@ impl PPU {
     }
 
     pub fn get_oam_byte(&self, address: u16) -> u8 {
-        let relative_address = (address - OAM_ATTRIBUTE_START) / 4;
+        if self.lcd_status.mode_flag() != OamSearch && self.lcd_status.mode_flag() != LcdTransfer {
+            let relative_address = (address - OAM_ATTRIBUTE_START) / 4;
 
-        self.oam[relative_address as usize].get_byte((address % 4) as u8)
+            self.oam[relative_address as usize].get_byte((address % 4) as u8)
+        } else {
+            0xFF
+        }
     }
 
     pub fn set_oam_byte(&mut self, address: u16, value: u8) {
-        let relative_address = (address - OAM_ATTRIBUTE_START) / 4;
+        if self.lcd_status.mode_flag() != OamSearch && self.lcd_status.mode_flag() != LcdTransfer {
+            let relative_address = (address - OAM_ATTRIBUTE_START) / 4;
 
-        self.oam[relative_address as usize].set_byte((address % 4) as u8, value);
+            self.oam[relative_address as usize].set_byte((address % 4) as u8, value);
+        }
     }
 
     /// More efficient batch operation for DMA transfer.
@@ -73,6 +80,8 @@ impl PPU {
     }
 
     pub fn get_lcd_status(&self) -> u8 {
+        log::warn!("LCD Status read: {:?}", self.lcd_status);
+        log::warn!("LCD Status read: {:08b}", self.lcd_status.bits());
         self.lcd_status.bits()
     }
 
@@ -85,7 +94,10 @@ impl PPU {
     }
 
     pub fn get_ly(&self) -> u8 {
-        self.current_y
+        // We subtract by one since the way we do counting (increment current_y in lcd transfer mode)
+        // causes us to 'desync', making ly report that we're in vblank (scanline 144) when we're
+        // not actually.
+        self.current_y.saturating_sub(1)
     }
 
     pub fn get_lyc(&self) -> u8 {
@@ -131,19 +143,29 @@ impl PPU {
         // If we turn ON the display
         if new_control.contains(LcdControl::LCD_DISPLAY) && !self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
             log::debug!("Turning on LCD");
-            self.lcd_status.set_mode_flag(Mode::HBlank);
-            // Turn PPU back on.
-            scheduler.push_event(EventType::OamSearch, scheduler.current_time);
+            // Turn PPU back on. Assume pessimistic hblank timing
+            scheduler.push_relative(EventType::OamSearch, 204);
         }
 
         self.lcd_control = new_control;
     }
 
-    pub fn set_lcd_status(&mut self, value: u8) {
+    pub fn set_lcd_status(&mut self, value: u8, interrupts: &mut Interrupts) {
+        log::warn!("LCD Status write: {:08b}", value);
         // Mask the 3 lower bits, which are read only and must therefore be preserved.
         let read_only_bits = self.lcd_status.bits() & 0x7;
         // Mask bit 3..=6 in case a game tries to write to the three lower bits as well.
         self.lcd_status = LcdStatus::from_bits_truncate((value & 0x78) | read_only_bits);
+
+        // If we're in a mode where the interrupt should occur we need to fire those interrupts.
+        if self.lcd_status.mode_flag() == VBlank && self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT) {
+            interrupts.insert_interrupt(InterruptFlags::LCD);
+            log::warn!("Adding vblank stat special");
+        }else if self.lcd_status.mode_flag() == OamSearch && self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT) {
+            interrupts.insert_interrupt(InterruptFlags::LCD);
+        }else if self.lcd_status.mode_flag() == HBlank && self.lcd_status.contains(LcdStatus::MODE_0_H_INTERRUPT) {
+            interrupts.insert_interrupt(InterruptFlags::LCD);
+        }
     }
 
     pub fn set_scy(&mut self, value: u8) {
