@@ -155,10 +155,7 @@ impl PPU {
     }
 
     pub fn set_ly(&mut self, value: u8) {
-        //log::debug!("Attempted write to LY (0xFF44) when this register is read only!");
-        if !self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
-            self.current_y = value
-        }
+        log::debug!("Attempted write to LY (0xFF44) when this register is read only!");
     }
 
     pub fn set_lyc(&mut self, value: u8) {
