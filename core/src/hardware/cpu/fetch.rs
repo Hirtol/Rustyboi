@@ -52,7 +52,7 @@ impl<M: MemoryMapper> CPU<M> {
             }
         } else if self.mmu.interrupts().interrupts_pending() {
             let interrupt = self.mmu.interrupts().get_immediate_interrupt();
-            log::debug!("Firing {:?} interrupt", interrupt);
+            //log::debug!("Firing {:?} interrupt", interrupt);
             self.mmu.interrupts_mut().interrupt_flag.remove(interrupt);
 
             self.interrupts_routine(interrupt);
