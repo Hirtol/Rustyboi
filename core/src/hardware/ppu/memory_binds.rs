@@ -1,9 +1,9 @@
 //! This module is purely used for providing access to PPU memory resources
 //! to the MMU.
-use crate::hardware::mmu::OAM_ATTRIBUTE_START;
+use crate::hardware::mmu::{OAM_ATTRIBUTE_START, INVALID_READ};
 use crate::hardware::ppu::PPU;
 use crate::print_array_raw;
-use crate::scheduler::EventType::{HBLANK, VBLANK};
+use crate::scheduler::EventType::{HBLANK, VBLANK, DMATransferComplete};
 
 use super::*;
 
@@ -39,39 +39,21 @@ impl PPU {
     }
 
     pub fn get_oam_byte(&self, address: u16) -> u8 {
-        if self.lcd_status.mode_flag() != OamSearch && self.lcd_status.mode_flag() != LcdTransfer {
+        if self.lcd_status.mode_flag() != OamSearch && self.lcd_status.mode_flag() != LcdTransfer && !self.oam_transfer_ongoing {
             let relative_address = (address - OAM_ATTRIBUTE_START) / 4;
 
             self.oam[relative_address as usize].get_byte((address % 4) as u8)
         } else {
-            0xFF
+            log::info!("Attempted read of blocked OAM, transfer ongoing: {}", self.oam_transfer_ongoing);
+            INVALID_READ
         }
     }
 
     pub fn set_oam_byte(&mut self, address: u16, value: u8) {
-        if self.lcd_status.mode_flag() != OamSearch && self.lcd_status.mode_flag() != LcdTransfer {
+        if self.lcd_status.mode_flag() != OamSearch && self.lcd_status.mode_flag() != LcdTransfer && !self.oam_transfer_ongoing {
             let relative_address = (address - OAM_ATTRIBUTE_START) / 4;
 
             self.oam[relative_address as usize].set_byte((address % 4) as u8, value);
-        }
-    }
-
-    /// More efficient batch operation for DMA transfer.
-    pub fn oam_dma_transfer(&mut self, values: &[u8]) {
-        //0xFE9F+1-0xFE00 = 0xA0 for OAM size
-        if values.len() != 0xA0 {
-            panic!("DMA transfer used with an uneven amount of bytes.");
-        }
-
-        for i in 0..40 {
-            let multiplier = i * 4;
-            let current_sprite = SpriteAttribute {
-                y_pos: values[multiplier],
-                x_pos: values[multiplier + 1],
-                tile_number: values[multiplier + 2],
-                attribute_flags: AttributeFlags::from_bits_truncate(values[multiplier + 3]),
-            };
-            self.oam[i] = current_sprite;
         }
     }
 

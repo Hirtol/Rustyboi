@@ -2,6 +2,7 @@ use binary_heap_plus::{BinaryHeap, MinComparator};
 use bitflags::_core::cmp::Ordering;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Eq)]
+#[repr(u8)]
 pub enum EventType {
     NONE        = 255,
     VBLANK      = 0,
@@ -13,6 +14,8 @@ pub enum EventType {
     APUSample = 6,
     TimerOverflow = 7,
     TimerPostOverflow = 8,
+    DMATransferComplete = 9,
+    DMARequested = 10,
 }
 
 #[derive(Debug, Copy, Clone, Eq)]

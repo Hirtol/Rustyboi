@@ -75,6 +75,7 @@ pub mod memory_binds;
 pub mod palette;
 pub mod register_flags;
 pub mod tiledata;
+pub mod dma;
 
 // Misc:
 // If the Window is enabled while drawing the screen (LY is between 0 and 143)
@@ -115,6 +116,7 @@ pub struct PPU {
     window_y: u8,
     window_counter: u8,
     window_triggered: bool,
+    oam_transfer_ongoing: bool,
 }
 
 impl PPU {
@@ -139,6 +141,7 @@ impl PPU {
             window_y: 0,
             window_counter: 0,
             window_triggered: false,
+            oam_transfer_ongoing: false
         }
     }
 

@@ -14,6 +14,7 @@ use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::io::joypad::*;
 use crate::io::timer::*;
 use crate::scheduler::{Event, EventType, Scheduler};
+use crate::scheduler::EventType::{DMATransferComplete, DMARequested};
 
 pub const MEMORY_SIZE: usize = 0x10000;
 /// 16 KB ROM bank, usually 00. From Cartridge, read-only
@@ -244,10 +245,11 @@ impl Memory {
     }
 
     fn dma_transfer(&mut self, value: u8) {
-        let address = (value as usize) << 8;
-        //log::info!("OAM Transfer starting from: 0x{:04X}", address);
         self.memory[DMA_TRANSFER as usize] = value;
-        self.ppu.oam_dma_transfer(&self.gather_shadow_oam(address));
+        // In case a previous DMA was running we should cancel it.
+        self.scheduler.remove_event_type(DMATransferComplete);
+        // 4 Cycles after the request is when the DMA is actually started.
+        self.scheduler.push_relative(DMARequested, 4);
     }
 
     fn gather_shadow_oam(&self, start_address: usize) -> Vec<u8> {
@@ -335,6 +337,13 @@ impl Memory {
                 }
                 EventType::TimerPostOverflow => {
                     self.timers.just_overflowed = false;
+                }
+                EventType::DMATransferComplete => {
+                    self.ppu.oam_dma_finished();
+                }
+                EventType::DMARequested => {
+                    let address = (self.memory[DMA_TRANSFER as usize] as usize) << 8;
+                    self.ppu.oam_dma_transfer(&self.gather_shadow_oam(address), &mut self.scheduler);
                 }
             };
         }
