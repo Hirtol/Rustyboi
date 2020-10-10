@@ -80,8 +80,6 @@ impl PPU {
     }
 
     pub fn get_lcd_status(&self) -> u8 {
-        log::warn!("LCD Status read: {:?}", self.lcd_status);
-        log::warn!("LCD Status read: {:08b}", self.lcd_status.bits());
         self.lcd_status.bits()
     }
 
@@ -149,7 +147,6 @@ impl PPU {
     }
 
     pub fn set_lcd_status(&mut self, value: u8, interrupts: &mut Interrupts) {
-        log::warn!("LCD Status write: {:08b}", value);
         // Mask the 3 lower bits, which are read only and must therefore be preserved.
         let read_only_bits = self.lcd_status.bits() & 0x7;
         // For Stat IRQ blocking, note: currently not actually working (stat irq blocking that is)
@@ -179,10 +176,11 @@ impl PPU {
     pub fn set_lyc(&mut self, value: u8, interrupts: &mut Interrupts) {
         self.compare_line = value;
         // Only update the LYC=LY STAT if the PPU is on
-        if self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
-            self.ly_lyc_compare(&mut interrupts.interrupt_flag);
-            log::warn!("Read: {:08b}", self.lcd_status.bits());
-        }
+        // TODO: Figure out why this causes a regression in Prehistorik Man, even though it helps pass part of stat_lyc_onoff.gb
+        // if self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
+        //     self.ly_lyc_compare(&mut interrupts.interrupt_flag);
+        //     log::warn!("Read: {:08b}", self.lcd_status.bits());
+        // }
     }
 
     pub fn set_bg_palette(&mut self, value: u8) {
