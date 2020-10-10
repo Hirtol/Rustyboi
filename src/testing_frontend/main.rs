@@ -125,7 +125,7 @@ fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>) {
                 remaining_cycles_for_frame -= emu.emulate_cycle().0 as i64;
             }
 
-            save_image(&emu.frame_buffer(), format!("{}.png", file_stem.to_str().unwrap()));
+            save_image(emu.frame_buffer(), format!("{}.png", file_stem.to_str().unwrap()));
         }));
     }
 

@@ -1,5 +1,6 @@
 use crate::hardware::apu::channel_features::{EnvelopeFeature, LengthFeature, SweepFeature};
 use crate::hardware::apu::{no_length_tick_next_step, test_bit};
+use crate::hardware::mmu::INVALID_READ;
 
 /// Relevant for voice 1 and 2 for the DMG.
 /// This is a rather dirty implementation where voice 1 and 2 are merged, the latter
@@ -69,9 +70,9 @@ impl SquareWaveChannel {
             0x10 => 0x80 | self.sweep.read_register(),
             0x11 | 0x16 => 0x3F | ((self.duty_select as u8) << 6),
             0x12 | 0x17 => self.envelope.read_register(),
-            0x13 | 0x18 => 0xFF, // Can't read NR13
+            0x13 | 0x18 => INVALID_READ, // Can't read NR13
             0x14 | 0x19 => 0xBF | if self.length.length_enable { 0x40 } else { 0x0 },
-            0x15 => 0xFF, // The second square wave channel doesn't have a sweep feature.
+            0x15 => INVALID_READ, // The second square wave channel doesn't have a sweep feature.
             _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address),
         }
     }

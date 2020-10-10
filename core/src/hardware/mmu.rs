@@ -259,7 +259,7 @@ impl Memory {
     /// Simply returns 0xFF while also printing a warning to the logger.
     fn non_usable_call(&self, address: u16) -> u8 {
         warn!("ROM Accessed non usable memory: {:4X}", address);
-        0xFF
+        INVALID_READ
     }
 
     /// Ticks the scheduler by 4 cycles, executes any events if they come up.
@@ -334,12 +334,12 @@ impl Memory {
                 EventType::TimerPostOverflow => {
                     self.timers.just_overflowed = false;
                 }
-                EventType::DMATransferComplete => {
-                    self.ppu.oam_dma_finished();
-                }
                 EventType::DMARequested => {
                     let address = (self.memory[DMA_TRANSFER as usize] as usize) << 8;
                     self.ppu.oam_dma_transfer(&self.gather_shadow_oam(address), &mut self.scheduler);
+                }
+                EventType::DMATransferComplete => {
+                    self.ppu.oam_dma_finished();
                 }
             };
         }

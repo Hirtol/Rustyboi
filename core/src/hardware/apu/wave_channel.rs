@@ -2,6 +2,7 @@ use num_integer::Integer;
 
 use crate::hardware::apu::channel_features::LengthFeature;
 use crate::hardware::apu::{no_length_tick_next_step, test_bit};
+use crate::hardware::mmu::INVALID_READ;
 
 /// Relevant for voice 3 for the DMG.
 ///
@@ -76,17 +77,17 @@ impl WaveformChannel {
         match address {
             0x1A => {
                 if self.dac_power {
-                    0xFF
+                    INVALID_READ
                 } else {
                     0x7F
                 }
             }
-            0x1B => 0xFF,
+            0x1B => INVALID_READ,
             0x1C => 0x9F | self.volume_load,
-            0x1D => 0xFF,
+            0x1D => INVALID_READ,
             0x1E => {
                 if self.length.length_enable {
-                    0xFF
+                    INVALID_READ
                 } else {
                     0xBF
                 }

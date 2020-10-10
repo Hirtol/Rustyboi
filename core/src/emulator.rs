@@ -37,8 +37,8 @@ impl Emulator {
     ///
     /// Should only be called on multiples of [CYCLES_PER_FRAME](constant.CYCLES_PER_FRAME.html)
     /// otherwise the data will be only partially complete.
-    pub fn frame_buffer(&self) -> [DmgColor; FRAMEBUFFER_SIZE] {
-        self.cpu.mmu.ppu.frame_buffer().clone()
+    pub fn frame_buffer(&self) -> &[DmgColor; FRAMEBUFFER_SIZE] {
+        self.cpu.mmu.ppu.frame_buffer()
     }
 
     pub fn audio_buffer(&self) -> &[f32] {

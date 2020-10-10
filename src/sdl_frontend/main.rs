@@ -94,9 +94,9 @@ fn main() {
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
-    test_fast(sdl_context, &mut canvas, &mut screen_texture, &read(cartridge).unwrap());
-
-    return;
+    // test_fast(sdl_context, &mut canvas, &mut screen_texture, &read(cartridge).unwrap());
+    //
+    // return;
 
     let mut timer = sdl_context.timer().unwrap();
 
@@ -146,7 +146,7 @@ fn main() {
         fill_texture_and_copy(
             &mut canvas,
             &mut screen_texture,
-            &emulator.frame_buffer(),
+            emulator.frame_buffer(),
             &KIRBY_DISPLAY_COLOURS,
         );
 
@@ -353,8 +353,7 @@ fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_textu
 
         fill_texture_and_copy(
             &mut canvas,
-            &mut screen_texture,
-            &emulator.frame_buffer(),
+            &mut screen_texture, emulator.frame_buffer(),
             &DEFAULT_DISPLAY_COLOURS,
         );
 

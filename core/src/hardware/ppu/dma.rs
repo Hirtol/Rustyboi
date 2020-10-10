@@ -26,7 +26,7 @@ impl PPU {
             current_sprite.attribute_flags = AttributeFlags::from_bits_truncate(values[multiplier + 3]);
         }
 
-        // The OAM transfer takes 644 cycles. (+ 4 cycles delay before you start the dma transfer)
+        // The OAM transfer takes 644(+4) cycles. (+ 4 cycles delay before you start the dma transfer)
         self.oam_transfer_ongoing = true;
         // In case another DMA transfer was ongoing we first need to cancel that:
         scheduler.push_relative(DMATransferComplete, 644);

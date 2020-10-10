@@ -7,6 +7,7 @@ use crate::hardware::apu::noise_channel::NoiseChannel;
 use crate::hardware::apu::square_channel::SquareWaveChannel;
 use crate::hardware::apu::wave_channel::WaveformChannel;
 use crate::scheduler::{EventType, Scheduler};
+use crate::hardware::mmu::INVALID_READ;
 
 mod channel_features;
 mod noise_channel;
@@ -157,7 +158,7 @@ impl APU {
                 set_bit(&mut output, 0, self.voice1.triggered());
                 output
             }
-            0x27..=0x2F => 0xFF, // Unused registers, always read 0xFF
+            0x27..=0x2F => INVALID_READ, // Unused registers, always read 0xFF
             _ => panic!("Out of bound APU register read: {}", address),
         }
     }

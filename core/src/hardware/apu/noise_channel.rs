@@ -1,5 +1,6 @@
 use crate::hardware::apu::channel_features::{EnvelopeFeature, LengthFeature};
 use crate::hardware::apu::{no_length_tick_next_step, test_bit};
+use crate::hardware::mmu::INVALID_READ;
 
 /// Relevant for voice 4 for the DMG.
 ///
@@ -78,13 +79,13 @@ impl NoiseChannel {
         // Expect the address to already have had an & 0xFF
         // The read values are taken from gbdev
         match address {
-            0x1F => 0xFF,
-            0x20 => 0xFF,
+            0x1F => INVALID_READ,
+            0x20 => INVALID_READ,
             0x21 => self.envelope.read_register(),
             0x22 => (self.clock_shift << 4) | if self.width_mode { 0x8 } else { 0x0 } | self.divisor_code,
             0x23 => {
                 if self.length.length_enable {
-                    0xFF
+                    INVALID_READ
                 } else {
                     0xBF
                 }

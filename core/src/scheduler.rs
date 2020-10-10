@@ -14,8 +14,8 @@ pub enum EventType {
     APUSample = 6,
     TimerOverflow = 7,
     TimerPostOverflow = 8,
-    DMATransferComplete = 9,
-    DMARequested = 10,
+    DMARequested = 9,
+    DMATransferComplete = 10,
 }
 
 #[derive(Debug, Copy, Clone, Eq)]
