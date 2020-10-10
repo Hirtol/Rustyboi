@@ -1,4 +1,4 @@
-use crate::io::interrupts::InterruptFlags;
+use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::io::timer::InputClock::C256;
 use crate::scheduler::{EventType, Scheduler};
 
@@ -58,11 +58,14 @@ impl TimerRegisters {
     }
 
     /// Is called 4 cycles after an overflow actually occurred by the `Scheduler`.
-    pub fn timer_overflow(&mut self) {
-        // Whenever an overflow occurs we delay by 4 cycles (1 nop)
+    pub fn timer_overflow(&mut self, scheduler: &mut Scheduler, interrupts: &mut Interrupts) {
         self.timer_counter = self.timer_modulo;
         self.timer_overflowed = false;
         self.just_overflowed = true;
+        interrupts.insert_interrupt(InterruptFlags::TIMER);
+        // In the 4 cycles after an overflow certain special options are available
+        // See `set_timer_counter()`
+        scheduler.push_relative(EventType::TimerPostOverflow, 4);
     }
 
     fn fallen_sys_clock(&self, old_clock: u16, select_bit: u16) -> bool {

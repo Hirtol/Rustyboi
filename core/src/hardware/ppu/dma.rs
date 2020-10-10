@@ -7,13 +7,11 @@ use crate::hardware::ppu::register_flags::AttributeFlags;
 impl PPU {
     /// Called 640 cycles after the start of an OAM DMA transfer.
     pub fn oam_dma_finished(&mut self) {
-        log::info!("Stopping DMA Transfer");
         self.oam_transfer_ongoing = false;
     }
 
     /// More efficient batch operation for DMA transfer.
     pub fn oam_dma_transfer(&mut self, values: &[u8], scheduler: &mut Scheduler) {
-        log::info!("Starting DMA Transfer");
         //0xFE9F+1-0xFE00 = 0xA0 for OAM size
         if values.len() != 0xA0 {
             panic!("DMA transfer used with an uneven amount of bytes.");
@@ -21,13 +19,11 @@ impl PPU {
 
         for i in 0..40 {
             let multiplier = i * 4;
-            let current_sprite = SpriteAttribute {
-                y_pos: values[multiplier],
-                x_pos: values[multiplier + 1],
-                tile_number: values[multiplier + 2],
-                attribute_flags: AttributeFlags::from_bits_truncate(values[multiplier + 3]),
-            };
-            self.oam[i] = current_sprite;
+            let current_sprite = &mut self.oam[i];
+            current_sprite.y_pos = values[multiplier];
+            current_sprite.x_pos = values[multiplier + 1];
+            current_sprite.tile_number = values[multiplier + 2];
+            current_sprite.attribute_flags = AttributeFlags::from_bits_truncate(values[multiplier + 3]);
         }
 
         // The OAM transfer takes 644 cycles. (+ 4 cycles delay before you start the dma transfer)

@@ -329,11 +329,7 @@ impl Memory {
                         .push_full_event(event.update_self(EventType::APUSample, SAMPLE_CYCLES));
                 }
                 EventType::TimerOverflow => {
-                    self.timers.timer_overflow();
-                    self.add_new_interrupts(Some(InterruptFlags::TIMER));
-                    // In the 4 cycles after an overflow certain special options are available,
-                    // see timer.rs for more details.
-                    self.scheduler.push_relative(EventType::TimerPostOverflow, 4);
+                    self.timers.timer_overflow(&mut self.scheduler, &mut self.interrupts);
                 }
                 EventType::TimerPostOverflow => {
                     self.timers.just_overflowed = false;
