@@ -7,11 +7,29 @@ pub struct Interrupts {
 }
 
 impl Interrupts {
+
+    #[inline(always)]
     pub fn insert_interrupt(&mut self, interrupt: InterruptFlags) {
         self.interrupt_flag.insert(interrupt);
     }
 
+    #[inline(always)]
+    pub fn remove_interrupt(&mut self, interrupt: InterruptFlags) {
+        self.interrupt_flag.remove(interrupt);
+    }
+
+    #[inline(always)]
+    pub fn overwrite_if(&mut self, value: u8) {
+        self.interrupt_flag = InterruptFlags::from_bits_truncate(0xE0 | value);
+    }
+
+    #[inline(always)]
+    pub fn overwrite_ie(&mut self, value: u8) {
+        self.interrupt_enable = InterruptFlags::from_bits_truncate(value);
+    }
+
     /// Check if `IF != 0` and that the corresponding bit is also set in `IE`
+    #[inline(always)]
     pub fn interrupts_pending(&self) -> bool {
         (self.interrupt_flag.bits & self.interrupt_enable.bits & 0x1F) != 0
     }

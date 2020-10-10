@@ -149,7 +149,7 @@ impl PPU {
         // After V-Blank we don't want to trigger the interrupt immediately.
         if self.lcd_status.mode_flag() != VBlank {
             self.current_y = self.current_y.wrapping_add(1);
-            self.ly_lyc_compare(&mut interrupts.interrupt_flag);
+            self.ly_lyc_compare(interrupts);
         }
 
         self.lcd_status.set_mode_flag(Mode::OamSearch);
@@ -181,7 +181,7 @@ impl PPU {
 
         // Check for line 144 lyc.
         self.current_y = self.current_y.wrapping_add(1);
-        self.ly_lyc_compare(&mut interrupts.interrupt_flag);
+        self.ly_lyc_compare(interrupts);
 
         self.window_counter = 0;
         self.window_triggered = false;
@@ -197,10 +197,10 @@ impl PPU {
         if self.current_y == 153 {
             // Not sure if we should immediately set to 0 (add a bit of delay?)
             self.current_y = 0;
-            self.ly_lyc_compare(&mut interrupts.interrupt_flag);
+            self.ly_lyc_compare(interrupts);
         } else {
             self.current_y = self.current_y.wrapping_add(1);
-            self.ly_lyc_compare(&mut interrupts.interrupt_flag);
+            self.ly_lyc_compare(interrupts);
         }
     }
 
@@ -484,13 +484,13 @@ impl PPU {
         }
     }
 
-    fn ly_lyc_compare(&mut self, pending_interrupts: &mut InterruptFlags) {
+    fn ly_lyc_compare(&mut self, interrupts: &mut Interrupts) {
         // Shamelessly ripped from GBE-Plus, since I couldn't figure out from the docs
         // what we were supposed to do with this interrupt.
         if self.current_y == self.compare_line {
             self.lcd_status.set(LcdStatus::COINCIDENCE_FLAG, true);
             if self.lcd_status.contains(LcdStatus::COINCIDENCE_INTERRUPT) {
-                pending_interrupts.set(InterruptFlags::LCD, true);
+                interrupts.insert_interrupt(InterruptFlags::LCD);
             }
         } else {
             //TODO: Verify if this is correct.

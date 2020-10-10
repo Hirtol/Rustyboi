@@ -121,7 +121,7 @@ impl PPU {
         if new_control.contains(LcdControl::LCD_DISPLAY) && !self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
             log::debug!("Turning on LCD");
             // Turn PPU back on. Assume pessimistic hblank timing
-            self.ly_lyc_compare(&mut interrupts.interrupt_flag);
+            self.ly_lyc_compare(interrupts);
             scheduler.push_relative(EventType::OamSearch, 204);
         }
 
@@ -160,7 +160,7 @@ impl PPU {
         // Only update the LYC=LY STAT if the PPU is on
         // TODO: Figure out why this causes a regression in Prehistorik Man, even though it helps pass part of stat_lyc_onoff.gb
         // if self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
-        //     self.ly_lyc_compare(&mut interrupts.interrupt_flag);
+        //     self.ly_lyc_compare(interrupts);
         //     log::warn!("Read: {:08b}", self.lcd_status.bits());
         // }
     }
@@ -188,7 +188,7 @@ impl PPU {
     /// Checks all possible LCD STAT interrupts, and fires them
     /// if available.
     fn check_all_interrupts(&mut self, interrupts: &mut Interrupts) {
-        self.ly_lyc_compare(&mut interrupts.interrupt_flag);
+        self.ly_lyc_compare(interrupts);
 
         if self.lcd_status.mode_flag() == VBlank && self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT) {
             interrupts.insert_interrupt(InterruptFlags::LCD);

@@ -154,7 +154,7 @@ impl Memory {
             HRAM_START..=HRAM_END => self.memory[usize_address] = value,
             INTERRUPTS_ENABLE => {
                 //log::info!("Writing Interrupt Enable: {:?}", InterruptFlags::from_bits_truncate(value));
-                self.interrupts.interrupt_enable = InterruptFlags::from_bits_truncate(value)
+                self.interrupts.overwrite_ie(value);
             }
             _ => self.memory[usize_address] = value,
         }
@@ -213,7 +213,7 @@ impl Memory {
                 // The most significant 3 bits *should* be free to be set by the user, however we wouldn't
                 // pass halt_bug otherwise so I'm assuming they're supposed to be unmodifiable
                 // by the user after all, and instead are set to 1.
-                self.interrupts.interrupt_flag = InterruptFlags::from_bits_truncate(0xE0 | value);
+                self.interrupts.overwrite_if(value);
                 //log::info!("Writing interrupt flag {:?} from value: {:02x}", self.interrupts.interrupt_flag, value);
             }
             APU_MEM_START..=APU_MEM_END => {
