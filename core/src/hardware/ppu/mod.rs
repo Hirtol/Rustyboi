@@ -303,7 +303,11 @@ impl PPU {
 
         // If window is less than 0 we want to skip those amount of pixels, otherwise we render as normal.
         // This means that we must take the absolute value of window_x for the pixels_skip, therefore the -
-        let (mut pixel_counter, mut pixels_to_skip) = if window_x >= 0 { (window_x, 0) } else { (0, (-window_x) as u8) };
+        let (mut pixel_counter, mut pixels_to_skip) = if window_x >= 0 {
+            (window_x, 0)
+        } else {
+            (0, (-window_x) as u8)
+        };
 
         // Increment the window counter for future cycles.
         self.window_counter += 1;

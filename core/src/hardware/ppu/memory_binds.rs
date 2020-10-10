@@ -152,11 +152,16 @@ impl PPU {
         log::warn!("LCD Status write: {:08b}", value);
         // Mask the 3 lower bits, which are read only and must therefore be preserved.
         let read_only_bits = self.lcd_status.bits() & 0x7;
+        // For Stat IRQ blocking, note: currently not actually working (stat irq blocking that is)
+        let none = self.count_currently_true_stat_interrupts() == 0;
         // Mask bit 3..=6 in case a game tries to write to the three lower bits as well.
         self.lcd_status = LcdStatus::from_bits_truncate((value & 0x78) | read_only_bits);
 
         // If we're in a mode where the interrupt should occur we need to fire those interrupts.
-        self.check_all_interrupts(interrupts);
+        // So long as there were no previous interrupts triggered.
+        if none {
+            self.check_all_interrupts(interrupts);
+        }
     }
 
     pub fn set_scy(&mut self, value: u8) {
@@ -202,14 +207,34 @@ impl PPU {
     /// if available.
     fn check_all_interrupts(&mut self, interrupts: &mut Interrupts) {
         self.ly_lyc_compare(&mut interrupts.interrupt_flag);
+
         if self.lcd_status.mode_flag() == VBlank && self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT) {
             interrupts.insert_interrupt(InterruptFlags::LCD);
-            log::warn!("Adding vblank stat special");
         } else if self.lcd_status.mode_flag() == OamSearch && self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT) {
             interrupts.insert_interrupt(InterruptFlags::LCD);
         } else if self.lcd_status.mode_flag() == HBlank && self.lcd_status.contains(LcdStatus::MODE_0_H_INTERRUPT) {
             interrupts.insert_interrupt(InterruptFlags::LCD);
         }
+    }
+
+    /// Returns the amount of interrupts (mode 0,1,2, ly=lc) set for LCD Stat
+    pub(crate) fn count_currently_true_stat_interrupts(&self) -> u8 {
+        let mut count = 0;
+
+        if self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT) && self.lcd_status.mode_flag() == VBlank {
+            count += 1;
+        }
+        if self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT) && self.lcd_status.mode_flag() == OamSearch {
+            count += 1;
+        }
+        if self.lcd_status.contains(LcdStatus::MODE_0_H_INTERRUPT) && self.lcd_status.mode_flag() == HBlank {
+            count += 1;
+        }
+        if self.lcd_status.contains(LcdStatus::COINCIDENCE_INTERRUPT) && self.current_y == self.compare_line {
+            count += 1;
+        }
+
+        count
     }
 }
 

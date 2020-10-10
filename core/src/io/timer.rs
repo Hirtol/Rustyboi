@@ -1,6 +1,6 @@
 use crate::io::interrupts::InterruptFlags;
 use crate::io::timer::InputClock::C256;
-use crate::scheduler::{Scheduler, EventType};
+use crate::scheduler::{EventType, Scheduler};
 
 /// This register is incremented at rate of 16384Hz (~16779Hz on SGB).
 /// Writing any value to this register resets it to 00h.
