@@ -247,10 +247,12 @@ impl APU {
     }
 
     fn tick_length(&mut self) {
-        self.voice1.tick_length();
-        self.voice2.tick_length();
-        self.voice3.tick_length();
-        self.voice4.tick_length();
+        if self.global_sound_enable {
+            self.voice1.tick_length();
+            self.voice2.tick_length();
+            self.voice3.tick_length();
+            self.voice4.tick_length();
+        }
     }
 
     fn tick_envelop(&mut self) {
@@ -264,8 +266,8 @@ impl APU {
     }
 
     fn reset(&mut self, scheduler: &mut Scheduler) {
-        self.voice1 = SquareWaveChannel::default();
-        self.voice2 = SquareWaveChannel::default();
+        self.voice1.reset();
+        self.voice2.reset();
         self.voice3.reset();
         self.voice4.reset();
         self.vin_l_enable = false;
@@ -274,9 +276,9 @@ impl APU {
         self.left_volume = 0;
         self.left_channel_enable = [false; 4];
         self.right_channel_enable = [false; 4];
+        self.frame_sequencer_step = 0;
         scheduler.remove_event_type(EventType::APUFrameSequencer);
         scheduler.remove_event_type(EventType::APUSample);
-        self.frame_sequencer_step = 0;
     }
 }
 

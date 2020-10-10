@@ -5,7 +5,7 @@ use crate::scheduler::EventType::DMATransferComplete;
 use crate::hardware::ppu::register_flags::AttributeFlags;
 
 impl PPU {
-    /// Called 640 cycles after the start of an OAM DMA transfer.
+    /// Called 644 cycles after the start of an OAM DMA transfer.
     pub fn oam_dma_finished(&mut self) {
         self.oam_transfer_ongoing = false;
     }

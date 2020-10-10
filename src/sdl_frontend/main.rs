@@ -51,11 +51,11 @@ const DEFAULT_DISPLAY_COLOURS: DisplayColour = DisplayColour {
 
 const FPS: u64 = 60;
 const FRAME_DELAY: Duration = Duration::from_nanos(1_000_000_000u64 / FPS);
-const FAST_FORWARD_MULTIPLIER: u32 = 4;
+const FAST_FORWARD_MULTIPLIER: u32 = 40;
 
 fn main() {
     CombinedLogger::init(vec![
-        TermLogger::new(LevelFilter::Error, Config::default(), TerminalMode::Mixed),
+        TermLogger::new(LevelFilter::Debug, Config::default(), TerminalMode::Mixed),
         //WriteLogger::new(LevelFilter::Trace, ConfigBuilder::new().set_location_level(LevelFilter::Off).set_time_level(LevelFilter::Off).set_target_level(LevelFilter::Off).build(), BufWriter::new(File::create("rustyboi.log").unwrap())),
     ])
     .unwrap();
@@ -89,14 +89,14 @@ fn main() {
     let bootrom_file = read("roms\\DMG_ROM.bin").unwrap();
 
     let cartridge = "roms/Zelda.gb";
-    let _cpu_test = "test roms/mooneye/tests/acceptance/oam_dma_timing.gb";
+    let _cpu_test = "test roms/blargg_sound/dmg_sound/rom_singles/08-len ctr during power.gb";
     let _cpu_test2 = "test roms/mooneye/tests/emulator-only/mbc5/mbc5_rom_512kb.gb";
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
-    // test_fast(sdl_context, &mut canvas, &mut screen_texture, &read(cartridge).unwrap());
-    //
-    // return;
+    test_fast(sdl_context, &mut canvas, &mut screen_texture, &read(cartridge).unwrap());
+
+    return;
 
     let mut timer = sdl_context.timer().unwrap();
 
