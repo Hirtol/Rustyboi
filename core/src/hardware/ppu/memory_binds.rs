@@ -130,7 +130,6 @@ impl PPU {
             self.current_y = 0;
             self.window_counter = 0;
             self.lcd_status.set_mode_flag(Mode::HBlank);
-            self.check_all_interrupts(interrupts);
             // Turn PPU off by removing all scheduled events. TODO: Find cleaner way to do this.
             scheduler.remove_event_type(EventType::HBLANK);
             scheduler.remove_event_type(EventType::VblankWait);
@@ -142,6 +141,7 @@ impl PPU {
         if new_control.contains(LcdControl::LCD_DISPLAY) && !self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
             log::debug!("Turning on LCD");
             // Turn PPU back on. Assume pessimistic hblank timing
+            self.ly_lyc_compare(&mut interrupts.interrupt_flag);
             scheduler.push_relative(EventType::OamSearch, 204);
         }
 
@@ -155,7 +155,7 @@ impl PPU {
         // For Stat IRQ blocking, note: currently not actually working (stat irq blocking that is)
         let none = self.count_currently_true_stat_interrupts() == 0;
         // Mask bit 3..=6 in case a game tries to write to the three lower bits as well.
-        self.lcd_status = LcdStatus::from_bits_truncate((value & 0x78) | read_only_bits);
+        self.lcd_status = LcdStatus::from_bits_truncate(0x80 | (value & 0x78) | read_only_bits);
 
         // If we're in a mode where the interrupt should occur we need to fire those interrupts.
         // So long as there were no previous interrupts triggered.
@@ -174,13 +174,15 @@ impl PPU {
 
     pub fn set_ly(&mut self, value: u8) {
         //log::debug!("Attempted write to LY (0xFF44) when this register is read only!");
-        // if !self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
-        //     self.current_y = value
-        // }
     }
 
-    pub fn set_lyc(&mut self, value: u8) {
-        self.compare_line = value
+    pub fn set_lyc(&mut self, value: u8, interrupts: &mut Interrupts) {
+        self.compare_line = value;
+        // Only update the LYC=LY STAT if the PPU is on
+        if self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
+            self.ly_lyc_compare(&mut interrupts.interrupt_flag);
+            log::warn!("Read: {:08b}", self.lcd_status.bits());
+        }
     }
 
     pub fn set_bg_palette(&mut self, value: u8) {

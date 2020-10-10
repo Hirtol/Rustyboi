@@ -228,7 +228,7 @@ impl Memory {
             SCY_REGISTER => self.ppu.set_scy(value),
             SCX_REGISTER => self.ppu.set_scx(value),
             LY_REGISTER => self.ppu.set_ly(value),
-            LYC_REGISTER => self.ppu.set_lyc(value),
+            LYC_REGISTER => self.ppu.set_lyc(value, &mut self.interrupts),
             DMA_TRANSFER => self.dma_transfer(value),
             BG_PALETTE => self.ppu.set_bg_palette(value),
             OB_PALETTE_0 => self.ppu.set_oam_palette_0(value),

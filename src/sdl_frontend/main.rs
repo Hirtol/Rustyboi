@@ -89,7 +89,7 @@ fn main() {
     let bootrom_file = read("roms\\DMG_ROM.bin").unwrap();
 
     let cartridge = "roms/Zelda.gb";
-    let _cpu_test = "test roms/mooneye/tests/acceptance/ppu/stat_irq_blocking.gb";
+    let _cpu_test = "test roms/mooneye/tests/acceptance/ppu/stat_lyc_onoff.gb";
     let _cpu_test2 = "test roms/mooneye/tests/emulator-only/mbc5/mbc5_rom_512kb.gb";
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
