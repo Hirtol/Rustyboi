@@ -109,9 +109,9 @@ impl Scheduler {
         // removal of events it doesn't really matter.
         self.event_queue = BinaryHeap::from_vec(
             self.event_queue
-                .clone()
-                .into_iter()
+                .iter()
                 .filter(|e| e.event_type != event_type)
+                .map(|e| *e)
                 .collect(),
         );
     }

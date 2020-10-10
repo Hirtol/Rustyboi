@@ -190,7 +190,7 @@ impl Memory {
             SCX_REGISTER => self.ppu.get_scx(),
             LY_REGISTER => self.ppu.get_ly(),
             LYC_REGISTER => self.ppu.get_lyc(),
-            DMA_TRANSFER => self.memory[DMA_TRANSFER as usize], //TODO: Verify if correct
+            DMA_TRANSFER => self.memory[DMA_TRANSFER as usize],
             BG_PALETTE => self.ppu.get_bg_palette(),
             OB_PALETTE_0 => self.ppu.get_oam_palette_0(),
             OB_PALETTE_1 => self.ppu.get_oam_palette_1(),
