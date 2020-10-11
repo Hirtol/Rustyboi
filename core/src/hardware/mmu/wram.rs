@@ -36,6 +36,10 @@ impl Wram {
         }
     }
 
+    pub fn read_bank(&self) -> u8 {
+        self.bank_selected as u8
+    }
+
     pub fn write_bank_0(&mut self, address: u16, value: u8) {
         self.memory[(address - WRAM_OFFSET) as usize] = value;
     }
@@ -52,5 +56,9 @@ impl Wram {
             WRAM_BANK_NN_START..=WRAM_BANK_NN_END => self.write_bank_n(match_addr, value),
             _ => panic!("Disallowed EchoRam write: 0x{:04X}", match_addr),
         }
+    }
+
+    pub fn write_bank(&mut self, value: u8) {
+        self.bank_selected = value as usize;
     }
 }

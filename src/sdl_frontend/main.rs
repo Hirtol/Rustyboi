@@ -2,7 +2,7 @@ use log::LevelFilter;
 use log::*;
 use rustyboi_core::emulator::{Emulator, CYCLES_PER_FRAME};
 
-use rustyboi_core::{DmgColor, InputKey};
+use rustyboi_core::{DmgColor, InputKey, EmulatorOptionsBuilder};
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::pixels::PixelFormatEnum::RGB24;
@@ -99,8 +99,8 @@ fn main() {
     // return;
 
     let mut timer = sdl_context.timer().unwrap();
-
-    let mut emulator = create_emulator(_cpu_test, None);
+    let emu_opts = EmulatorOptionsBuilder::new().build();
+    let mut emulator = create_emulator(_cpu_test, emu_opts);
 
     let mut cycles = 0;
     let mut loop_cycles = 0;
@@ -213,7 +213,7 @@ fn handle_events(event: Event, emulator: &mut Emulator, fast_forward: &mut bool)
                 debug!("Opening file: {}", filename);
                 save_rom(emulator);
 
-                *emulator = create_emulator(&filename, None);
+                *emulator = create_emulator(&filename, EmulatorOptionsBuilder::new().build());
             } else {
                 warn!("Attempted opening of file: {} which is not a GameBoy rom!", filename);
             }
@@ -285,7 +285,7 @@ fn fill_texture_and_copy(
 }
 
 fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_texture: &mut Texture, cpu_test: &Vec<u8>) {
-    let mut emulator = Emulator::new(Option::None, &cpu_test, None);
+    let mut emulator = Emulator::new(&cpu_test, EmulatorOptionsBuilder::new().build());
     let _count: u128 = 0;
 
     let mut event_pump = sdl_context.event_pump().unwrap();

@@ -5,6 +5,7 @@ use rustyboi_core::hardware::cartridge::header::CartridgeHeader;
 use std::fs::{create_dir_all, read, File};
 use std::io::Write;
 use std::path::Path;
+use rustyboi_core::{EmulatorOptions, EmulatorOptionsBuilder};
 
 /// Function to call in order to save external ram (in case it's present)
 /// as well as any additional cleanup as required.
@@ -33,7 +34,7 @@ pub fn save_rom(emulator: &Emulator) {
 /// In case the file provided is not a rom the program will *probably* crash.
 ///
 /// Any external ram will also automatically be loaded if present.
-pub fn create_emulator(rom_path: impl AsRef<Path>, boot_rom: Option<[u8; 256]>) -> Emulator {
+pub fn create_emulator(rom_path: impl AsRef<Path>, options: EmulatorOptions) -> Emulator {
     let rom = read(rom_path.as_ref()).expect(&format!("Could not open ROM file {:?}!", rom_path.as_ref()));
     let saved_ram = find_saved_ram(find_rom_name(&rom));
 
@@ -43,7 +44,9 @@ pub fn create_emulator(rom_path: impl AsRef<Path>, boot_rom: Option<[u8; 256]>) 
         saved_ram.is_some()
     );
 
-    Emulator::new(boot_rom, &rom, saved_ram)
+    let emu_options = EmulatorOptionsBuilder::from(options).saved_ram(saved_ram).build();
+
+    Emulator::new(&rom, emu_options)
 }
 
 pub fn find_saved_ram(name: impl AsRef<str>) -> Option<Vec<u8>> {

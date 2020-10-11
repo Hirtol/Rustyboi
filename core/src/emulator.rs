@@ -10,19 +10,31 @@ use crate::hardware::ppu::{FRAMEBUFFER_SIZE, PPU};
 
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::io::joypad::*;
+use crate::EmulatorOptions;
 
 /// A DMG runs at `4.194304 MHz` with a Vsync of `59.7275 Hz`, so that would be
 /// `4194304 / 59.7275 = 70224 cycles/frame`
 pub const CYCLES_PER_FRAME: u64 = 70224;
 
+/// Describes the `Emulator`'s mode.
+///
+/// If DMG is chosen no CGB features will be used.
+#[derive(Debug)]
+pub enum EmulatorMode {
+    DMG,
+    CGB,
+}
+
 pub struct Emulator {
     cpu: CPU<Memory>,
+    selected_mode: EmulatorMode,
 }
 
 impl Emulator {
-    pub fn new(boot_rom: Option<[u8; 256]>, cartridge: &[u8], saved_ram: Option<Vec<u8>>) -> Self {
+    pub fn new(cartridge: &[u8], options: EmulatorOptions) -> Self {
         Emulator {
-            cpu: CPU::new(Memory::new(boot_rom, cartridge, saved_ram)),
+            cpu: CPU::new(Memory::new(options.boot_rom, cartridge, options.saved_ram)),
+            selected_mode: options.emulator_mode
         }
     }
 

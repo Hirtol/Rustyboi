@@ -10,7 +10,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use crate::display::TEST_COLOURS;
-use rustyboi_core::DmgColor;
+use rustyboi_core::{DmgColor, EmulatorOptionsBuilder};
 use std::ffi::{OsStr, OsString};
 
 use crate::options::AppOptions;
@@ -109,7 +109,8 @@ fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>) {
         threads.push(spawn(move || {
             let file_stem = path.file_stem().unwrap().to_owned();
             let mut cycles_to_do = 5_000_000;
-            let mut emu = Emulator::new(boot_rom, &read(path).unwrap(), None);
+            let emu_opts = EmulatorOptionsBuilder::new().boot_rom(boot_rom).build();
+            let mut emu = Emulator::new(&read(path).unwrap(), emu_opts);
 
             if let Some(cycles) = list_copy.get(file_stem.to_str().unwrap_or_default()) {
                 cycles_to_do = *cycles;
