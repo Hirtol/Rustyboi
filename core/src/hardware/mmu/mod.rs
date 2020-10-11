@@ -20,7 +20,9 @@ use crate::hardware::mmu::wram::Wram;
 use crate::io::io_registers::*;
 use crate::emulator::EmulatorMode;
 use crate::EmulatorOptions;
+use crate::hardware::mmu::cgb_mem::CgbData;
 
+pub mod cgb_mem;
 mod hram;
 mod wram;
 
@@ -61,6 +63,7 @@ pub const NOT_USABLE_END: u16 = 0xFEFF;
 /// I/O Registers
 pub const IO_START: u16 = 0xFF00;
 pub const IO_END: u16 = 0xFF7F;
+pub const CGB_PREPARE_SWITCH: u16 = 0xFF4D;
 /// The flag used to signal that an interrupt is pending.
 pub const INTERRUPTS_FLAG: u16 = 0xFF0F;
 /// High Ram (HRAM)
@@ -84,6 +87,7 @@ pub trait MemoryMapper: Debug {
     fn cartridge(&self) -> Option<&Cartridge>;
     fn interrupts(&self) -> &Interrupts;
     fn interrupts_mut(&mut self) -> &mut Interrupts;
+    fn cgb_data(&mut self) -> &mut CgbData;
     /// Perform one M-cycle (4 cycles) on all components of the system.
     /// Returns if V-blank occured
     fn do_m_cycle(&mut self) -> bool;
@@ -94,6 +98,7 @@ pub struct Memory {
     cartridge: Cartridge,
     pub scheduler: Scheduler,
     pub emulation_mode: EmulatorMode,
+    pub cgb_data: CgbData,
 
     pub ppu: PPU,
     pub apu: APU,
@@ -113,6 +118,7 @@ impl Memory {
             cartridge: Cartridge::new(cartridge, emu_opts.saved_ram),
             scheduler: Scheduler::new(),
             emulation_mode: emu_opts.emulator_mode,
+            cgb_data: CgbData::new(),
             ppu: PPU::new(),
             apu: APU::new(),
             hram: Hram::new(),
@@ -206,6 +212,7 @@ impl Memory {
             OB_PALETTE_1 => self.ppu.get_oam_palette_1(),
             WY_REGISTER => self.ppu.get_window_y(),
             WX_REGISTER => self.ppu.get_window_x(),
+            CGB_PREPARE_SWITCH => self.cgb_data.read_prepare_switch(),
 
             _ => self.io_registers.read_byte(address),
         }
@@ -240,6 +247,7 @@ impl Memory {
             OB_PALETTE_1 => self.ppu.set_oam_palette_1(value),
             WY_REGISTER => self.ppu.set_window_y(value),
             WX_REGISTER => self.ppu.set_window_x(value),
+            CGB_PREPARE_SWITCH => self.cgb_data.write_prepare_switch(value),
             0xFF50 if !self.boot_rom.is_finished => {
                 self.boot_rom.is_finished = true;
                 info!("Finished executing BootRom!");
@@ -387,6 +395,10 @@ impl MemoryMapper for Memory {
 
     fn interrupts_mut(&mut self) -> &mut Interrupts {
         &mut self.interrupts
+    }
+
+    fn cgb_data(&mut self) -> &mut CgbData {
+        &mut self.cgb_data
     }
 
     fn do_m_cycle(&mut self) -> bool {

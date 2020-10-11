@@ -13,6 +13,7 @@ use std::fmt;
 use std::rc::Rc;
 use crate::emulator::EmulatorMode;
 use crate::emulator::EmulatorMode::DMG;
+use crate::hardware::mmu::cgb_mem::CgbData;
 
 mod cycle_tests;
 mod instruction_tests;
@@ -25,6 +26,7 @@ struct TestMemory {
     pub apu: APU,
     pub timers: TimerRegisters,
     pub interrupts: Interrupts,
+    pub cgb_data: CgbData
 }
 
 impl MemoryMapper for TestMemory {
@@ -56,6 +58,10 @@ impl MemoryMapper for TestMemory {
         &mut self.interrupts
     }
 
+    fn cgb_data(&mut self) -> &mut CgbData {
+        &mut self.cgb_data
+    }
+
     fn do_m_cycle(&mut self) -> bool {
         false
     }
@@ -80,6 +86,7 @@ fn initial_cpu() -> CPU<TestMemory> {
         apu: APU::new(),
         timers: Default::default(),
         interrupts: Default::default(),
+        cgb_data: Default::default()
     });
     cpu.registers = Registers::new();
     cpu

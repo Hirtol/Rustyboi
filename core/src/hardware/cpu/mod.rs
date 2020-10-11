@@ -60,7 +60,7 @@ impl<M: MemoryMapper> CPU<M> {
             result.registers.set_hl(0x014D);
             result.registers.sp = 0xFFFE;
         }
-        if result.mmu.get_mode() == EmulatorMode::CGB {
+        if result.mmu.get_mode().is_cgb() {
             // 0x11 indicates CGB hardware for games.
             result.registers.a = 0x11;
             // if bit 0 of register b is reset this indicates CGB (instead of GBA)
@@ -245,7 +245,12 @@ impl<M: MemoryMapper> CPU<M> {
 
     /// low power standby mode (VERY low power)
     fn stop(&mut self) {
-        unimplemented!("STOP called, implement!");
+        if self.mmu.get_mode().is_cgb() && self.mmu.cgb_data().should_prepare() {
+            self.mmu.cgb_data().toggle_speed();
+            log::info!("Switching to {} speed mode!", if self.mmu.cgb_data().double_speed {"double"} else {"normal"});
+        } else {
+            unimplemented!("STOP called, implement!");
+        }
     }
 
     /// Rotate A left through Carry flag.

@@ -31,8 +31,8 @@ impl EmulatorOptionsBuilder {
         }
     }
 
-    pub fn boot_rom(mut self, boot_rom: Vec<u8>) -> Self {
-        self.boot_rom = Some(boot_rom);
+    pub fn boot_rom(mut self, boot_rom: Option<Vec<u8>>) -> Self {
+        self.boot_rom = boot_rom;
         self
     }
 

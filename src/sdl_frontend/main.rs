@@ -90,7 +90,7 @@ fn main() {
     let bootrom_file = read("roms\\cgb_bios.bin").unwrap();
 
     let cartridge = "roms/Zelda.gb";
-    let _cpu_test = "test roms/mooneye/tests/acceptance/add_sp_e_timing.gb";
+    let _cpu_test = "test roms/blargg/cpu_instrs/cpu_instrs.gb";
     let _cpu_test2 = "test roms/mooneye/tests/emulator-only/mbc5/mbc5_rom_512kb.gb";
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
@@ -101,8 +101,8 @@ fn main() {
 
     let mut timer = sdl_context.timer().unwrap();
     let emu_opts = EmulatorOptionsBuilder::new()
-        .boot_rom(bootrom_file)
-        .with_mode(CGB)
+        //.boot_rom(Some(bootrom_file))
+        //.with_mode(CGB)
         .build();
     let mut emulator = create_emulator(_cpu_test, emu_opts);
 

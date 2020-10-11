@@ -99,12 +99,12 @@ pub fn vec_to_bootrom(vec: &Vec<u8>) -> [u8; 256] {
 ///
 /// But it works!
 fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>) {
-    let boot_rom = boot_rom_vec.and_then(|rom| Some(vec_to_bootrom(&rom)));
     let tests = list_files_with_extensions(path.as_ref(), ".gb").unwrap();
     let custom_list = Arc::new(get_custom_list("custom_test_cycles.txt"));
     let mut threads = Vec::with_capacity(100);
 
     for path in tests {
+        let boot_rom = boot_rom_vec.clone();
         let list_copy = custom_list.clone();
         threads.push(spawn(move || {
             let file_stem = path.file_stem().unwrap().to_owned();
