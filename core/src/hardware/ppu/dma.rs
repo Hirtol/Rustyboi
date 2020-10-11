@@ -32,7 +32,7 @@ impl PPU {
         scheduler.push_relative(DMATransferComplete, 644);
     }
 
-    pub fn gdma_transfer(&mut self, values: &[u8]) {
+    pub fn gdma_transfer(&mut self, values: &[u8], dest_addr: u16) {
 
     }
 

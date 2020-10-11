@@ -24,6 +24,7 @@ use crate::scheduler::{Event, EventType, Scheduler};
 use crate::scheduler::EventType::{DMARequested, DMATransferComplete};
 use bitflags::_core::ops::{Add, Mul, Sub};
 use crate::hardware::mmu::cgb_mem::HdmaMode::HDMA;
+use itertools::Itertools;
 
 pub mod cgb_mem;
 mod hram;
@@ -315,7 +316,7 @@ impl Memory {
     }
 
     fn gather_gdma_data(&self) -> Vec<u8> {
-        (self.hdma.source_address..(self.hdma.source_address+self.hdma.transfer_size)).map(Self::read_byte).collect()
+        (self.hdma.source_address..(self.hdma.source_address+self.hdma.transfer_size)).map(|i| self.read_byte(i)).collect()
     }
 
     /// Simply returns 0xFF while also printing a warning to the logger.
@@ -422,9 +423,13 @@ impl Memory {
                     log::warn!("Performing GDMA transfer");
                     let mut clocks_to_wait = self.hdma.transfer_size as u64 * if self.cgb_data.double_speed {64} else {32};
                     self.scheduler.push_relative(EventType::GDMATransferComplete, clocks_to_wait);
-                    self.ppu.gdma_transfer(&self.gather_gdma_data());
+                    self.gdma_transfer();
 
-                    //TODO: Skip ahead, since CPU is halted during transfer.
+                    //TODO: Skip ahead, since CPU is halted during transfer. Account for double speed
+                    while clocks_to_wait > 0 {
+                        self.do_m_cycle();
+                        clocks_to_wait -= 4;
+                    }
                 }
                 EventType::GDMATransferComplete => {
                     // If a new transfer is started without updating these registers they should
@@ -437,6 +442,15 @@ impl Memory {
             };
         }
         vblank_occurred
+    }
+
+    /// Required here since the GDMA can write to arbitrary PPU addresses.
+    pub fn gdma_transfer(&mut self) {
+        let values_iter = (self.hdma.source_address..(self.hdma.source_address+self.hdma.transfer_size))
+            .map(|i| self.read_byte(i)).collect_vec();
+        for (i, value) in values_iter.into_iter().enumerate() {
+            self.write_byte(self.hdma.destination_address + i as u16, value);
+        }
     }
 
     /// Add a new interrupt to the IF flag.
