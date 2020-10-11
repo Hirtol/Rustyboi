@@ -212,7 +212,11 @@ impl Memory {
             OB_PALETTE_1 => self.ppu.get_oam_palette_1(),
             WY_REGISTER => self.ppu.get_window_y(),
             WX_REGISTER => self.ppu.get_window_x(),
-            CGB_PREPARE_SWITCH => self.cgb_data.read_prepare_switch(),
+            CGB_PREPARE_SWITCH => if self.emulation_mode.is_cgb() {
+                self.cgb_data.read_prepare_switch()
+            } else {
+                0xFF
+            },
 
             _ => self.io_registers.read_byte(address),
         }

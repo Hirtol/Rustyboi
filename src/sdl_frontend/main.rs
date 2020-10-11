@@ -101,8 +101,8 @@ fn main() {
 
     let mut timer = sdl_context.timer().unwrap();
     let emu_opts = EmulatorOptionsBuilder::new()
-        //.boot_rom(Some(bootrom_file))
-        //.with_mode(CGB)
+        .boot_rom(Some(bootrom_file))
+        .with_mode(CGB)
         .build();
     let mut emulator = create_emulator(_cpu_test, emu_opts);
 
