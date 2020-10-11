@@ -127,6 +127,7 @@ impl Memory {
     pub fn read_byte(&self, address: u16) -> u8 {
         match address {
             0x0000..=0x00FF if !self.boot_rom.is_finished => self.boot_rom.read_byte(address),
+            0x200..=0x08FF if !self.boot_rom.is_finished && self.emulation_mode.is_cgb() => self.boot_rom.read_byte(address),
             ROM_BANK_00_START..=ROM_BANK_00_END => self.cartridge.read_0000_3fff(address),
             ROM_BANK_NN_START..=ROM_BANK_NN_END => self.cartridge.read_4000_7fff(address),
             TILE_BLOCK_0_START..=TILE_BLOCK_2_END => self.ppu.get_tile_byte(address),

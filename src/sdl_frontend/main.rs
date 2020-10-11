@@ -24,6 +24,7 @@ use sdl2::audio::{AudioQueue, AudioSpecDesired};
 use sdl2::event::Event;
 use std::io::Write;
 use std::ops::Div;
+use rustyboi_core::emulator::EmulatorMode::CGB;
 
 mod actions;
 mod display;
@@ -86,7 +87,7 @@ fn main() {
     let mut canvas = window.into_canvas().accelerated().build().unwrap();
     let mut screen_texture = setup_sdl(&mut canvas);
 
-    let bootrom_file = read("roms\\DMG_ROM.bin").unwrap();
+    let bootrom_file = read("roms\\cgb_bios.bin").unwrap();
 
     let cartridge = "roms/Zelda.gb";
     let _cpu_test = "test roms/mooneye/tests/acceptance/add_sp_e_timing.gb";
@@ -99,7 +100,10 @@ fn main() {
     // return;
 
     let mut timer = sdl_context.timer().unwrap();
-    let emu_opts = EmulatorOptionsBuilder::new().build();
+    let emu_opts = EmulatorOptionsBuilder::new()
+        .boot_rom(bootrom_file)
+        .with_mode(CGB)
+        .build();
     let mut emulator = create_emulator(_cpu_test, emu_opts);
 
     let mut cycles = 0;

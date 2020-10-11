@@ -1,7 +1,8 @@
-/// 256 bytes total.
-pub const BOOTROM_SIZE: usize = 0x100;
+/// 256 bytes total for DMG
+pub const BOOTROM_SIZE_DMG: usize = 0x100;
+pub const BOOTROM_SIZE_CGB: usize = 0x900;
 
-type BootRomData = [u8; BOOTROM_SIZE];
+type BootRomData = Vec<u8>;
 
 pub struct BootRom {
     pub is_finished: bool,
@@ -17,7 +18,7 @@ impl BootRom {
             },
             None => Self {
                 is_finished: true,
-                data: [0; BOOTROM_SIZE],
+                data: vec![],
             },
         }
     }

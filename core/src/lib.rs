@@ -10,14 +10,14 @@ mod io;
 /// Struct for wrapping all the various options for the `Emulator`
 #[derive(Debug)]
 pub struct EmulatorOptions {
-    pub boot_rom: Option<[u8; 256]>,
+    pub boot_rom: Option<Vec<u8>>,
     pub saved_ram: Option<Vec<u8>>,
     pub emulator_mode: EmulatorMode,
 }
 
 #[derive(Debug)]
 pub struct EmulatorOptionsBuilder {
-    boot_rom: Option<[u8; 256]>,
+    boot_rom: Option<Vec<u8>>,
     saved_ram: Option<Vec<u8>>,
     emulator_mode: EmulatorMode,
 }
@@ -31,8 +31,8 @@ impl EmulatorOptionsBuilder {
         }
     }
 
-    pub fn boot_rom(mut self, boot_rom: Option<[u8; 256]>) -> Self {
-        self.boot_rom = boot_rom;
+    pub fn boot_rom(mut self, boot_rom: Vec<u8>) -> Self {
+        self.boot_rom = Some(boot_rom);
         self
     }
 

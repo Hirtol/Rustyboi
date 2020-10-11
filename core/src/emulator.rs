@@ -25,6 +25,16 @@ pub enum EmulatorMode {
     CGB,
 }
 
+impl EmulatorMode {
+    pub fn is_dmg(&self) -> bool {
+        *self == EmulatorMode::DMG
+    }
+
+    pub fn is_cgb(&self) -> bool {
+        *self == EmulatorMode::CGB
+    }
+}
+
 pub struct Emulator {
     cpu: CPU<Memory>,
     selected_mode: EmulatorMode,
