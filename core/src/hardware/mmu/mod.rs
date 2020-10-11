@@ -64,6 +64,7 @@ pub const NOT_USABLE_END: u16 = 0xFEFF;
 pub const IO_START: u16 = 0xFF00;
 pub const IO_END: u16 = 0xFF7F;
 pub const CGB_PREPARE_SWITCH: u16 = 0xFF4D;
+pub const CGB_VRAM_BANK_REGISTER: u16 = 0xFF4F;
 /// The flag used to signal that an interrupt is pending.
 pub const INTERRUPTS_FLAG: u16 = 0xFF0F;
 /// High Ram (HRAM)
@@ -217,7 +218,7 @@ impl Memory {
             } else {
                 0xFF
             },
-
+            CGB_VRAM_BANK_REGISTER => self.ppu.get_vram_bank(),
             _ => self.io_registers.read_byte(address),
         }
     }
@@ -252,6 +253,7 @@ impl Memory {
             WY_REGISTER => self.ppu.set_window_y(value),
             WX_REGISTER => self.ppu.set_window_x(value),
             CGB_PREPARE_SWITCH => self.cgb_data.write_prepare_switch(value),
+            CGB_VRAM_BANK_REGISTER => self.ppu.set_vram_bank(value),
             0xFF50 if !self.boot_rom.is_finished => {
                 self.boot_rom.is_finished = true;
                 info!("Finished executing BootRom!");

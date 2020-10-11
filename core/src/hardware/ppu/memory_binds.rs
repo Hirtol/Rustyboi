@@ -6,35 +6,61 @@ use crate::print_array_raw;
 use crate::scheduler::EventType::{HBLANK, VBLANK, DMATransferComplete};
 
 use super::*;
+use crate::hardware::ppu::cgb_vram::CgbTileAttribute;
 
 impl PPU {
     pub fn get_tile_byte(&self, address: u16) -> u8 {
         let (tile_address, byte_address) = get_tile_address(address);
+        //TODO: Optimise?
+        let offset = if self.tile_bank_currently_used == 1 { 384 } else { 0 };
 
-        self.tiles[tile_address].data[byte_address]
+        self.tiles[offset + tile_address].data[byte_address]
     }
 
     pub fn set_tile_byte(&mut self, address: u16, value: u8) {
         let (tile_address, byte_address) = get_tile_address(address);
+        let offset = if self.tile_bank_currently_used == 1 { 384 } else { 0 };
 
-        self.tiles[tile_address].data[byte_address] = value;
+        self.tiles[offset + tile_address].data[byte_address] = value;
     }
 
     pub fn get_tilemap_byte(&self, address: u16) -> u8 {
         match address {
-            TILEMAP_9800_START..=TILEMAP_9800_END => self.tile_map_9800.data[(address - TILEMAP_9800_START) as usize],
+            TILEMAP_9800_START..=TILEMAP_9800_END => {
+                if self.tile_bank_currently_used == 0 {
+                    self.tile_map_9800.data[(address - TILEMAP_9800_START) as usize]
+                } else {
+                    self.cgb_9800_tile_map.attributes[(address - TILEMAP_9800_START) as usize].bits()
+                }
+            },
             // 9C00, assuming no malicious calls
-            _ => self.tile_map_9c00.data[(address - TILEMAP_9C00_START) as usize],
+            _ => {
+                if self.tile_bank_currently_used == 0 {
+                    self.tile_map_9c00.data[(address - TILEMAP_9C00_START) as usize]
+                } else {
+                    self.cgb_9c00_tile_map.attributes[(address - TILEMAP_9C00_START) as usize].bits()
+                }
+            },
         }
     }
 
     pub fn set_tilemap_byte(&mut self, address: u16, value: u8) {
         match address {
             TILEMAP_9800_START..=TILEMAP_9800_END => {
-                self.tile_map_9800.data[(address - TILEMAP_9800_START) as usize] = value
+                if self.tile_bank_currently_used == 0 {
+                    self.tile_map_9800.data[(address - TILEMAP_9800_START) as usize] = value
+                } else {
+                    self.cgb_9800_tile_map.attributes[(address - TILEMAP_9800_START) as usize] = CgbTileAttribute::from_bits_truncate(value)
+                }
             }
             // 9C00, assuming no malicious calls
-            _ => self.tile_map_9c00.data[(address - TILEMAP_9C00_START) as usize] = value,
+            _ => {
+                if self.tile_bank_currently_used == 0 {
+                    self.tile_map_9c00.data[(address - TILEMAP_9C00_START) as usize] = value
+                } else {
+                    self.cgb_9c00_tile_map.attributes[(address - TILEMAP_9C00_START) as usize] = CgbTileAttribute::from_bits_truncate(value)
+                }
+            },
         }
     }
 
@@ -55,6 +81,10 @@ impl PPU {
 
             self.oam[relative_address as usize].set_byte((address % 4) as u8, value);
         }
+    }
+
+    pub fn get_vram_bank(&self) -> u8 {
+        0xFE | self.tile_bank_currently_used
     }
 
     pub fn get_lcd_control(&self) -> u8 {
@@ -99,6 +129,10 @@ impl PPU {
 
     pub fn get_window_x(&self) -> u8 {
         self.window_x
+    }
+
+    pub fn set_vram_bank(&mut self, value: u8) {
+        self.tile_bank_currently_used = value & 0x1;
     }
 
     pub fn set_lcd_control(&mut self, value: u8, scheduler: &mut Scheduler, interrupts: &mut Interrupts) {

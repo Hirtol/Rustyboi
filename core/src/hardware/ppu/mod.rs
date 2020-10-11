@@ -8,6 +8,7 @@ use crate::hardware::ppu::tiledata::*;
 use crate::hardware::ppu::Mode::{HBlank, LcdTransfer, OamSearch, VBlank};
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::scheduler::{Event, EventType, Scheduler};
+use crate::hardware::ppu::cgb_vram::CgbTileMap;
 
 pub const RESOLUTION_WIDTH: usize = 160;
 pub const RESOLUTION_HEIGHT: usize = 144;
@@ -76,6 +77,7 @@ pub mod palette;
 pub mod register_flags;
 pub mod tiledata;
 pub mod dma;
+pub mod cgb_vram;
 
 // Misc:
 // If the Window is enabled while drawing the screen (LY is between 0 and 143)
@@ -95,10 +97,13 @@ pub enum Mode {
 pub struct PPU {
     frame_buffer: [DmgColor; FRAMEBUFFER_SIZE],
     scanline_buffer: [DmgColor; RESOLUTION_WIDTH],
-
-    tiles: [Tile; 384],
+    // 768 tiles for CGB mode, 384 for DMG mode.
+    tiles: [Tile; 768],
+    tile_bank_currently_used: u8,
     tile_map_9800: TileMap,
     tile_map_9c00: TileMap,
+    cgb_9800_tile_map: CgbTileMap,
+    cgb_9c00_tile_map: CgbTileMap,
     oam: [SpriteAttribute; 40],
 
     lcd_control: LcdControl,
@@ -108,8 +113,8 @@ pub struct PPU {
     oam_palette_0: Palette,
     oam_palette_1: Palette,
 
-    compare_line: u8,
     pub current_y: u8,
+    compare_line: u8,
     scroll_x: u8,
     scroll_y: u8,
     window_x: u8,
@@ -124,9 +129,12 @@ impl PPU {
         PPU {
             frame_buffer: [DmgColor::WHITE; FRAMEBUFFER_SIZE],
             scanline_buffer: [DmgColor::WHITE; RESOLUTION_WIDTH],
-            tiles: [Tile::default(); 384],
+            tiles: [Tile::default(); 768],
+            tile_bank_currently_used: 0,
             tile_map_9800: TileMap::new(),
             tile_map_9c00: TileMap::new(),
+            cgb_9800_tile_map: CgbTileMap::new(),
+            cgb_9c00_tile_map: CgbTileMap::new(),
             oam: [SpriteAttribute::default(); 40],
             lcd_control: LcdControl::from_bits_truncate(0b1001_0011),
             lcd_status: LcdStatus::from_bits_truncate(0b0000_0001),
