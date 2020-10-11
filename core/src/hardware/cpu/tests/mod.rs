@@ -11,6 +11,8 @@ use bitflags::_core::fmt::{Debug, Formatter};
 use std::cell::RefCell;
 use std::fmt;
 use std::rc::Rc;
+use crate::emulator::EmulatorMode;
+use crate::emulator::EmulatorMode::DMG;
 
 mod cycle_tests;
 mod instruction_tests;
@@ -36,6 +38,10 @@ impl MemoryMapper for TestMemory {
 
     fn boot_rom_finished(&self) -> bool {
         false
+    }
+
+    fn get_mode(&self) -> EmulatorMode {
+        DMG
     }
 
     fn cartridge(&self) -> Option<&Cartridge> {
