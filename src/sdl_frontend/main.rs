@@ -89,7 +89,7 @@ fn main() {
     let bootrom_file = read("roms\\DMG_ROM.bin").unwrap();
 
     let cartridge = "roms/Zelda.gb";
-    let _cpu_test = "test roms/mooneye/tests/acceptance/pop_timing.gb";
+    let _cpu_test = "test roms/mooneye/tests/acceptance/add_sp_e_timing.gb";
     let _cpu_test2 = "test roms/mooneye/tests/emulator-only/mbc5/mbc5_rom_512kb.gb";
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
@@ -139,9 +139,12 @@ fn main() {
             if let (_, true) = emulator.emulate_cycle() {
                 cycles += 1;
             }
+            if emulator.audio_buffer().len() >= 1550 && !fast_forward{
+                break;
+            }
         }
 
-        cycles -= cycle_count_to_reach;
+        cycles = 0;
 
         fill_texture_and_copy(
             &mut canvas,
