@@ -220,7 +220,7 @@ impl PPU {
         if !self.window_triggered {
             self.window_triggered = self.current_y == self.window_y;
         }
-
+        //TODO: Note, BG_WINDOW_PRIORITY has a different meaning for CGB!
         if self.lcd_control.contains(LcdControl::BG_WINDOW_PRIORITY) {
             if self.lcd_control.contains(LcdControl::WINDOW_DISPLAY) {
                 if !self.window_triggered || self.window_x > 7 {

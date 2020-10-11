@@ -3,24 +3,25 @@ use std::fmt;
 use bitflags::_core::fmt::{Debug, Formatter};
 use log::*;
 
+use hram::Hram;
+
+use crate::emulator::EmulatorMode;
+use crate::EmulatorOptions;
 use crate::hardware::apu::{
     APU, APU_MEM_END, APU_MEM_START, FRAME_SEQUENCE_CYCLES, SAMPLE_CYCLES, WAVE_SAMPLE_END, WAVE_SAMPLE_START,
 };
 use crate::hardware::cartridge::Cartridge;
-use crate::hardware::ppu::tiledata::*;
+use crate::hardware::mmu::cgb_mem::CgbData;
+use crate::hardware::mmu::wram::Wram;
 use crate::hardware::ppu::{DMA_TRANSFER, PPU};
+use crate::hardware::ppu::tiledata::*;
 use crate::io::bootrom::BootRom;
 use crate::io::interrupts::{InterruptFlags, Interrupts};
+use crate::io::io_registers::*;
 use crate::io::joypad::*;
 use crate::io::timer::*;
 use crate::scheduler::{Event, EventType, Scheduler};
-use crate::scheduler::EventType::{DMATransferComplete, DMARequested};
-use hram::Hram;
-use crate::hardware::mmu::wram::Wram;
-use crate::io::io_registers::*;
-use crate::emulator::EmulatorMode;
-use crate::EmulatorOptions;
-use crate::hardware::mmu::cgb_mem::CgbData;
+use crate::scheduler::EventType::{DMARequested, DMATransferComplete};
 
 pub mod cgb_mem;
 mod hram;
@@ -63,8 +64,27 @@ pub const NOT_USABLE_END: u16 = 0xFEFF;
 /// I/O Registers
 pub const IO_START: u16 = 0xFF00;
 pub const IO_END: u16 = 0xFF7F;
+
 pub const CGB_PREPARE_SWITCH: u16 = 0xFF4D;
 pub const CGB_VRAM_BANK_REGISTER: u16 = 0xFF4F;
+/// Specifies the higher byte of the source address. Always returns FFh when read.
+pub const CGB_HDMA_1: u16 = 0xFF51;
+/// Specifies the lower byte of the source address. Lower 4 bits are ignored, addresses are always
+/// aligned to 10h (16 bytes). Always returns FFh when read.
+pub const CGB_HDMA_2: u16 = 0xFF52;
+/// Specifies the higher byte of the destination address. Destination is always in VRAM (8000h –
+/// 9FFFh), the 3 upper bits are ignored. Always returns FFh when read.
+pub const CGB_HDMA_3: u16 = 0xFF53;
+/// Specifies the lower byte of the destination address. Lower 4 bits are ignored, addresses are always
+/// aligned to 10h (16 bytes). Always returns FFh when read.
+pub const CGB_HDMA_4: u16 = 0xFF54;
+/// This register specifies the length and mode of the transfer. It starts the copy when it is written.
+/// Returns FFh in DMG and GBC in DMG mode.
+/// Bit 7 – Transfer mode (0=GDMA, 1=HDMA)
+/// Bits 6-0 – Blocks (Size = (Blocks+1)×16 bytes)
+pub const CGB_HDMA_5: u16 = 0xFF55;
+
+
 /// The flag used to signal that an interrupt is pending.
 pub const INTERRUPTS_FLAG: u16 = 0xFF0F;
 /// High Ram (HRAM)
@@ -90,7 +110,7 @@ pub trait MemoryMapper: Debug {
     fn interrupts_mut(&mut self) -> &mut Interrupts;
     fn cgb_data(&mut self) -> &mut CgbData;
     /// Perform one M-cycle (4 cycles) on all components of the system.
-    /// Returns if V-blank occured
+    /// Returns `true` if V-blank occurred
     fn do_m_cycle(&mut self) -> bool;
 }
 
@@ -114,7 +134,7 @@ pub struct Memory {
 
 impl Memory {
     pub fn new(cartridge: &[u8], emu_opts: EmulatorOptions) -> Self {
-        Memory {
+        let mut result = Memory {
             boot_rom: BootRom::new(emu_opts.boot_rom),
             cartridge: Cartridge::new(cartridge, emu_opts.saved_ram),
             scheduler: Scheduler::new(),
@@ -127,14 +147,21 @@ impl Memory {
             joypad_register: JoyPad::new(),
             timers: Default::default(),
             interrupts: Default::default(),
-            io_registers: IORegisters::new()
+            io_registers: IORegisters::new(),
+        };
+
+        // If the cartridge doesn't support CGB at all we switch to DMG mode.
+        if !result.cartridge.cartridge_header().cgb_flag {
+            result.emulation_mode = EmulatorMode::DMG;
         }
+
+        result
     }
 
     pub fn read_byte(&self, address: u16) -> u8 {
         match address {
             0x0000..=0x00FF if !self.boot_rom.is_finished => self.boot_rom.read_byte(address),
-            0x200..=0x08FF if !self.boot_rom.is_finished && self.emulation_mode.is_cgb() => self.boot_rom.read_byte(address),
+            0x0200..=0x08FF if !self.boot_rom.is_finished && self.emulation_mode.is_cgb() => self.boot_rom.read_byte(address),
             ROM_BANK_00_START..=ROM_BANK_00_END => self.cartridge.read_0000_3fff(address),
             ROM_BANK_NN_START..=ROM_BANK_NN_END => self.cartridge.read_4000_7fff(address),
             TILE_BLOCK_0_START..=TILE_BLOCK_2_END => self.ppu.get_tile_byte(address),
@@ -219,6 +246,8 @@ impl Memory {
                 0xFF
             },
             CGB_VRAM_BANK_REGISTER => self.ppu.get_vram_bank(),
+            CGB_HDMA_1 | CGB_HDMA_2 | CGB_HDMA_3 | CGB_HDMA_4 => INVALID_READ,
+            CGB_HDMA_5 => if self.emulation_mode.is_dmg() { INVALID_READ } else { self.io_registers.read_byte(address) }
             _ => self.io_registers.read_byte(address),
         }
     }
@@ -254,6 +283,7 @@ impl Memory {
             WX_REGISTER => self.ppu.set_window_x(value),
             CGB_PREPARE_SWITCH => self.cgb_data.write_prepare_switch(value),
             CGB_VRAM_BANK_REGISTER => self.ppu.set_vram_bank(value),
+            CGB_HDMA_1 | CGB_HDMA_2 | CGB_HDMA_3 | CGB_HDMA_4 => self.io_registers.write_byte(address, value),
             0xFF50 if !self.boot_rom.is_finished => {
                 self.boot_rom.is_finished = true;
                 info!("Finished executing BootRom!");

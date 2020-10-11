@@ -132,6 +132,7 @@ impl PPU {
     }
 
     pub fn set_vram_bank(&mut self, value: u8) {
+        log::warn!("Switching vram bank to: {:#x?}", value);
         self.tile_bank_currently_used = value & 0x1;
     }
 
