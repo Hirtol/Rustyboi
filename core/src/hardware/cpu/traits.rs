@@ -1,7 +1,7 @@
 use crate::hardware::cpu::execute::InstructionAddress;
 use crate::hardware::cpu::CPU;
 use crate::hardware::mmu::MemoryMapper;
-use crate::hardware::registers::{Reg16, Reg8};
+use crate::hardware::cpu::registers::{Reg16, Reg8};
 
 /// This trait should be used where we might pass either a direct
 /// registry address, or a combined registry which points to a memory address.

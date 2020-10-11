@@ -4,8 +4,8 @@
 
 use crate::hardware::cpu::execute::{horizontal_decode, vertical_decode, InstructionAddress, JumpModifier};
 
-use crate::hardware::registers::Reg16::*;
-use crate::hardware::registers::Reg8::*;
+use crate::hardware::cpu::registers::Reg16::*;
+use crate::hardware::cpu::registers::Reg8::*;
 
 pub fn get_assembly_from_opcode(opcode: u8) -> String {
     match opcode {

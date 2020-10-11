@@ -20,7 +20,11 @@ impl Interrupts {
 
     #[inline(always)]
     pub fn overwrite_if(&mut self, value: u8) {
+        // The most significant 3 bits *should* be free to be set by the user, however we wouldn't
+        // pass halt_bug otherwise so I'm assuming they're supposed to be unmodifiable
+        // by the user after all, and instead are set to 1.
         self.interrupt_flag = InterruptFlags::from_bits_truncate(0xE0 | value);
+        //log::info!("Writing interrupt flag {:?} from value: {:02x}", self.interrupts.interrupt_flag, value);
     }
 
     #[inline(always)]
@@ -68,7 +72,7 @@ bitflags! {
         const SERIAL = 0b0000_1000;
         /// Joypad
         const JOYPAD = 0b0001_0000;
-        /// Unused, not yet sure if necesarry.
+        /// Unused, not yet sure if necessary.
         const UNUSED = 0b1110_0000;
     }
 }

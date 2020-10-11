@@ -164,6 +164,7 @@ impl APU {
     }
 
     pub fn write_register(&mut self, address: u16, value: u8, scheduler: &mut Scheduler) {
+        //log::info!("APU Write on address: 0x{:02X} with value: 0x{:02X}", address, value);
         let address = address & 0xFF;
 
         // It's not possible to access any registers beside 0x26 while the sound is disabled.
@@ -218,6 +219,7 @@ impl APU {
     }
 
     pub fn write_wave_sample(&mut self, address: u16, value: u8) {
+        //log::info!("APU Wave_Write on address: 0x{:02X} with value: 0x{:02X}", address, value);
         let address = address & 0xFF;
         self.voice3.write_register(address, value, self.frame_sequencer_step)
     }

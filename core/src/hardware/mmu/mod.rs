@@ -15,6 +15,12 @@ use crate::io::joypad::*;
 use crate::io::timer::*;
 use crate::scheduler::{Event, EventType, Scheduler};
 use crate::scheduler::EventType::{DMATransferComplete, DMARequested};
+use hram::Hram;
+use crate::hardware::mmu::wram::Wram;
+use crate::io::io_registers::*;
+
+mod hram;
+mod wram;
 
 pub const MEMORY_SIZE: usize = 0x10000;
 /// 16 KB ROM bank, usually 00. From Cartridge, read-only
@@ -81,29 +87,35 @@ pub trait MemoryMapper: Debug {
 }
 
 pub struct Memory {
-    memory: Vec<u8>,
     boot_rom: BootRom,
     cartridge: Cartridge,
     pub scheduler: Scheduler,
+
     pub ppu: PPU,
     pub apu: APU,
+    pub hram: Hram,
+    pub wram: Wram,
+
     pub joypad_register: JoyPad,
     pub timers: TimerRegisters,
     pub interrupts: Interrupts,
+    pub io_registers: IORegisters,
 }
 
 impl Memory {
     pub fn new(boot_rom: Option<[u8; 0x100]>, cartridge: &[u8], saved_ram: Option<Vec<u8>>) -> Self {
         Memory {
-            memory: vec![0xFFu8; MEMORY_SIZE],
             boot_rom: BootRom::new(boot_rom),
             cartridge: Cartridge::new(cartridge, saved_ram),
             scheduler: Scheduler::new(),
             ppu: PPU::new(),
             apu: APU::new(),
+            hram: Hram::new(),
+            wram: Wram::new(),
             joypad_register: JoyPad::new(),
             timers: Default::default(),
             interrupts: Default::default(),
+            io_registers: IORegisters::new()
         }
     }
 
@@ -112,60 +124,52 @@ impl Memory {
             0x0000..=0x00FF if !self.boot_rom.is_finished => self.boot_rom.read_byte(address),
             ROM_BANK_00_START..=ROM_BANK_00_END => self.cartridge.read_0000_3fff(address),
             ROM_BANK_NN_START..=ROM_BANK_NN_END => self.cartridge.read_4000_7fff(address),
-            //VRAM
             TILE_BLOCK_0_START..=TILE_BLOCK_2_END => self.ppu.get_tile_byte(address),
             TILEMAP_9800_START..=TILEMAP_9C00_END => self.ppu.get_tilemap_byte(address),
             EXTERNAL_RAM_START..=EXTERNAL_RAM_END => self.cartridge.read_external_ram(address),
-            WRAM_BANK_00_START..=WRAM_BANK_00_END => self.memory[address as usize],
-            WRAM_BANK_NN_START..=WRAM_BANK_NN_END => self.memory[address as usize],
-            ECHO_RAM_START..=ECHO_RAM_END => self.memory[(address - ECHO_RAM_OFFSET) as usize],
+            WRAM_BANK_00_START..=WRAM_BANK_00_END => self.wram.read_bank_0(address),
+            WRAM_BANK_NN_START..=WRAM_BANK_NN_END => self.wram.read_bank_n(address),
+            ECHO_RAM_START..=ECHO_RAM_END => self.wram.read_echo_ram(address),
             OAM_ATTRIBUTE_START..=OAM_ATTRIBUTE_END => self.ppu.get_oam_byte(address),
             NOT_USABLE_START..=NOT_USABLE_END => self.non_usable_call(address),
             IO_START..=IO_END => self.read_io_byte(address),
-            HRAM_START..=HRAM_END => self.memory[address as usize],
+            HRAM_START..=HRAM_END => self.hram.read_byte(address),
             INTERRUPTS_ENABLE => {
                 //log::info!("Reading interrupt enable {:?}", self.interrupts_enable);
                 self.interrupts.interrupt_enable.bits()
             }
-            _ => self.memory[address as usize],
+            _ => panic!("Reading memory that is out of bounds: 0x{:04X}", address),
         }
     }
 
     pub fn write_byte(&mut self, address: u16, value: u8) {
-        let usize_address = address as usize;
-
-        // Temporary for BLARG's tests without visual aid, this writes to the Serial port
-        if address == 0xFF02 && value == 0x81 {
-            println!("Output: {}", self.read_byte(0xFF01) as char);
-        }
-
         match address {
             ROM_BANK_00_START..=ROM_BANK_NN_END => self.cartridge.write_byte(address, value),
-            // VRAM
             TILE_BLOCK_0_START..=TILE_BLOCK_2_END => self.ppu.set_tile_byte(address, value),
             TILEMAP_9800_START..=TILEMAP_9C00_END => self.ppu.set_tilemap_byte(address, value),
             EXTERNAL_RAM_START..=EXTERNAL_RAM_END => self.cartridge.write_byte(address, value),
-            WRAM_BANK_00_START..=WRAM_BANK_00_END => self.memory[usize_address] = value,
-            WRAM_BANK_NN_START..=WRAM_BANK_NN_END => self.memory[usize_address] = value,
-            ECHO_RAM_START..=ECHO_RAM_END => self.memory[(address - ECHO_RAM_OFFSET) as usize] = value,
+            WRAM_BANK_00_START..=WRAM_BANK_00_END => self.wram.write_bank_0(address, value),
+            WRAM_BANK_NN_START..=WRAM_BANK_NN_END => self.wram.write_bank_n(address, value),
+            ECHO_RAM_START..=ECHO_RAM_END => self.wram.write_echo_ram(address, value),
             OAM_ATTRIBUTE_START..=OAM_ATTRIBUTE_END => self.ppu.set_oam_byte(address, value),
             NOT_USABLE_START..=NOT_USABLE_END => log::trace!("ROM Writing to Non-usable memory: {:04X}", address),
             IO_START..=IO_END => self.write_io_byte(address, value),
-            HRAM_START..=HRAM_END => self.memory[usize_address] = value,
+            HRAM_START..=HRAM_END => self.hram.set_byte(address, value),
             INTERRUPTS_ENABLE => {
                 //log::info!("Writing Interrupt Enable: {:?}", InterruptFlags::from_bits_truncate(value));
                 self.interrupts.overwrite_ie(value);
             }
-            _ => self.memory[usize_address] = value,
+            _ => panic!("Writing to memory that is not in bounds: 0x{:04X}", address),
         }
     }
 
     /// Specific method for all calls to the IO registers.
     fn read_io_byte(&self, address: u16) -> u8 {
         use crate::hardware::ppu::*;
-
         match address {
             JOYPAD_REGISTER => self.joypad_register.get_register(),
+            SIO_DATA => self.io_registers.read_byte(address),
+            SIO_CONT => self.io_registers.read_byte(address),
             DIVIDER_REGISTER => self.timers.divider_register(),
             TIMER_COUNTER => self.timers.timer_counter,
             TIMER_MODULO => self.timers.timer_modulo,
@@ -190,40 +194,34 @@ impl Memory {
             SCX_REGISTER => self.ppu.get_scx(),
             LY_REGISTER => self.ppu.get_ly(),
             LYC_REGISTER => self.ppu.get_lyc(),
-            DMA_TRANSFER => self.memory[DMA_TRANSFER as usize],
+            DMA_TRANSFER => self.io_registers.read_byte(address),
             BG_PALETTE => self.ppu.get_bg_palette(),
             OB_PALETTE_0 => self.ppu.get_oam_palette_0(),
             OB_PALETTE_1 => self.ppu.get_oam_palette_1(),
             WY_REGISTER => self.ppu.get_window_y(),
             WX_REGISTER => self.ppu.get_window_x(),
 
-            _ => self.memory[address as usize],
+            _ => self.io_registers.read_byte(address),
         }
     }
 
     fn write_io_byte(&mut self, address: u16, value: u8) {
         use crate::hardware::ppu::*;
+        // Temporary for BLARG's tests without visual aid, this writes to the Serial port
+        if address == 0xFF02 && value == 0x81 {
+            println!("Output: {}", self.read_byte(0xFF01) as char);
+        }
         match address {
             JOYPAD_REGISTER => self.joypad_register.set_register(value),
+            SIO_DATA => self.io_registers.write_byte(address, value),
+            SIO_CONT => self.io_registers.write_byte(address, value),
             DIVIDER_REGISTER => self.timers.set_divider(&mut self.scheduler),
             TIMER_COUNTER => self.timers.set_timer_counter(value, &mut self.scheduler),
             TIMER_MODULO => self.timers.set_tma(value),
             TIMER_CONTROL => self.timers.set_timer_control(value, &mut self.scheduler),
-            INTERRUPTS_FLAG => {
-                // The most significant 3 bits *should* be free to be set by the user, however we wouldn't
-                // pass halt_bug otherwise so I'm assuming they're supposed to be unmodifiable
-                // by the user after all, and instead are set to 1.
-                self.interrupts.overwrite_if(value);
-                //log::info!("Writing interrupt flag {:?} from value: {:02x}", self.interrupts.interrupt_flag, value);
-            }
-            APU_MEM_START..=APU_MEM_END => {
-                //log::info!("APU Write on address: 0x{:02X} with value: 0x{:02X}", address, value);
-                self.apu.write_register(address, value, &mut self.scheduler)
-            }
-            WAVE_SAMPLE_START..=WAVE_SAMPLE_END => {
-                //log::info!("APU Wave_Write on address: 0x{:02X} with value: 0x{:02X}", address, value);
-                self.apu.write_wave_sample(address, value)
-            }
+            INTERRUPTS_FLAG => self.interrupts.overwrite_if(value),
+            APU_MEM_START..=APU_MEM_END => self.apu.write_register(address, value, &mut self.scheduler),
+            WAVE_SAMPLE_START..=WAVE_SAMPLE_END => self.apu.write_wave_sample(address, value),
             LCD_CONTROL_REGISTER => self.ppu.set_lcd_control(value, &mut self.scheduler, &mut self.interrupts),
             LCD_STATUS_REGISTER => self.ppu.set_lcd_status(value, &mut self.interrupts),
             SCY_REGISTER => self.ppu.set_scy(value),
@@ -240,12 +238,13 @@ impl Memory {
                 self.boot_rom.is_finished = true;
                 info!("Finished executing BootRom!");
             }
-            _ => self.memory[address as usize] = value,
+            _ => self.io_registers.write_byte(address, value)
         }
     }
 
+    /// Starts the sequence of events for a OAM DMA transfer.
     fn dma_transfer(&mut self, value: u8) {
-        self.memory[DMA_TRANSFER as usize] = value;
+        self.io_registers.write_byte(DMA_TRANSFER, value);
         // In case a previous DMA was running we should cancel it.
         self.scheduler.remove_event_type(DMATransferComplete);
         // 4 Cycles after the request is when the DMA is actually started.
@@ -335,7 +334,7 @@ impl Memory {
                     self.timers.just_overflowed = false;
                 }
                 EventType::DMARequested => {
-                    let address = (self.memory[DMA_TRANSFER as usize] as usize) << 8;
+                    let address = (self.io_registers.read_byte(DMA_TRANSFER) as usize) << 8;
                     self.ppu.oam_dma_transfer(&self.gather_shadow_oam(address), &mut self.scheduler);
                 }
                 EventType::DMATransferComplete => {
@@ -393,6 +392,6 @@ impl MemoryMapper for Memory {
 
 impl Debug for Memory {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "Memory: {:?}\nCartridge: {:?}", self.memory, self.cartridge)
+        write!(f, "Memory: {:?}\nCartridge: {:?}", self.io_registers, self.cartridge)
     }
 }

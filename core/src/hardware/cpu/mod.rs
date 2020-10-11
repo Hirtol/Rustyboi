@@ -7,8 +7,8 @@ use crate::hardware::cpu::execute::{InstructionAddress, JumpModifier, WrapperEnu
 use crate::hardware::cpu::traits::{SetU16, SetU8, ToU16, ToU8};
 
 use crate::hardware::mmu::*;
-use crate::hardware::registers::Reg8::A;
-use crate::hardware::registers::{Flags, Reg16, Registers};
+use registers::Reg8::A;
+use registers::{Flags, Reg16, Registers};
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 
 use crate::hardware::cpu::execute::JumpModifier::Always;
@@ -24,6 +24,7 @@ mod execute;
 mod fetch;
 mod instructions;
 mod traits;
+pub mod registers;
 
 #[derive(Debug)]
 pub struct CPU<M: MemoryMapper> {

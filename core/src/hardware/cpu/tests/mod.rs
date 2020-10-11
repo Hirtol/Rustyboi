@@ -3,7 +3,7 @@ use crate::hardware::cartridge::Cartridge;
 use crate::hardware::cpu::CPU;
 use crate::hardware::mmu::MemoryMapper;
 use crate::hardware::ppu::PPU;
-use crate::hardware::registers::Registers;
+use crate::hardware::cpu::registers::Registers;
 use crate::io::interrupts::Interrupts;
 use crate::io::timer::TimerRegisters;
 use crate::scheduler::Scheduler;

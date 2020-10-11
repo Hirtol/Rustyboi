@@ -161,7 +161,7 @@ impl Display for Registers {
 
 #[cfg(test)]
 mod tests {
-    use crate::hardware::registers::Registers;
+    use crate::hardware::cpu::registers::Registers;
 
     #[test]
     fn test_16b_register() {
