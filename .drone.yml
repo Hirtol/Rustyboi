@@ -1,7 +1,7 @@
 ---
 kind: pipeline
 type: docker
-name: rust-1-45-2
+name: rust-1-47-0
 
 platform:
   arch: amd64
@@ -10,7 +10,7 @@ steps:
   - name: build and test
     environment:
         CARGO_HOME: /drone/src/.cargo
-    image: hirtol/rust_chip_drone_image:1.0
+    image: hirtol/rust_chip_drone_image:1.1
     pull: if-not-exists
     volumes:
     - name: cache-cargo
