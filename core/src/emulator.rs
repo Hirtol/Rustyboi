@@ -19,7 +19,7 @@ pub const CYCLES_PER_FRAME: u64 = 70224;
 /// Describes the `Emulator`'s mode.
 ///
 /// If DMG is chosen no CGB features will be used.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialOrd, PartialEq)]
 pub enum EmulatorMode {
     DMG,
     CGB,
@@ -33,8 +33,8 @@ pub struct Emulator {
 impl Emulator {
     pub fn new(cartridge: &[u8], options: EmulatorOptions) -> Self {
         Emulator {
-            cpu: CPU::new(Memory::new(options.boot_rom, cartridge, options.saved_ram)),
-            selected_mode: options.emulator_mode
+            selected_mode: options.emulator_mode,
+            cpu: CPU::new(Memory::new(cartridge, options)),
         }
     }
 

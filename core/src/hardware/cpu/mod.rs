@@ -40,8 +40,6 @@ pub struct CPU<M: MemoryMapper> {
 
 impl<M: MemoryMapper> CPU<M> {
     pub fn new(mmu: M) -> Self {
-        let boot_rom_finished = mmu.boot_rom_finished();
-
         let mut result = CPU {
             opcode: 0,
             registers: Registers::new(),
@@ -52,7 +50,7 @@ impl<M: MemoryMapper> CPU<M> {
             had_vblank: false,
         };
 
-        if boot_rom_finished {
+        if result.mmu.boot_rom_finished() {
             result.registers.pc = 0x100;
             // Set the registers to the state they would
             // have if we used the bootrom, missing MEM values
@@ -61,6 +59,12 @@ impl<M: MemoryMapper> CPU<M> {
             result.registers.set_de(0x00D8);
             result.registers.set_hl(0x014D);
             result.registers.sp = 0xFFFE;
+        }
+        if result.mmu.get_mode() == EmulatorMode::CGB {
+            // 0x11 indicates CGB hardware for games.
+            result.registers.a = 0x11;
+            // if bit 0 of register b is reset this indicates CGB (instead of GBA)
+            result.registers.b &= 0xFE;
         }
 
         result

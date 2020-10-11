@@ -18,6 +18,8 @@ use crate::scheduler::EventType::{DMATransferComplete, DMARequested};
 use hram::Hram;
 use crate::hardware::mmu::wram::Wram;
 use crate::io::io_registers::*;
+use crate::emulator::EmulatorMode;
+use crate::EmulatorOptions;
 
 mod hram;
 mod wram;
@@ -75,6 +77,7 @@ pub trait MemoryMapper: Debug {
     fn read_byte(&self, address: u16) -> u8;
     fn write_byte(&mut self, address: u16, value: u8);
     fn boot_rom_finished(&self) -> bool;
+    fn get_mode(&self) -> EmulatorMode;
     /// Returns, if the current ROM has a battery, the contents of the External Ram.
     ///
     /// Should be used for saving functionality.
@@ -90,6 +93,7 @@ pub struct Memory {
     boot_rom: BootRom,
     cartridge: Cartridge,
     pub scheduler: Scheduler,
+    pub emulation_mode: EmulatorMode,
 
     pub ppu: PPU,
     pub apu: APU,
@@ -103,11 +107,12 @@ pub struct Memory {
 }
 
 impl Memory {
-    pub fn new(boot_rom: Option<[u8; 0x100]>, cartridge: &[u8], saved_ram: Option<Vec<u8>>) -> Self {
+    pub fn new(cartridge: &[u8], emu_opts: EmulatorOptions) -> Self {
         Memory {
-            boot_rom: BootRom::new(boot_rom),
-            cartridge: Cartridge::new(cartridge, saved_ram),
+            boot_rom: BootRom::new(emu_opts.boot_rom),
+            cartridge: Cartridge::new(cartridge, emu_opts.saved_ram),
             scheduler: Scheduler::new(),
+            emulation_mode: emu_opts.emulator_mode,
             ppu: PPU::new(),
             apu: APU::new(),
             hram: Hram::new(),
@@ -365,6 +370,10 @@ impl MemoryMapper for Memory {
 
     fn boot_rom_finished(&self) -> bool {
         self.boot_rom.is_finished
+    }
+
+    fn get_mode(&self) -> EmulatorMode {
+        self.emulation_mode
     }
 
     fn cartridge(&self) -> Option<&Cartridge> {
