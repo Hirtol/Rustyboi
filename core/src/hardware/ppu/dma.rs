@@ -31,4 +31,12 @@ impl PPU {
         // In case another DMA transfer was ongoing we first need to cancel that:
         scheduler.push_relative(DMATransferComplete, 644);
     }
+
+    pub fn gdma_transfer(&mut self, values: &[u8]) {
+
+    }
+
+    pub fn hdma_transfer(&mut self) {
+
+    }
 }

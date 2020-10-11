@@ -11,7 +11,7 @@ use crate::hardware::apu::{
     APU, APU_MEM_END, APU_MEM_START, FRAME_SEQUENCE_CYCLES, SAMPLE_CYCLES, WAVE_SAMPLE_END, WAVE_SAMPLE_START,
 };
 use crate::hardware::cartridge::Cartridge;
-use crate::hardware::mmu::cgb_mem::CgbData;
+use crate::hardware::mmu::cgb_mem::{CgbData, HdmaRegister};
 use crate::hardware::mmu::wram::Wram;
 use crate::hardware::ppu::{DMA_TRANSFER, PPU};
 use crate::hardware::ppu::tiledata::*;
@@ -22,6 +22,8 @@ use crate::io::joypad::*;
 use crate::io::timer::*;
 use crate::scheduler::{Event, EventType, Scheduler};
 use crate::scheduler::EventType::{DMARequested, DMATransferComplete};
+use bitflags::_core::ops::{Add, Mul, Sub};
+use crate::hardware::mmu::cgb_mem::HdmaMode::HDMA;
 
 pub mod cgb_mem;
 mod hram;
@@ -120,6 +122,7 @@ pub struct Memory {
     pub scheduler: Scheduler,
     pub emulation_mode: EmulatorMode,
     pub cgb_data: CgbData,
+    pub hdma: HdmaRegister,
 
     pub ppu: PPU,
     pub apu: APU,
@@ -140,6 +143,7 @@ impl Memory {
             scheduler: Scheduler::new(),
             emulation_mode: emu_opts.emulator_mode,
             cgb_data: CgbData::new(),
+            hdma: HdmaRegister::new(),
             ppu: PPU::new(),
             apu: APU::new(),
             hram: Hram::new(),
@@ -247,7 +251,7 @@ impl Memory {
             },
             CGB_VRAM_BANK_REGISTER => self.ppu.get_vram_bank(),
             CGB_HDMA_1 | CGB_HDMA_2 | CGB_HDMA_3 | CGB_HDMA_4 => INVALID_READ,
-            CGB_HDMA_5 => if self.emulation_mode.is_dmg() { INVALID_READ } else { self.io_registers.read_byte(address) }
+            CGB_HDMA_5 => if self.emulation_mode.is_dmg() { INVALID_READ } else { self.hdma.hdma5() }
             _ => self.io_registers.read_byte(address),
         }
     }
@@ -283,7 +287,12 @@ impl Memory {
             WX_REGISTER => self.ppu.set_window_x(value),
             CGB_PREPARE_SWITCH => self.cgb_data.write_prepare_switch(value),
             CGB_VRAM_BANK_REGISTER => self.ppu.set_vram_bank(value),
-            CGB_HDMA_1 | CGB_HDMA_2 | CGB_HDMA_3 | CGB_HDMA_4 => self.io_registers.write_byte(address, value),
+            CGB_HDMA_1 => self.hdma.write_hdma1(value),
+            CGB_HDMA_2 => self.hdma.write_hdma2(value),
+            CGB_HDMA_3 => self.hdma.write_hdma3(value),
+            CGB_HDMA_4 => self.hdma.write_hdma4(value),
+            CGB_HDMA_5 => self.hdma.write_hdma5(value, &mut self.scheduler),
+
             0xFF50 if !self.boot_rom.is_finished => {
                 self.boot_rom.is_finished = true;
                 info!("Finished executing BootRom!");
@@ -303,6 +312,10 @@ impl Memory {
 
     fn gather_shadow_oam(&self, start_address: usize) -> Vec<u8> {
         (0..0xA0).map(|i| self.read_byte((start_address + i) as u16)).collect()
+    }
+
+    fn gather_gdma_data(&self) -> Vec<u8> {
+        (self.hdma.source_address..(self.hdma.source_address+self.hdma.transfer_size)).map(Self::read_byte).collect()
     }
 
     /// Simply returns 0xFF while also printing a warning to the logger.
@@ -344,6 +357,15 @@ impl Memory {
                 }
                 EventType::HBLANK => {
                     self.ppu.hblank(&mut self.interrupts);
+
+                    // HDMA transfers 16 bytes every VBLANK
+                    if self.hdma.transfer_ongoing && self.hdma.current_mode == HDMA {
+                        log::warn!("Performing HDMA transfer");
+                        self.ppu.hdma_transfer();
+                        self.hdma.advance_hdma();
+                        //TODO: Skip ahead, since CPU is halted during transfer.
+                    }
+
                     // First 144 lines
                     if self.ppu.current_y != 143 {
                         self.scheduler
@@ -390,6 +412,28 @@ impl Memory {
                 EventType::DMATransferComplete => {
                     self.ppu.oam_dma_finished();
                 }
+                EventType::HDMARequested => {
+
+                }
+                EventType::HDMATransferComplete => {
+
+                }
+                EventType::GDMARequested => {
+                    log::warn!("Performing GDMA transfer");
+                    let mut clocks_to_wait = self.hdma.transfer_size as u64 * if self.cgb_data.double_speed {64} else {32};
+                    self.scheduler.push_relative(EventType::GDMATransferComplete, clocks_to_wait);
+                    self.ppu.gdma_transfer(&self.gather_gdma_data());
+
+                    //TODO: Skip ahead, since CPU is halted during transfer.
+                }
+                EventType::GDMATransferComplete => {
+                    // If a new transfer is started without updating these registers they should
+                    // continue where they left off.
+                    self.hdma.source_address += self.hdma.transfer_size;
+                    self.hdma.destination_address += self.hdma.transfer_size;
+
+                    self.hdma.complete_transfer();
+                }
             };
         }
         vblank_occurred
@@ -401,6 +445,10 @@ impl Memory {
         if let Some(intr) = interrupt {
             self.interrupts.insert_interrupt(intr);
         }
+    }
+
+    pub fn get_speed_multiplier(&mut self) -> u64 {
+        if self.cgb_data.double_speed {2} else {1}
     }
 }
 

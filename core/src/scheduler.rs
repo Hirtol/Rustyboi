@@ -16,6 +16,10 @@ pub enum EventType {
     TimerPostOverflow = 8,
     DMARequested = 9,
     DMATransferComplete = 10,
+    HDMARequested = 11,
+    HDMATransferComplete = 12,
+    GDMARequested = 13,
+    GDMATransferComplete = 14,
 }
 
 #[derive(Debug, Copy, Clone, Eq)]
