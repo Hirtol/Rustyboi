@@ -27,6 +27,7 @@ use std::collections::HashMap;
 use gumdrop::Options;
 use image::imageops::FilterType;
 use std::sync::Arc;
+use rustyboi_core::hardware::ppu::palette::RGB;
 
 mod display;
 mod options;
@@ -109,7 +110,10 @@ fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>) {
         threads.push(spawn(move || {
             let file_stem = path.file_stem().unwrap().to_owned();
             let mut cycles_to_do = 5_000_000;
-            let emu_opts = EmulatorOptionsBuilder::new().boot_rom(boot_rom).build();
+            let emu_opts = EmulatorOptionsBuilder::new()
+                .boot_rom(boot_rom)
+                .with_display_colours(TEST_COLOURS)
+                .build();
             let mut emu = Emulator::new(&read(path).unwrap(), emu_opts);
 
             if let Some(cycles) = list_copy.get(file_stem.to_str().unwrap_or_default()) {
@@ -200,11 +204,10 @@ fn calculate_hashes(directory: impl AsRef<Path>) -> anyhow::Result<HashMap<OsStr
 }
 
 /// Renders and saves the provided framebuffer to the `file_name`.
-fn save_image(framebuffer: &[DmgColor], file_name: impl AsRef<str>) {
+fn save_image(framebuffer: &[RGB], file_name: impl AsRef<str>) {
     let mut true_image_buffer = vec![0u8; FRAMEBUFFER_SIZE * 3];
 
     for (i, colour) in framebuffer.iter().enumerate() {
-        let colour = TEST_COLOURS.get_color(colour);
         let offset = i * 3;
         true_image_buffer[offset] = colour.0;
         true_image_buffer[offset + 1] = colour.1;

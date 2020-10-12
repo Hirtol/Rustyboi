@@ -153,7 +153,7 @@ impl Memory {
             emulation_mode: emu_opts.emulator_mode,
             cgb_data: CgbData::new(),
             hdma: HdmaRegister::new(),
-            ppu: PPU::new(),
+            ppu: PPU::new(emu_opts.display_colour),
             apu: APU::new(),
             hram: Hram::new(),
             wram: Wram::new(),

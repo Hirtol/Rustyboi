@@ -5,7 +5,7 @@ use bitflags::_core::cell::RefCell;
 use crate::hardware::cpu::CPU;
 
 use crate::hardware::mmu::{Memory, MemoryMapper};
-use crate::hardware::ppu::palette::DmgColor;
+use crate::hardware::ppu::palette::{DmgColor, RGB};
 use crate::hardware::ppu::{FRAMEBUFFER_SIZE, PPU};
 
 use crate::io::interrupts::{InterruptFlags, Interrupts};
@@ -57,7 +57,7 @@ impl Emulator {
     ///
     /// Should only be called on multiples of [CYCLES_PER_FRAME](constant.CYCLES_PER_FRAME.html)
     /// otherwise the data will be only partially complete.
-    pub fn frame_buffer(&self) -> &[DmgColor; FRAMEBUFFER_SIZE] {
+    pub fn frame_buffer(&self) -> &[RGB; FRAMEBUFFER_SIZE] {
         self.cpu.mmu.ppu.frame_buffer()
     }
 

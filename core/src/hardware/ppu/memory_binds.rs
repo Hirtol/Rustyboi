@@ -228,6 +228,10 @@ impl PPU {
         // }
     }
 
+    pub fn update_display_colours(&mut self, new_colours: DisplayColour) {
+        self.display_colours = new_colours;
+    }
+
     pub fn set_bg_palette(&mut self, value: u8) {
         self.bg_window_palette = Palette::from(value)
     }

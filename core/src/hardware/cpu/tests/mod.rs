@@ -14,6 +14,7 @@ use std::rc::Rc;
 use crate::emulator::EmulatorMode;
 use crate::emulator::EmulatorMode::DMG;
 use crate::hardware::mmu::cgb_mem::CgbData;
+use crate::hardware::ppu::palette::DisplayColour;
 
 mod cycle_tests;
 mod instruction_tests;
@@ -82,7 +83,7 @@ impl<T: MemoryMapper> CPU<T> {
 fn initial_cpu() -> CPU<TestMemory> {
     let mut cpu = CPU::new(TestMemory {
         mem: vec![0; 0x10000],
-        ppu: PPU::new(),
+        ppu: PPU::new(DisplayColour::default()),
         apu: APU::new(),
         timers: Default::default(),
         interrupts: Default::default(),

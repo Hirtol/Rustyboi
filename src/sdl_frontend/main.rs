@@ -17,7 +17,6 @@ use std::thread::sleep;
 use std::time::{Duration, Instant};
 
 use crate::actions::*;
-use crate::display::{DisplayColour, RGB};
 
 use hound::{SampleFormat, WavSpec};
 use sdl2::audio::{AudioQueue, AudioSpecDesired};
@@ -25,9 +24,9 @@ use sdl2::event::Event;
 use std::io::Write;
 use std::ops::Div;
 use rustyboi_core::emulator::EmulatorMode::{CGB, DMG};
+use rustyboi_core::hardware::ppu::palette::{DisplayColour, RGB};
 
 mod actions;
-mod display;
 
 const KIRBY_DISPLAY_COLOURS: DisplayColour = DisplayColour {
     black: RGB(44, 44, 150),
@@ -103,8 +102,9 @@ fn main() {
     let emu_opts = EmulatorOptionsBuilder::new()
         //.boot_rom(Some(bootrom_file))
         .with_mode(DMG)
+        .with_display_colours(KIRBY_DISPLAY_COLOURS)
         .build();
-    let mut emulator = create_emulator(_cpu_test, emu_opts);
+    let mut emulator = create_emulator(cartridge, emu_opts);
 
     let mut cycles = 0;
     let mut loop_cycles = 0;
@@ -154,7 +154,6 @@ fn main() {
             &mut canvas,
             &mut screen_texture,
             emulator.frame_buffer(),
-            &KIRBY_DISPLAY_COLOURS,
         );
 
         canvas.present();
@@ -275,12 +274,10 @@ fn setup_sdl(canvas: &mut WindowCanvas) -> Texture {
 fn fill_texture_and_copy(
     canvas: &mut WindowCanvas,
     texture: &mut Texture,
-    pixel_buffer: &[DmgColor],
-    colorizer: &DisplayColour,
+    pixel_buffer: &[RGB],
 ) {
     texture.with_lock(Option::None, |arr, _pitch| {
         for (i, colour) in pixel_buffer.iter().enumerate() {
-            let colour = colorizer.get_color(colour);
             let offset = i * 3;
             arr[offset] = colour.0;
             arr[offset + 1] = colour.1;
@@ -363,7 +360,6 @@ fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_textu
         fill_texture_and_copy(
             &mut canvas,
             &mut screen_texture, emulator.frame_buffer(),
-            &DEFAULT_DISPLAY_COLOURS,
         );
 
         canvas.present();
