@@ -41,3 +41,21 @@ impl CgbTileAttribute {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use crate::hardware::ppu::cgb_vram::CgbTileAttribute;
+
+    #[test]
+    fn test_palette_numb() {
+        let mut attr = CgbTileAttribute::default();
+
+        assert_eq!(attr.bg_palette_numb(), 0);
+        attr.set_bg_palette_numb(3);
+        assert_eq!(attr.bg_palette_numb(), 3);
+        attr.set_bg_palette_numb(7);
+        assert_eq!(attr.bg_palette_numb(), 7);
+        attr.set_bg_palette_numb(15);
+        assert_eq!(attr.bg_palette_numb(), 7);
+    }
+}
+
