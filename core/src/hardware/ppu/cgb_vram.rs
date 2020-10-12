@@ -64,28 +64,35 @@ impl CgbBgPaletteIndex {
 pub struct CgbRGBColour{
     pub red: u8,
     pub green: u8,
-    pub blue: u8
+    pub blue: u8,
+    r5: u8,
+    g5: u8,
+    b5: u8,
 }
 
 impl CgbRGBColour {
     pub fn set_high_byte(&mut self, value: u8) {
-        self.blue = (value & 0x7C) >> 2;
-        self.green = (self.green & 0x07) | ((value & 0x03) << 3);
+        self.b5 = (value & 0x7C) >> 2;
+        self.g5 = (self.green & 0x07) | ((value & 0x03) << 3);
+        // Formula taken from: https://stackoverflow.com/questions/2442576/how-does-one-convert-16-bit-rgb565-to-24-bit-rgb888
+        self.blue = ((self.b5 as u32 * 527 + 23) >> 6) as u8;
+        self.green = ((self.g5 as u32 * 527 + 23) >> 6) as u8;
     }
 
     pub fn set_low_byte(&mut self, value: u8) {
-        self.green = (self.green & 0x18) | ((value & 0xE0) >> 5);
-        self.red = value & 0x1F;
+        self.g5 = (self.green & 0x18) | ((value & 0xE0) >> 5);
+        self.r5 = value & 0x1F;
+
+        self.green = ((self.g5 as u32 * 527 + 23) >> 6) as u8;
+        self.red = ((self.r5 as u32 * 527 + 23) >> 6) as u8;
     }
 
     pub fn get_high_byte(&self) -> u8 {
-        //TODO
-        unimplemented!()
+        (self.b5 << 2) | self.g5 & 0x3
     }
 
     pub fn get_low_byte(&self) -> u8 {
-        //TODO
-        unimplemented!()
+        (self.g5 << 5) | self.r5
     }
 }
 
@@ -125,9 +132,11 @@ mod tests {
         let mut rgb = CgbRGBColour::default();
         rgb.set_high_byte(0xF8);
         rgb.set_low_byte(0x9F);
-        assert_eq!(rgb.red, 0b1_1111);
-        assert_eq!(rgb.green, 0b0_0100);
-        assert_eq!(rgb.blue, 0b1_1110);
+        assert_eq!(rgb.r5, 0b1_1111);
+        assert_eq!(rgb.g5, 0b0_0100);
+        assert_eq!(rgb.b5, 0b1_1110);
+        assert_eq!(rgb.get_high_byte(), 0b0111_1000);
+        assert_eq!(rgb.get_low_byte(), 0b1001_1111);
     }
 }
 
