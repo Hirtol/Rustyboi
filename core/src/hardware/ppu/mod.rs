@@ -2,7 +2,7 @@ use itertools::Itertools;
 use num_integer::Integer;
 
 use crate::emulator::CYCLES_PER_FRAME;
-use crate::hardware::ppu::palette::{DmgColor, Palette, DisplayColour, RGB};
+use crate::hardware::ppu::palette::{Palette, DisplayColour, RGB};
 use crate::hardware::ppu::register_flags::*;
 use crate::hardware::ppu::tiledata::*;
 use crate::hardware::ppu::Mode::{HBlank, LcdTransfer, OamSearch, VBlank};
@@ -260,7 +260,7 @@ impl PPU {
         } else {
             let bgcolour = self.bg_window_palette.color_0();
             for pixel in self.scanline_buffer.iter_mut() {
-                *pixel = self.display_colours.get_colour(bgcolour);
+                *pixel = bgcolour;
             }
         }
 
@@ -433,7 +433,7 @@ impl PPU {
                 if (pixel < 0)
                     || (pixel > 159)
                     || (is_background_sprite
-                        && self.scanline_buffer[pixel as usize] != self.display_colours.get_colour(self.bg_window_palette.color_0()))
+                        && self.scanline_buffer[pixel as usize] != self.bg_window_palette.color_0())
                 {
                     continue;
                 }
@@ -442,7 +442,7 @@ impl PPU {
 
                 // The colour 0 should be transparent for sprites, therefore we don't draw it.
                 if colour != 0x0 {
-                    self.scanline_buffer[pixel as usize] = self.display_colours.get_colour(self.get_sprite_palette(sprite).colour(colour));
+                    self.scanline_buffer[pixel as usize] = self.get_sprite_palette(sprite).colour(colour);
                 }
             }
         }
@@ -468,7 +468,7 @@ impl PPU {
                     break;
                 }
                 let colour = self.get_pixel_colour(j, top_pixel_data, bottom_pixel_data);
-                self.scanline_buffer[*pixel_counter as usize] = self.display_colours.get_colour(self.bg_window_palette.colour(colour));
+                self.scanline_buffer[*pixel_counter as usize] = self.bg_window_palette.colour(colour);
                 *pixel_counter += 1;
             }
         }
@@ -478,14 +478,14 @@ impl PPU {
     /// get_pixel_calls().
     #[inline(always)]
     fn draw_contiguous_bg_window_block(&mut self, pixel_counter: usize, top_pixel_data: u8, bottom_pixel_data: u8) {
-        self.scanline_buffer[pixel_counter + 7] = self.display_colours.get_colour(self.bg_window_palette.colour(top_pixel_data & 0x1 | ((bottom_pixel_data & 0x1) << 1)));
-        self.scanline_buffer[pixel_counter + 6] = self.display_colours.get_colour(self.bg_window_palette.colour((top_pixel_data & 0x2) >> 1 | (bottom_pixel_data & 0x2)));
-        self.scanline_buffer[pixel_counter + 5] = self.display_colours.get_colour(self.bg_window_palette.colour((top_pixel_data & 4) >> 2 | ((bottom_pixel_data & 4) >> 1)));
-        self.scanline_buffer[pixel_counter + 4] = self.display_colours.get_colour(self.bg_window_palette.colour((top_pixel_data & 8) >> 3 | ((bottom_pixel_data & 8) >> 2)));
-        self.scanline_buffer[pixel_counter + 3] = self.display_colours.get_colour(self.bg_window_palette.colour((top_pixel_data & 16) >> 4 | ((bottom_pixel_data & 16) >> 3)));
-        self.scanline_buffer[pixel_counter + 2] = self.display_colours.get_colour(self.bg_window_palette.colour((top_pixel_data & 32) >> 5 | ((bottom_pixel_data & 32) >> 4)));
-        self.scanline_buffer[pixel_counter + 1] = self.display_colours.get_colour(self.bg_window_palette.colour((top_pixel_data & 64) >> 6 | ((bottom_pixel_data & 64) >> 5)));
-        self.scanline_buffer[pixel_counter] = self.display_colours.get_colour(self.bg_window_palette.colour((top_pixel_data & 128) >> 7 | ((bottom_pixel_data & 128) >> 6)));
+        self.scanline_buffer[pixel_counter + 7] = self.bg_window_palette.colour(top_pixel_data & 0x1 | ((bottom_pixel_data & 0x1) << 1));
+        self.scanline_buffer[pixel_counter + 6] = self.bg_window_palette.colour((top_pixel_data & 0x2) >> 1 | (bottom_pixel_data & 0x2));
+        self.scanline_buffer[pixel_counter + 5] = self.bg_window_palette.colour((top_pixel_data & 4) >> 2 | ((bottom_pixel_data & 4) >> 1));
+        self.scanline_buffer[pixel_counter + 4] = self.bg_window_palette.colour((top_pixel_data & 8) >> 3 | ((bottom_pixel_data & 8) >> 2));
+        self.scanline_buffer[pixel_counter + 3] = self.bg_window_palette.colour((top_pixel_data & 16) >> 4 | ((bottom_pixel_data & 16) >> 3));
+        self.scanline_buffer[pixel_counter + 2] = self.bg_window_palette.colour((top_pixel_data & 32) >> 5 | ((bottom_pixel_data & 32) >> 4));
+        self.scanline_buffer[pixel_counter + 1] = self.bg_window_palette.colour((top_pixel_data & 64) >> 6 | ((bottom_pixel_data & 64) >> 5));
+        self.scanline_buffer[pixel_counter] = self.bg_window_palette.colour((top_pixel_data & 128) >> 7 | ((bottom_pixel_data & 128) >> 6));
     }
 
     fn get_pixel_colour(&self, bit_offset: u8, top_pixel_data: u8, bottom_pixel_data: u8) -> u8 {

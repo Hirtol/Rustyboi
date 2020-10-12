@@ -230,18 +230,21 @@ impl PPU {
 
     pub fn update_display_colours(&mut self, new_colours: DisplayColour) {
         self.display_colours = new_colours;
+        self.set_bg_palette(self.bg_window_palette.into());
+        self.set_oam_palette_0(self.oam_palette_0.into());
+        self.set_oam_palette_1(self.oam_palette_1.into());
     }
 
     pub fn set_bg_palette(&mut self, value: u8) {
-        self.bg_window_palette = Palette::from(value)
+        self.bg_window_palette = Palette::new(value, self.display_colours)
     }
 
     pub fn set_oam_palette_0(&mut self, value: u8) {
-        self.oam_palette_0 = Palette::from(value)
+        self.oam_palette_0 = Palette::new(value, self.display_colours)
     }
 
     pub fn set_oam_palette_1(&mut self, value: u8) {
-        self.oam_palette_1 = Palette::from(value)
+        self.oam_palette_1 = Palette::new(value, self.display_colours)
     }
 
     pub fn set_window_y(&mut self, value: u8) {

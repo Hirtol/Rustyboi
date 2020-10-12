@@ -5,7 +5,7 @@ use bitflags::_core::cell::RefCell;
 use crate::hardware::cpu::CPU;
 
 use crate::hardware::mmu::{Memory, MemoryMapper};
-use crate::hardware::ppu::palette::{DmgColor, RGB};
+use crate::hardware::ppu::palette::{RGB};
 use crate::hardware::ppu::{FRAMEBUFFER_SIZE, PPU};
 
 use crate::io::interrupts::{InterruptFlags, Interrupts};

@@ -2,7 +2,7 @@ use log::LevelFilter;
 use log::*;
 use rustyboi_core::emulator::{Emulator, CYCLES_PER_FRAME};
 
-use rustyboi_core::{DmgColor, InputKey, EmulatorOptionsBuilder};
+use rustyboi_core::{InputKey, EmulatorOptionsBuilder};
 use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::pixels::PixelFormatEnum::RGB24;
@@ -217,6 +217,7 @@ fn handle_events(event: Event, emulator: &mut Emulator, fast_forward: &mut bool)
                 save_rom(emulator);
                 let emu_opts = EmulatorOptionsBuilder::new()
                     .with_mode(CGB)
+                    .with_display_colours(KIRBY_DISPLAY_COLOURS)
                     .build();
                 *emulator = create_emulator(&filename, emu_opts);
             } else {
