@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use num_integer::Integer;
 
-use crate::emulator::CYCLES_PER_FRAME;
+use crate::emulator::{CYCLES_PER_FRAME, EmulatorMode};
 use crate::hardware::ppu::palette::{Palette, DisplayColour, RGB};
 use crate::hardware::ppu::register_flags::*;
 use crate::hardware::ppu::tiledata::*;
@@ -194,12 +194,16 @@ impl PPU {
         }
     }
 
-    pub fn lcd_transfer(&mut self) {
+    pub fn lcd_transfer(&mut self, selected_mode: EmulatorMode) {
         // Drawing (Mode 3)
         self.lcd_status.set_mode_flag(LcdTransfer);
 
         // Draw our actual line once we enter Drawing mode.
-        self.draw_scanline();
+        if selected_mode.is_cgb() {
+            self.draw_cgb_scanline();
+        } else {
+            self.draw_scanline();
+        }
     }
 
     pub fn hblank(&mut self, interrupts: &mut Interrupts) {

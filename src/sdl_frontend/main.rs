@@ -100,8 +100,8 @@ fn main() {
 
     let mut timer = sdl_context.timer().unwrap();
     let emu_opts = EmulatorOptionsBuilder::new()
-        //.boot_rom(Some(bootrom_file))
-        .with_mode(DMG)
+        .boot_rom(Some(bootrom_file))
+        .with_mode(CGB)
         .with_display_colours(KIRBY_DISPLAY_COLOURS)
         .build();
     let mut emulator = create_emulator(cartridge, emu_opts);

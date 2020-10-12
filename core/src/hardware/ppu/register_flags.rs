@@ -97,10 +97,11 @@ bitflags! {
     /// or the fetcher is stalling the FIFOs.
     #[derive(Default)]
     pub struct AttributeFlags: u8 {
-        //TODO: Add CGB Flags to this.
-        /// Purely so that the full byte is transferred.
-        const UNUSED = 0b0000_1111;
-        /// (0=OBP0, 1=OBP1)
+        /// **CGB Mode Only**     (OBP0-7)
+        const PALETTE_NUMBER_CGB = 0b0000_0111;
+        /// **CGB Mode Only**     (0=Bank 0, 1=Bank 1)
+        const TILE_VRAM_BANK = 0b0000_1000;
+        /// **Non CGB Mode Only** (0=OBP0, 1=OBP1)
         const PALETTE_NUMBER = 0b0001_0000;
         /// (0=Normal, 1=Horizontally mirrored)
         const X_FLIP = 0b0010_0000;
@@ -109,6 +110,12 @@ bitflags! {
         /// (0=OBJ Above BG, 1=OBJ Behind BG color 1-3)
         /// (Used for both BG and Window. BG color 0 is always behind OBJ)
         const OBJ_TO_BG_PRIORITY = 0b1000_0000;
+    }
+}
+
+impl AttributeFlags {
+    pub fn get_cgb_palette_number(&self) -> u8 {
+        self.bits & 0x07
     }
 }
 

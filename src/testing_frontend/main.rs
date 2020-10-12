@@ -10,7 +10,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use crate::display::TEST_COLOURS;
-use rustyboi_core::{DmgColor, EmulatorOptionsBuilder};
+use rustyboi_core::{EmulatorOptionsBuilder};
 use std::ffi::{OsStr, OsString};
 
 use crate::options::AppOptions;

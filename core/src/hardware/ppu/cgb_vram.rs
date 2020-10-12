@@ -1,6 +1,7 @@
 use bitflags::*;
 use crate::hardware::ppu::tiledata::BACKGROUND_TILE_SIZE;
 use std::ops::Index;
+use crate::hardware::ppu::palette::RGB;
 
 #[derive(Debug)]
 pub struct CgbTileMap {
@@ -33,8 +34,8 @@ bitflags! {
 
 impl CgbTileAttribute {
     /// Returns the BG palette number in the range `0..=7`
-    pub fn bg_palette_numb(&self) -> u8 {
-        self.bits & 0x7
+    pub fn bg_palette_numb(&self) -> usize {
+        (self.bits & 0x7) as usize
     }
 
     pub fn set_bg_palette_numb(&mut self, value: u8) {
@@ -62,9 +63,7 @@ impl CgbBgPaletteIndex {
 #[derive(Default, Debug, Copy, Clone)]
 /// This struct will naively convert the written 15 bit colour values to 24 bit.
 pub struct CgbRGBColour{
-    pub red: u8,
-    pub green: u8,
-    pub blue: u8,
+    pub rgb: RGB,
     r5: u8,
     g5: u8,
     b5: u8,
@@ -73,18 +72,18 @@ pub struct CgbRGBColour{
 impl CgbRGBColour {
     pub fn set_high_byte(&mut self, value: u8) {
         self.b5 = (value & 0x7C) >> 2;
-        self.g5 = (self.green & 0x07) | ((value & 0x03) << 3);
+        self.g5 = (self.g5 & 0x07) | ((value & 0x03) << 3);
         // Formula taken from: https://stackoverflow.com/questions/2442576/how-does-one-convert-16-bit-rgb565-to-24-bit-rgb888
-        self.blue = ((self.b5 as u32 * 527 + 23) >> 6) as u8;
-        self.green = ((self.g5 as u32 * 527 + 23) >> 6) as u8;
+        self.rgb.2 = ((self.b5 as u32 * 527 + 23) >> 6) as u8;
+        self.rgb.1 = ((self.g5 as u32 * 527 + 23) >> 6) as u8;
     }
 
     pub fn set_low_byte(&mut self, value: u8) {
-        self.g5 = (self.green & 0x18) | ((value & 0xE0) >> 5);
+        self.g5 = (self.g5 & 0x18) | ((value & 0xE0) >> 5);
         self.r5 = value & 0x1F;
 
-        self.green = ((self.g5 as u32 * 527 + 23) >> 6) as u8;
-        self.red = ((self.r5 as u32 * 527 + 23) >> 6) as u8;
+        self.rgb.1 = ((self.g5 as u32 * 527 + 23) >> 6) as u8;
+        self.rgb.0 = ((self.r5 as u32 * 527 + 23) >> 6) as u8;
     }
 
     pub fn get_high_byte(&self) -> u8 {

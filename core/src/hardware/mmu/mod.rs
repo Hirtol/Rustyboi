@@ -371,7 +371,7 @@ impl Memory {
                         .push_full_event(event.update_self(EventType::LcdTransfer, 80));
                 }
                 EventType::LcdTransfer => {
-                    self.ppu.lcd_transfer();
+                    self.ppu.lcd_transfer(self.emulation_mode);
                     self.scheduler
                         .push_full_event(event.update_self(EventType::HBLANK, 172));
                 }
