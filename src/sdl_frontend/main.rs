@@ -24,7 +24,7 @@ use sdl2::audio::{AudioQueue, AudioSpecDesired};
 use sdl2::event::Event;
 use std::io::Write;
 use std::ops::Div;
-use rustyboi_core::emulator::EmulatorMode::CGB;
+use rustyboi_core::emulator::EmulatorMode::{CGB, DMG};
 
 mod actions;
 mod display;
@@ -101,8 +101,8 @@ fn main() {
 
     let mut timer = sdl_context.timer().unwrap();
     let emu_opts = EmulatorOptionsBuilder::new()
-        .boot_rom(Some(bootrom_file))
-        .with_mode(CGB)
+        //.boot_rom(Some(bootrom_file))
+        .with_mode(DMG)
         .build();
     let mut emulator = create_emulator(_cpu_test, emu_opts);
 

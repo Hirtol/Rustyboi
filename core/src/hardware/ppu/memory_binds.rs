@@ -135,6 +135,20 @@ impl PPU {
         if self.cgb_object_priority { 0x1 } else { 0x0 }
     }
 
+    pub fn get_bg_color_palette_index(&self) -> u8{
+        self.cgb_palette_ind.get_value()
+    }
+
+    pub fn get_bg_palette_data(&self) -> u8{
+        let addr = self.cgb_palette_ind.selected_address;
+
+        if addr % 2 == 0 {
+            self.cgb_bg_palette[addr / 8].colours[addr % 8].get_high_byte()
+        } else {
+            self.cgb_bg_palette[addr / 8].colours[addr % 8].get_low_byte()
+        }
+    }
+
     pub fn set_vram_bank(&mut self, value: u8) {
         self.tile_bank_currently_used = value & 0x1;
         //log::warn!("Switching vram bank to: {:#X?}", self.tile_bank_currently_used);
@@ -226,6 +240,24 @@ impl PPU {
 
     pub fn set_object_priority(&mut self, value: u8) {
         self.cgb_object_priority = (value & 0x1) == 1
+    }
+
+    pub fn set_bg_color_palette_index(&mut self, value: u8) {
+        self.cgb_palette_ind.set_value(value);
+    }
+
+    pub fn set_bg_palette_data(&mut self, value: u8) {
+        let addr = self.cgb_palette_ind.selected_address;
+
+        if addr % 2 == 0 {
+            self.cgb_bg_palette[addr / 8].colours[addr % 8].set_high_byte(value);
+        } else {
+            self.cgb_bg_palette[addr / 8].colours[addr % 8].set_low_byte(value);
+        }
+
+        if self.cgb_palette_ind.auto_increment {
+            self.cgb_palette_ind.selected_address = addr.wrapping_add(1);
+        }
     }
 
     /// Checks all possible LCD STAT interrupts, and fires them

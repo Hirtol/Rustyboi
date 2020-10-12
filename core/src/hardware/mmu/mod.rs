@@ -262,6 +262,8 @@ impl Memory {
             CGB_HDMA_1 | CGB_HDMA_2 | CGB_HDMA_3 | CGB_HDMA_4 => INVALID_READ,
             CGB_HDMA_5 => if self.emulation_mode.is_dmg() { INVALID_READ } else { self.hdma.hdma5() }
             CGB_RP => self.io_registers.read_byte(address),
+            CGB_BACKGROUND_COLOR_INDEX => self.ppu.get_bg_color_palette_index(),
+            CGB_BACKGROUND_PALETTE_DATA => self.ppu.get_bg_palette_data(),
             CGB_OBJECT_PRIORITY_MODE => self.ppu.get_object_priority(),
             CGB_WRAM_BANK => self.wram.read_bank_select(),
             _ => self.io_registers.read_byte(address),
@@ -304,12 +306,13 @@ impl Memory {
             CGB_HDMA_3 => self.hdma.write_hdma3(value),
             CGB_HDMA_4 => self.hdma.write_hdma4(value),
             CGB_HDMA_5 => self.hdma.write_hdma5(value, &mut self.scheduler),
-
             0xFF50 if !self.boot_rom.is_finished => {
                 self.boot_rom.is_finished = true;
                 info!("Finished executing BootRom!");
             }
             CGB_RP => self.io_registers.write_byte(address, value),
+            CGB_BACKGROUND_COLOR_INDEX => self.ppu.set_bg_color_palette_index(value),
+            CGB_BACKGROUND_PALETTE_DATA => self.ppu.set_bg_palette_data(value),
             CGB_OBJECT_PRIORITY_MODE => self.ppu.set_object_priority(value),
             CGB_WRAM_BANK => self.wram.write_bank_select(value),
             _ => self.io_registers.write_byte(address, value)

@@ -8,7 +8,7 @@ use crate::hardware::ppu::tiledata::*;
 use crate::hardware::ppu::Mode::{HBlank, LcdTransfer, OamSearch, VBlank};
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::scheduler::{Event, EventType, Scheduler};
-use crate::hardware::ppu::cgb_vram::CgbTileMap;
+use crate::hardware::ppu::cgb_vram::{CgbTileMap, CgbBgPaletteIndex, CgbPalette};
 
 pub const RESOLUTION_WIDTH: usize = 160;
 pub const RESOLUTION_HEIGHT: usize = 144;
@@ -71,6 +71,12 @@ pub const OB_PALETTE_1: u16 = 0xFF49;
 ///
 /// [here]: https://gbdev.io/pandocs/#lcd-oam-dma-transfers
 pub const DMA_TRANSFER: u16 = 0xFF46;
+/// This register is used to address a byte in the CGBs Background Palette Memory.
+/// Each two byte in that memory define a color value. The first 8 bytes define Color 0-3 of Palette 0 (BGP0), and so on for BGP1-7.
+pub const CGB_BACKGROUND_COLOR_INDEX: u16 = 0xFF68;
+/// his register allows to read/write data to the CGBs Background Palette Memory, addressed through Register FF68.
+/// Each color is defined by two bytes (Bit 0-7 in first byte).
+pub const CGB_BACKGROUND_PALETTE_DATA: u16 = 0xFF69;
 
 pub mod memory_binds;
 pub mod palette;
@@ -113,6 +119,10 @@ pub struct PPU {
     bg_window_palette: Palette,
     oam_palette_0: Palette,
     oam_palette_1: Palette,
+    cgb_palette_ind: CgbBgPaletteIndex,
+    cgb_bg_palette: [CgbPalette; 8],
+    cgb_sprite_palette: [CgbPalette; 8],
+
 
     pub current_y: u8,
     compare_line: u8,
@@ -156,7 +166,10 @@ impl PPU {
             window_counter: 0,
             window_triggered: false,
             oam_transfer_ongoing: false,
-            cgb_object_priority: true
+            cgb_object_priority: true,
+            cgb_palette_ind: CgbBgPaletteIndex::default(),
+            cgb_bg_palette: [CgbPalette::default(); 8],
+            cgb_sprite_palette: [CgbPalette::default(); 8]
         }
     }
 
