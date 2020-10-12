@@ -37,13 +37,11 @@ impl EmulatorMode {
 
 pub struct Emulator {
     cpu: CPU<Memory>,
-    selected_mode: EmulatorMode,
 }
 
 impl Emulator {
     pub fn new(cartridge: &[u8], options: EmulatorOptions) -> Self {
         Emulator {
-            selected_mode: options.emulator_mode,
             cpu: CPU::new(Memory::new(cartridge, options)),
         }
     }
