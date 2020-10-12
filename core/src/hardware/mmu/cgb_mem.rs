@@ -82,7 +82,6 @@ impl HdmaRegister {
         // Restart transfer TODO: Stop?
         if self.transfer_ongoing {
             scheduler.remove_event_type(EventType::GDMATransferComplete);
-            scheduler.remove_event_type(EventType::HDMATransferComplete);
             if value & 0x80 == 0 {
                 // If bit 7 is 0 then we stop the current transfer and return
                 self.transfer_ongoing = false;
@@ -98,7 +97,6 @@ impl HdmaRegister {
         match self.current_mode {
             GDMA => scheduler.push_relative(EventType::GDMARequested, 4),
             HDMA => {
-                scheduler.push_relative(EventType::HDMARequested, 4);
                 //After writing a value to HDMA5 that starts the HDMA copy, the upper bit
                 // (that indicates HDMA mode when set to '1') will be cleared
                 self.hdma_length &= 0x7F;

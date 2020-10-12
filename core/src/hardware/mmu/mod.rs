@@ -370,7 +370,7 @@ impl Memory {
 
                     // HDMA transfers 16 bytes every HBLANK
                     if self.hdma.transfer_ongoing && self.hdma.current_mode == HDMA {
-                        log::warn!("Performing HDMA transfer");
+                        log::info!("Performing HDMA transfer");
                         self.hdma_transfer();
                         if self.hdma.transfer_ongoing {
                             // Pass 36 (single speed)/68 (double speed) cycles where the CPU does nothing.
@@ -418,14 +418,8 @@ impl Memory {
                 EventType::DMATransferComplete => {
                     self.ppu.oam_dma_finished();
                 }
-                EventType::HDMARequested => {
-
-                }
-                EventType::HDMATransferComplete => {
-
-                }
                 EventType::GDMARequested => {
-                    log::warn!("Performing GDMA transfer");
+                    log::info!("Performing GDMA transfer");
                     let mut clocks_to_wait = self.hdma.transfer_size as u64 * if self.cgb_data.double_speed {64} else {32};
                     self.scheduler.push_relative(EventType::GDMATransferComplete, clocks_to_wait);
                     self.gdma_transfer();
