@@ -77,6 +77,8 @@ pub const CGB_BACKGROUND_COLOR_INDEX: u16 = 0xFF68;
 /// his register allows to read/write data to the CGBs Background Palette Memory, addressed through Register FF68.
 /// Each color is defined by two bytes (Bit 0-7 in first byte).
 pub const CGB_BACKGROUND_PALETTE_DATA: u16 = 0xFF69;
+/// These registers are used to initialize the Sprite Palettes OBP0-7
+pub const CGB_OBJECT_PALETTE_DATA: u16 = 0xFF6A;
 
 pub mod memory_binds;
 pub mod palette;
