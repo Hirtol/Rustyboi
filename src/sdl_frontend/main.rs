@@ -104,7 +104,7 @@ fn main() {
         .with_mode(CGB)
         .with_display_colours(KIRBY_DISPLAY_COLOURS)
         .build();
-    let mut emulator = create_emulator(cartridge, emu_opts);
+    let mut emulator = create_emulator(_cpu_test, emu_opts);
 
     let mut cycles = 0;
     let mut loop_cycles = 0;

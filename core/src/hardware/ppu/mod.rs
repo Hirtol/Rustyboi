@@ -164,6 +164,9 @@ impl PPU {
             bg_window_palette: Palette::default(),
             oam_palette_0: Palette::default(),
             oam_palette_1: Palette::default(),
+            cgb_palette_ind: CgbBgPaletteIndex::default(),
+            cgb_bg_palette: [CgbPalette::default(); 8],
+            cgb_sprite_palette: [CgbPalette::default(); 8],
             compare_line: 0,
             current_y: 0,
             scroll_x: 0,
@@ -174,9 +177,6 @@ impl PPU {
             window_triggered: false,
             oam_transfer_ongoing: false,
             cgb_object_priority: true,
-            cgb_palette_ind: CgbBgPaletteIndex::default(),
-            cgb_bg_palette: [CgbPalette::default(); 8],
-            cgb_sprite_palette: [CgbPalette::default(); 8]
         }
     }
 

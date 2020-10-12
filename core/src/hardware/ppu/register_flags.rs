@@ -114,8 +114,8 @@ bitflags! {
 }
 
 impl AttributeFlags {
-    pub fn get_cgb_palette_number(&self) -> u8 {
-        self.bits & 0x07
+    pub fn get_cgb_palette_number(&self) -> usize {
+        (self.bits & 0x07) as usize
     }
 }
 

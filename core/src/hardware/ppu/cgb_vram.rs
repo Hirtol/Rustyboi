@@ -60,13 +60,24 @@ impl CgbBgPaletteIndex {
     }
 }
 
-#[derive(Default, Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 /// This struct will naively convert the written 15 bit colour values to 24 bit.
 pub struct CgbRGBColour{
     pub rgb: RGB,
     r5: u8,
     g5: u8,
     b5: u8,
+}
+
+impl Default for CgbRGBColour {
+    fn default() -> Self {
+        CgbRGBColour{
+            rgb: RGB(0, 0, 0),
+            r5: 0,
+            g5: 0,
+            b5: 0
+        }
+    }
 }
 
 impl CgbRGBColour {

@@ -160,7 +160,7 @@ impl PPU {
         let tall_sprites = self.lcd_control.contains(LcdControl::SPRITE_SIZE);
         let y_size: u8 = if tall_sprites { 16 } else { 8 };
 
-        // Sort by x such that a lower x-pos will always overwrite a higher x-pos sprite.
+        // TODO: Sort by X or OAM Position based on variable?
         let sprites_to_draw = self
             .oam
             .iter()
@@ -168,9 +168,8 @@ impl PPU {
                 let screen_y_pos = sprite.y_pos as i16 - 16;
                 is_sprite_on_scanline(self.current_y as i16, screen_y_pos, y_size as i16)
             })
-            .take(10) // Max 10 sprites per scanline
-            .sorted_by_key(|x| x.x_pos)
-            .rev();
+            .take(10)
+            .collect_vec(); // Max 10 sprites per scanline
 
         for sprite in sprites_to_draw {
             // We need to cast to i16 here, as otherwise we'd wrap around when x is f.e 7.
@@ -189,7 +188,7 @@ impl PPU {
                 line = y_size - (line + 1);
             }
 
-            let tile_index = sprite.tile_number as usize;
+            let tile_index = sprite.tile_number as usize + (384 * sprite.attribute_flags.contains(AttributeFlags::TILE_VRAM_BANK) as usize);
             let tile = if !tall_sprites {
                 self.tiles[tile_index]
             } else {
@@ -220,10 +219,11 @@ impl PPU {
                 // as parts of those sprites need to then not be rendered.
                 // If the BG bit is 1 then the sprite is only drawn if the background colour
                 // is color_0, otherwise the background takes precedence.
+                //TODO: Look at BG priority code
                 if (pixel < 0)
                     || (pixel > 159)
                     || (is_background_sprite
-                    && self.scanline_buffer[pixel as usize] != self.bg_window_palette.color_0())
+                    && self.cgb_bg_palette.iter().map(|p| p.colours[0]).any(|p| p.rgb != self.scanline_buffer[pixel as usize]))
                 {
                     continue;
                 }
@@ -232,7 +232,7 @@ impl PPU {
 
                 // The colour 0 should be transparent for sprites, therefore we don't draw it.
                 if colour != 0x0 {
-                    self.scanline_buffer[pixel as usize] = self.get_sprite_palette(sprite).colour(colour);
+                    self.scanline_buffer[pixel as usize] = self.cgb_sprite_palette[sprite.attribute_flags.get_cgb_palette_number()].colours[colour as usize].rgb;
                 }
             }
         }
