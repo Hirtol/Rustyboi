@@ -359,14 +359,6 @@ impl Memory {
                 EventType::HBLANK => {
                     self.ppu.hblank(&mut self.interrupts);
 
-                    // HDMA transfers 16 bytes every VBLANK
-                    if self.hdma.transfer_ongoing && self.hdma.current_mode == HDMA {
-                        log::warn!("Performing HDMA transfer");
-                        self.ppu.hdma_transfer();
-                        self.hdma.advance_hdma();
-                        //TODO: Skip ahead, since CPU is halted during transfer.
-                    }
-
                     // First 144 lines
                     if self.ppu.current_y != 143 {
                         self.scheduler
@@ -374,6 +366,19 @@ impl Memory {
                     } else {
                         self.scheduler
                             .push_full_event(event.update_self(EventType::VBLANK, 204));
+                    }
+
+                    // HDMA transfers 16 bytes every HBLANK
+                    if self.hdma.transfer_ongoing && self.hdma.current_mode == HDMA {
+                        log::warn!("Performing HDMA transfer");
+                        self.hdma_transfer();
+                        if self.hdma.transfer_ongoing {
+                            // Pass 36 (single speed)/68 (double speed) cycles where the CPU does nothing.
+                            for _ in 0..9 {
+                                //TODO: Skip ahead, since CPU is halted during transfer. Account for double speed
+                                self.do_m_cycle();
+                            }
+                        }
                     }
                 }
                 EventType::VblankWait => {
@@ -448,9 +453,23 @@ impl Memory {
     pub fn gdma_transfer(&mut self) {
         let values_iter = (self.hdma.source_address..(self.hdma.source_address+self.hdma.transfer_size))
             .map(|i| self.read_byte(i)).collect_vec();
+
         for (i, value) in values_iter.into_iter().enumerate() {
             self.write_byte(self.hdma.destination_address + i as u16, value);
         }
+    }
+
+    /// Required here since the HDMA can write to arbitrary PPU addresses.
+    pub fn hdma_transfer(&mut self){
+        // We transfer 16 bytes every H-Blank
+        let values_iter = (self.hdma.source_address..(self.hdma.source_address+16))
+            .map(|i| self.read_byte(i)).collect_vec();
+
+        for (i, value) in values_iter.into_iter().enumerate() {
+            self.write_byte(self.hdma.destination_address + i as u16, value);
+        }
+
+        self.hdma.advance_hdma();
     }
 
     /// Add a new interrupt to the IF flag.

@@ -118,6 +118,7 @@ impl HdmaRegister {
         self.source_address = self.source_address.wrapping_add(16);
         self.destination_address = self.destination_address.wrapping_add(16);
         self.transfer_size = self.transfer_size.wrapping_sub(16);
+
         if self.transfer_size == 0 {
             self.complete_transfer();
         }
