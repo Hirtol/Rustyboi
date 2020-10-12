@@ -79,7 +79,6 @@ impl HdmaRegister {
         self.hdma_length = value;
         self.transfer_size = ((value & 0x7F) as u16 + 1) * 16;
 
-        // Restart transfer TODO: Stop?
         if self.transfer_ongoing {
             scheduler.remove_event_type(EventType::GDMATransferComplete);
             if value & 0x80 == 0 {

@@ -116,13 +116,18 @@ pub struct PPU {
 
     pub current_y: u8,
     compare_line: u8,
+
     scroll_x: u8,
     scroll_y: u8,
+
     window_x: u8,
     window_y: u8,
     window_counter: u8,
     window_triggered: bool,
+
     oam_transfer_ongoing: bool,
+    /// (false=OAM Priority, true=Coordinate Priority)
+    cgb_object_priority: bool,
 }
 
 impl PPU {
@@ -150,7 +155,8 @@ impl PPU {
             window_y: 0,
             window_counter: 0,
             window_triggered: false,
-            oam_transfer_ongoing: false
+            oam_transfer_ongoing: false,
+            cgb_object_priority: true
         }
     }
 

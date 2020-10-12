@@ -1,12 +1,12 @@
 //! This module is purely used for providing access to PPU memory resources
 //! to the MMU.
-use crate::hardware::mmu::{OAM_ATTRIBUTE_START, INVALID_READ};
+use crate::hardware::mmu::{INVALID_READ, OAM_ATTRIBUTE_START};
+use crate::hardware::ppu::cgb_vram::CgbTileAttribute;
 use crate::hardware::ppu::PPU;
 use crate::print_array_raw;
-use crate::scheduler::EventType::{HBLANK, VBLANK, DMATransferComplete};
+use crate::scheduler::EventType::{DMATransferComplete, HBLANK, VBLANK};
 
 use super::*;
-use crate::hardware::ppu::cgb_vram::CgbTileAttribute;
 
 impl PPU {
     pub fn get_tile_byte(&self, address: u16) -> u8 {
@@ -32,7 +32,7 @@ impl PPU {
                 } else {
                     self.cgb_9800_tile_map.attributes[(address - TILEMAP_9800_START) as usize].bits()
                 }
-            },
+            }
             // 9C00, assuming no malicious calls
             _ => {
                 if self.tile_bank_currently_used == 0 {
@@ -40,7 +40,7 @@ impl PPU {
                 } else {
                     self.cgb_9c00_tile_map.attributes[(address - TILEMAP_9C00_START) as usize].bits()
                 }
-            },
+            }
         }
     }
 
@@ -60,7 +60,7 @@ impl PPU {
                 } else {
                     self.cgb_9c00_tile_map.attributes[(address - TILEMAP_9C00_START) as usize] = CgbTileAttribute::from_bits_truncate(value)
                 }
-            },
+            }
         }
     }
 
@@ -129,6 +129,10 @@ impl PPU {
 
     pub fn get_window_x(&self) -> u8 {
         self.window_x
+    }
+
+    pub fn get_object_priority(&self) -> u8 {
+        if self.cgb_object_priority { 0x1 } else { 0x0 }
     }
 
     pub fn set_vram_bank(&mut self, value: u8) {
@@ -218,6 +222,10 @@ impl PPU {
 
     pub fn set_window_x(&mut self, value: u8) {
         self.window_x = value
+    }
+
+    pub fn set_object_priority(&mut self, value: u8) {
+        self.cgb_object_priority = (value & 0x1) == 1
     }
 
     /// Checks all possible LCD STAT interrupts, and fires them

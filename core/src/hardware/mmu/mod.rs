@@ -86,6 +86,14 @@ pub const CGB_HDMA_4: u16 = 0xFF54;
 /// Bit 7 – Transfer mode (0=GDMA, 1=HDMA)
 /// Bits 6-0 – Blocks (Size = (Blocks+1)×16 bytes)
 pub const CGB_HDMA_5: u16 = 0xFF55;
+/// Infrared Communications Port //TODO: Implement?
+pub const CGB_RP: u16 = 0xFF56;
+///This register serves as a flag for which object priority mode to use. While the DMG prioritizes
+///objects by x-coordinate, the CGB prioritizes them by location in OAM.
+/// This flag is set by the CGB bios after checking the game's CGB compatibility.
+pub const CGB_OBJECT_PRIORITY_MODE: u16 = 0xFF6C;
+/// Work ram bank switching.
+pub const CGB_WRAM_BANK: u16 = 0xFF70;
 
 
 /// The flag used to signal that an interrupt is pending.
@@ -253,6 +261,9 @@ impl Memory {
             CGB_VRAM_BANK_REGISTER => self.ppu.get_vram_bank(),
             CGB_HDMA_1 | CGB_HDMA_2 | CGB_HDMA_3 | CGB_HDMA_4 => INVALID_READ,
             CGB_HDMA_5 => if self.emulation_mode.is_dmg() { INVALID_READ } else { self.hdma.hdma5() }
+            CGB_RP => self.io_registers.read_byte(address),
+            CGB_OBJECT_PRIORITY_MODE => self.ppu.get_object_priority(),
+            CGB_WRAM_BANK => self.wram.read_bank_select(),
             _ => self.io_registers.read_byte(address),
         }
     }
@@ -298,6 +309,9 @@ impl Memory {
                 self.boot_rom.is_finished = true;
                 info!("Finished executing BootRom!");
             }
+            CGB_RP => self.io_registers.write_byte(address, value),
+            CGB_OBJECT_PRIORITY_MODE => self.ppu.set_object_priority(value),
+            CGB_WRAM_BANK => self.wram.write_bank_select(value),
             _ => self.io_registers.write_byte(address, value)
         }
     }

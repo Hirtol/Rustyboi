@@ -36,7 +36,7 @@ impl Wram {
         }
     }
 
-    pub fn read_bank(&self) -> u8 {
+    pub fn read_bank_select(&self) -> u8 {
         self.bank_selected as u8
     }
 
@@ -58,7 +58,11 @@ impl Wram {
         }
     }
 
-    pub fn write_bank(&mut self, value: u8) {
-        self.bank_selected = value as usize;
+    pub fn write_bank_select(&mut self, value: u8) {
+        self.bank_selected = (value & 0x3) as usize;
+
+        if self.bank_selected == 0 {
+            self.bank_selected = 1;
+        }
     }
 }
