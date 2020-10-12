@@ -70,11 +70,11 @@ pub struct CgbRGBColour{
 impl CgbRGBColour {
     pub fn set_high_byte(&mut self, value: u8) {
         self.blue = (value & 0x7C) >> 2;
-        self.green = (self.green & 0x1C) | (value & 0x03);
+        self.green = (self.green & 0x07) | ((value & 0x03) << 3);
     }
 
     pub fn set_low_byte(&mut self, value: u8) {
-        self.green = (self.green & 0x03) | ((value & 0xE0) >> 3);
+        self.green = (self.green & 0x18) | ((value & 0xE0) >> 5);
         self.red = value & 0x1F;
     }
 
@@ -105,7 +105,7 @@ impl Index<usize> for CgbPalette {
 
 #[cfg(test)]
 mod tests {
-    use crate::hardware::ppu::cgb_vram::CgbTileAttribute;
+    use crate::hardware::ppu::cgb_vram::{CgbTileAttribute, CgbRGBColour};
 
     #[test]
     fn test_palette_numb() {
@@ -118,6 +118,16 @@ mod tests {
         assert_eq!(attr.bg_palette_numb(), 7);
         attr.set_bg_palette_numb(15);
         assert_eq!(attr.bg_palette_numb(), 7);
+    }
+
+    #[test]
+    fn test_cgb_rgb() {
+        let mut rgb = CgbRGBColour::default();
+        rgb.set_high_byte(0xF8);
+        rgb.set_low_byte(0x9F);
+        assert_eq!(rgb.red, 0b1_1111);
+        assert_eq!(rgb.green, 0b0_0100);
+        assert_eq!(rgb.blue, 0b1_1110);
     }
 }
 
