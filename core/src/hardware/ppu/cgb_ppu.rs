@@ -93,22 +93,6 @@ impl PPU {
         }
     }
 
-    fn get_tile_attributes_cgb_bg(&self, address: u16) -> CgbTileAttribute {
-        if !self.lcd_control.contains(LcdControl::BG_TILE_MAP_SELECT) {
-            self.cgb_9800_tile_map.attributes[address as usize]
-        } else {
-            self.cgb_9c00_tile_map.attributes[address as usize]
-        }
-    }
-
-    fn get_tile_attributes_cgb_window(&self, address: u16) -> CgbTileAttribute {
-        if !self.lcd_control.contains(LcdControl::WINDOW_MAP_SELECT) {
-            self.cgb_9800_tile_map.attributes[address as usize]
-        } else {
-            self.cgb_9c00_tile_map.attributes[address as usize]
-        }
-    }
-
     fn draw_cgb_window_scanline(&mut self) {
         // -7 is apparently necessary for some reason
         // We need the i16 cast as there are games (like Aladdin) which have a wx < 7, but still
@@ -306,6 +290,22 @@ impl PPU {
             self.scanline_buffer[pixel_counter + 2] = palette.colours[(top_pixel_data & 32) >> 5 | ((bottom_pixel_data & 32) >> 4)].rgb;
             self.scanline_buffer[pixel_counter + 1] = palette.colours[(top_pixel_data & 64) >> 6 | ((bottom_pixel_data & 64) >> 5)].rgb;
             self.scanline_buffer[pixel_counter] = palette.colours[(top_pixel_data & 128) >> 7 | ((bottom_pixel_data & 128) >> 6)].rgb;
+        }
+    }
+
+    fn get_tile_attributes_cgb_bg(&self, address: u16) -> CgbTileAttribute {
+        if !self.lcd_control.contains(LcdControl::BG_TILE_MAP_SELECT) {
+            self.cgb_9800_tile_map.attributes[address as usize]
+        } else {
+            self.cgb_9c00_tile_map.attributes[address as usize]
+        }
+    }
+
+    fn get_tile_attributes_cgb_window(&self, address: u16) -> CgbTileAttribute {
+        if !self.lcd_control.contains(LcdControl::WINDOW_MAP_SELECT) {
+            self.cgb_9800_tile_map.attributes[address as usize]
+        } else {
+            self.cgb_9c00_tile_map.attributes[address as usize]
         }
     }
 }
