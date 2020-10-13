@@ -5,7 +5,7 @@ use bitflags::_core::cell::RefCell;
 use crate::hardware::cpu::CPU;
 
 use crate::hardware::mmu::{Memory, MemoryMapper};
-use crate::hardware::ppu::palette::{RGB};
+use crate::hardware::ppu::palette::{RGB, DisplayColour};
 use crate::hardware::ppu::{FRAMEBUFFER_SIZE, PPU};
 
 use crate::io::interrupts::{InterruptFlags, Interrupts};
@@ -78,6 +78,13 @@ impl Emulator {
 
     pub fn game_title(&self) -> Option<&str> {
         Some(self.cpu.mmu.cartridge()?.cartridge_header().title.as_str())
+    }
+
+    /// Set the `DisplayColour` used by the PPU to render to the framebuffer.
+    /// This can be changed while the emulator is running (though if done mid-frame will produce
+    /// artifacts for that one frame)
+    pub fn set_dmg_display_colour(&mut self, display_colours: DisplayColour) {
+        self.cpu.mmu.ppu.update_display_colours(display_colours);
     }
 
     /// Emulate one CPU cycle, and any other things that need to happen.

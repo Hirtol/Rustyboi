@@ -47,7 +47,7 @@ impl PPU {
         let mut tile_higher_bound = (tile_lower_bound + 20);
 
         // Which particular y coordinate to use from an 8x8 tile.
-        let mut tile_line_y = scanline_to_be_rendered % 8;
+        let tile_line_y = scanline_to_be_rendered % 8;
         // How many pixels we've drawn so far on this scanline.
         let mut pixel_counter: i16 = 0;
         // The amount of pixels to skip from the first tile in the sequence, and partially render
@@ -80,11 +80,14 @@ impl PPU {
                 tile_address = (256_usize).wrapping_add((tile_relative_address as i8) as usize);
             }
 
-            if tile_attributes.contains(CgbTileAttribute::Y_FLIP) {
-                tile_line_y = 7 - tile_line_y;
-            }
+            let tile_line = if tile_attributes.contains(CgbTileAttribute::Y_FLIP) {
+                7 - tile_line_y
+            } else {
+                tile_line_y
+            };
+
             
-            let (top_pixel_data, bottom_pixel_data) = self.tiles[tile_address].get_pixel_line(tile_line_y);
+            let (top_pixel_data, bottom_pixel_data) = self.tiles[tile_address].get_pixel_line(tile_line);
 
             self.draw_cgb_background_window_line(&mut pixel_counter, &mut pixels_to_skip, top_pixel_data, bottom_pixel_data, tile_attributes)
         }
@@ -122,7 +125,7 @@ impl PPU {
         // partial, therefore we need a ceiling divide.
         let tile_higher_bound = (tile_lower_bound as u16 + ((160 - window_x) as u16).div_ceil(&8)) as u16;
 
-        let mut tile_line_y = self.window_counter % 8;
+        let tile_line_y = self.window_counter % 8;
 
         // If window is less than 0 we want to skip those amount of pixels, otherwise we render as normal.
         // This means that we must take the absolute value of window_x for the pixels_skip, therefore the -
@@ -146,11 +149,13 @@ impl PPU {
                 tile_address = (256_usize).wrapping_add((tile_relative_address as i8) as usize);
             }
 
-            if tile_attributes.contains(CgbTileAttribute::Y_FLIP) {
-                tile_line_y = 7 - tile_line_y;
-            }
+            let tile_line = if tile_attributes.contains(CgbTileAttribute::Y_FLIP) {
+                7 - tile_line_y
+            } else {
+                tile_line_y
+            };
 
-            let (top_pixel_data, bottom_pixel_data) = self.tiles[tile_address].get_pixel_line(tile_line_y);
+            let (top_pixel_data, bottom_pixel_data) = self.tiles[tile_address].get_pixel_line(tile_line);
 
             self.draw_cgb_background_window_line(&mut pixel_counter, &mut pixels_to_skip, top_pixel_data, bottom_pixel_data, tile_attributes);
         }
@@ -248,8 +253,15 @@ impl PPU {
             *pixel_counter += 8;
         } else {
             let x_flip = tile_attributes.contains(CgbTileAttribute::X_FLIP);
+            // Yes this is ugly, yes this means a vtable call, yes I'd like to do it differently.
+            // Only other way is to duplicate the for loop since the .rev() is a different iterator.
+            let iterator: Box<dyn Iterator<Item=u8>> = if x_flip {
+                Box::new((0..=7))
+            } else {
+                Box::new((0..=7).rev())
+            };
 
-            for j in (0..=7).rev() {
+            for j in iterator {
                 // We have to render a partial tile, so skip the first pixels_to_skip and render the rest.
                 if *pixels_to_skip > 0 {
                     *pixels_to_skip -= 1;
@@ -260,16 +272,10 @@ impl PPU {
                     break;
                 }
 
-                let pixel = if x_flip {
-                    *pixel_counter + (7 - j)
-                } else {
-                    *pixel_counter + j
-                };
-
                 let colour = self.get_pixel_colour(j as u8, top_pixel_data, bottom_pixel_data);
-                self.scanline_buffer[pixel as usize] = self.cgb_bg_palette[tile_attributes.bg_palette_numb()].colours[colour as usize].rgb;
+                self.scanline_buffer[*pixel_counter as usize] = self.cgb_bg_palette[tile_attributes.bg_palette_numb()].colours[colour as usize].rgb;
+                *pixel_counter += 1;
             }
-            *pixel_counter += 8;
         }
     }
 

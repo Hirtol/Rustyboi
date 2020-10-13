@@ -119,7 +119,7 @@ pub struct PPU {
     lcd_control: LcdControl,
     lcd_status: LcdStatus,
 
-    pub display_colours: DisplayColour,
+    display_colours: DisplayColour,
     bg_window_palette: Palette,
     oam_palette_0: Palette,
     oam_palette_1: Palette,
@@ -202,6 +202,8 @@ impl PPU {
         self.lcd_status.set_mode_flag(LcdTransfer);
 
         // Draw our actual line once we enter Drawing mode.
+        //TODO: Create an initial Scheduler event to start CGB or DMG drawing, then we can
+        // get rid of this branch here and instead use separate methods.
         if selected_mode.is_cgb() {
             self.draw_cgb_scanline();
         } else {

@@ -94,9 +94,9 @@ fn main() {
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
-    // test_fast(sdl_context, &mut canvas, &mut screen_texture, &read(cartridge).unwrap());
-    //
-    // return;
+    test_fast(sdl_context, &mut canvas, &mut screen_texture, &read(cartridge).unwrap());
+
+    return;
 
     let mut timer = sdl_context.timer().unwrap();
     let emu_opts = EmulatorOptionsBuilder::new()
@@ -289,7 +289,10 @@ fn fill_texture_and_copy(
 }
 
 fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_texture: &mut Texture, cpu_test: &Vec<u8>) {
-    let mut emulator = Emulator::new(&cpu_test, EmulatorOptionsBuilder::new().build());
+    let mut emulator = Emulator::new(&cpu_test, EmulatorOptionsBuilder::new()
+        .with_mode(DMG)
+        .with_display_colours(DEFAULT_DISPLAY_COLOURS)
+        .build());
     let _count: u128 = 0;
 
     let mut event_pump = sdl_context.event_pump().unwrap();
