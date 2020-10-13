@@ -107,7 +107,8 @@ pub enum Mode {
 pub struct PPU {
     frame_buffer: [RGB; FRAMEBUFFER_SIZE],
     scanline_buffer: [RGB; RESOLUTION_WIDTH],
-    scanline_buffer_unpalette: [u8; RESOLUTION_WIDTH],
+    // Bool is used for BG-to-OAM priority
+    scanline_buffer_unpalette: [(u8, bool); RESOLUTION_WIDTH],
     // 768 tiles for CGB mode, 384 for DMG mode.
     tiles: [Tile; 768],
     tile_bank_currently_used: u8,
@@ -153,7 +154,7 @@ impl PPU {
         PPU {
             frame_buffer: [RGB(0,255,0); FRAMEBUFFER_SIZE],
             scanline_buffer: [RGB::default(); RESOLUTION_WIDTH],
-            scanline_buffer_unpalette: [0; RESOLUTION_WIDTH],
+            scanline_buffer_unpalette: [(0, false); RESOLUTION_WIDTH],
             tiles: [Tile::default(); 768],
             tile_bank_currently_used: 0,
             tile_map_9800: TileMap::new(),
@@ -443,7 +444,7 @@ impl PPU {
                 if (pixel < 0)
                     || (pixel > 159)
                     || (is_background_sprite
-                        && self.scanline_buffer_unpalette[pixel as usize] != 0)
+                        && self.scanline_buffer_unpalette[pixel as usize].0 != 0)
                 {
                     continue;
                 }
@@ -453,7 +454,7 @@ impl PPU {
                 // The colour 0 should be transparent for sprites, therefore we don't draw it.
                 if colour != 0x0 {
                     self.scanline_buffer[pixel as usize] = self.get_sprite_palette(sprite).colour(colour);
-                    self.scanline_buffer_unpalette[pixel as usize] = colour;
+                    self.scanline_buffer_unpalette[pixel as usize] = (colour, false);
                 }
             }
         }
@@ -480,7 +481,7 @@ impl PPU {
                 }
                 let colour = self.get_pixel_colour(j, top_pixel_data, bottom_pixel_data);
                 self.scanline_buffer[*pixel_counter as usize] =  self.bg_window_palette.colour(colour);
-                self.scanline_buffer_unpalette[*pixel_counter as usize] = colour;
+                self.scanline_buffer_unpalette[*pixel_counter as usize] = (colour, false);
                 *pixel_counter += 1;
             }
         }
@@ -507,14 +508,14 @@ impl PPU {
         self.scanline_buffer[pixel_counter + 1] = self.bg_window_palette.colour(colour6);
         self.scanline_buffer[pixel_counter] = self.bg_window_palette.colour(colour7);
 
-        self.scanline_buffer_unpalette[pixel_counter + 7] = colour0;
-        self.scanline_buffer_unpalette[pixel_counter + 6] = colour1;
-        self.scanline_buffer_unpalette[pixel_counter + 5] = colour2;
-        self.scanline_buffer_unpalette[pixel_counter + 4] = colour3;
-        self.scanline_buffer_unpalette[pixel_counter + 3] = colour4;
-        self.scanline_buffer_unpalette[pixel_counter + 2] = colour5;
-        self.scanline_buffer_unpalette[pixel_counter + 1] = colour6;
-        self.scanline_buffer_unpalette[pixel_counter]     = colour7;
+        self.scanline_buffer_unpalette[pixel_counter + 7] = (colour0, false);
+        self.scanline_buffer_unpalette[pixel_counter + 6] = (colour1, false);
+        self.scanline_buffer_unpalette[pixel_counter + 5] = (colour2, false);
+        self.scanline_buffer_unpalette[pixel_counter + 4] = (colour3, false);
+        self.scanline_buffer_unpalette[pixel_counter + 3] = (colour4, false);
+        self.scanline_buffer_unpalette[pixel_counter + 2] = (colour5, false);
+        self.scanline_buffer_unpalette[pixel_counter + 1] = (colour6, false);
+        self.scanline_buffer_unpalette[pixel_counter]     = (colour7, false);
     }
 
     fn get_pixel_colour(&self, bit_offset: u8, top_pixel_data: u8, bottom_pixel_data: u8) -> u8 {

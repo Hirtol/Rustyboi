@@ -90,7 +90,7 @@ fn main() {
 
     let cartridge = "roms/Zelda.gb";
     let _cpu_test = "roms/Pokemon - Yellow Version.gbc";
-    let _cpu_test2 = "test roms/mooneye/tests/emulator-only/mbc5/mbc5_rom_512kb.gb";
+    let _cpu_test2 = "test roms/blargg/cgb-acid2.gbc";
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
@@ -100,11 +100,11 @@ fn main() {
 
     let mut timer = sdl_context.timer().unwrap();
     let emu_opts = EmulatorOptionsBuilder::new()
-        .boot_rom(Some(bootrom_file))
+        //.boot_rom(Some(bootrom_file))
         .with_mode(CGB)
         .with_display_colours(KIRBY_DISPLAY_COLOURS)
         .build();
-    let mut emulator = create_emulator(_cpu_test, emu_opts);
+    let mut emulator = create_emulator(_cpu_test2, emu_opts);
 
     let mut cycles = 0;
     let mut loop_cycles = 0;

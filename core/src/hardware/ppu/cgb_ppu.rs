@@ -148,7 +148,7 @@ impl PPU {
     fn draw_cgb_sprite_scanline(&mut self) {
         let tall_sprites = self.lcd_control.contains(LcdControl::SPRITE_SIZE);
         let y_size: u8 = if tall_sprites { 16 } else { 8 };
-        let always_display_sprite = self.lcd_control.contains(LcdControl::BG_WINDOW_PRIORITY);
+        let always_display_sprite = !self.lcd_control.contains(LcdControl::BG_WINDOW_PRIORITY);
 
         // TODO: Sort by X or OAM Position based on variable?
         let sprites_to_draw = self
@@ -209,13 +209,11 @@ impl PPU {
                 // as parts of those sprites need to then not be rendered.
                 // If the BG bit is 1 then the sprite is only drawn if the background colour
                 // is color_0, otherwise the background takes precedence.
-                // `5` Encodes for BG-to-OAM Priority, meaning the sprite is always skipped
                 if !always_display_sprite {
                     if (pixel < 0)
                         || (pixel > 159)
-                        || self.scanline_buffer_unpalette[pixel as usize] == 5
-                        || (is_background_sprite
-                        && self.scanline_buffer_unpalette[pixel as usize] != 0)
+                        || ((is_background_sprite || self.scanline_buffer_unpalette[pixel as usize].1)
+                        && self.scanline_buffer_unpalette[pixel as usize].0 != 0)
                     {
                         continue;
                     }
@@ -226,7 +224,7 @@ impl PPU {
                 // The colour 0 should be transparent for sprites, therefore we don't draw it.
                 if colour != 0x0 {
                     self.scanline_buffer[pixel as usize] = self.cgb_sprite_palette[sprite.attribute_flags.get_cgb_palette_number()].colours[colour as usize].rgb;
-                    self.scanline_buffer_unpalette[pixel as usize] = colour;
+                    self.scanline_buffer_unpalette[pixel as usize] = (colour, false);
                 }
             }
         }
@@ -264,8 +262,7 @@ impl PPU {
 
                 let colour = self.get_pixel_colour(j as u8, top_pixel_data, bottom_pixel_data);
                 self.scanline_buffer[*pixel_counter as usize] = self.cgb_bg_palette[tile_attributes.bg_palette_numb()].colours[colour as usize].rgb;
-                // We use 5 to encode higher BG/window priority over the sprite.
-                self.scanline_buffer_unpalette[*pixel_counter as usize] = if !bg_priority { colour } else { 5 };
+                self.scanline_buffer_unpalette[*pixel_counter as usize] = (colour, bg_priority);
                 *pixel_counter += 1;
             }
         }
@@ -300,14 +297,14 @@ impl PPU {
             self.scanline_buffer[pixel_counter + 6] = palette.colours[colour6].rgb;
             self.scanline_buffer[pixel_counter + 7] = palette.colours[colour7].rgb;
             // We know the colourX will be a u8, we just preemptively made it a usize for index convenience.
-            self.scanline_buffer_unpalette[pixel_counter] =  if !bg_priority { colour0 as u8 } else { 5 };
-            self.scanline_buffer_unpalette[pixel_counter + 1] = if !bg_priority { colour1 as u8 } else { 5 };
-            self.scanline_buffer_unpalette[pixel_counter + 2] = if !bg_priority { colour2 as u8 } else { 5 };
-            self.scanline_buffer_unpalette[pixel_counter + 3] = if !bg_priority { colour3 as u8 } else { 5 };
-            self.scanline_buffer_unpalette[pixel_counter + 4] = if !bg_priority { colour4 as u8 } else { 5 };
-            self.scanline_buffer_unpalette[pixel_counter + 5] = if !bg_priority { colour5 as u8 } else { 5 };
-            self.scanline_buffer_unpalette[pixel_counter + 6] = if !bg_priority { colour6 as u8 } else { 5 };
-            self.scanline_buffer_unpalette[pixel_counter + 7] = if !bg_priority { colour7 as u8 } else { 5 };
+            self.scanline_buffer_unpalette[pixel_counter] =  (colour0 as u8, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 1] = (colour1 as u8, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 2] = (colour2 as u8, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 3] = (colour3 as u8, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 4] = (colour4 as u8, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 5] = (colour5 as u8, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 6] = (colour6 as u8, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 7] = (colour7 as u8, bg_priority);
         } else {
             self.scanline_buffer[pixel_counter + 7] = palette.colours[colour0].rgb;
             self.scanline_buffer[pixel_counter + 6] = palette.colours[colour1].rgb;
@@ -318,14 +315,14 @@ impl PPU {
             self.scanline_buffer[pixel_counter + 1] = palette.colours[colour6].rgb;
             self.scanline_buffer[pixel_counter] = palette.colours[colour7].rgb;
             // We know the colourX will be a u8, we just preemptively made it a usize for index convenience.
-            self.scanline_buffer_unpalette[pixel_counter + 7] = if !bg_priority { colour0 as u8 } else { 5 };
-            self.scanline_buffer_unpalette[pixel_counter + 6] = if !bg_priority { colour1 as u8 } else { 5 };
-            self.scanline_buffer_unpalette[pixel_counter + 5] = if !bg_priority { colour2 as u8 } else { 5 };
-            self.scanline_buffer_unpalette[pixel_counter + 4] = if !bg_priority { colour3 as u8 } else { 5 };
-            self.scanline_buffer_unpalette[pixel_counter + 3] = if !bg_priority { colour4 as u8 } else { 5 };
-            self.scanline_buffer_unpalette[pixel_counter + 2] = if !bg_priority { colour5 as u8 } else { 5 };
-            self.scanline_buffer_unpalette[pixel_counter + 1] = if !bg_priority { colour6 as u8 } else { 5 };
-            self.scanline_buffer_unpalette[pixel_counter]     = if !bg_priority { colour7 as u8 } else { 5 };
+            self.scanline_buffer_unpalette[pixel_counter + 7] = (colour0 as u8, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 6] = (colour1 as u8, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 5] = (colour2 as u8, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 4] = (colour3 as u8, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 3] = (colour4 as u8, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 2] = (colour5 as u8, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 1] = (colour6 as u8, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter]     = (colour7 as u8, bg_priority);
         }
     }
 
