@@ -161,7 +161,8 @@ impl PPU {
             .take(10)
             .collect_vec(); // Max 10 sprites per scanline
 
-        for sprite in sprites_to_draw {
+        // Need to reverse here since we can't take rev() after take() :(
+        for sprite in sprites_to_draw.into_iter().rev() {
             // We need to cast to i16 here, as otherwise we'd wrap around when x is f.e 7.
             // Tried a simple wrapping method, broke quite a bit.
             // May try again another time as all this casting is ugly and probably expensive.
