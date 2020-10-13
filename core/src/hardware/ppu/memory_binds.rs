@@ -136,26 +136,30 @@ impl PPU {
     }
 
     pub fn get_bg_color_palette_index(&self) -> u8{
-        self.cgb_palette_ind.get_value()
+        self.cgb_bg_palette_ind.get_value()
+    }
+
+    pub fn get_sprite_color_palette_index(&self) -> u8 {
+        self.cgb_sprite_palette_ind.get_value()
     }
 
     pub fn get_bg_palette_data(&self) -> u8{
-        let addr = self.cgb_palette_ind.selected_address;
+        let addr = self.cgb_bg_palette_ind.selected_address;
 
         if addr % 2 == 0 {
-            self.cgb_bg_palette[addr / 8].colours[addr % 8].get_high_byte()
+            self.cgb_bg_palette[addr / 8].colours[(addr % 8) / 2].get_high_byte()
         } else {
-            self.cgb_bg_palette[addr / 8].colours[addr % 8].get_low_byte()
+            self.cgb_bg_palette[addr / 8].colours[(addr % 8) / 2].get_low_byte()
         }
     }
 
     pub fn get_obj_palette_data(&self) -> u8 {
-        let addr = self.cgb_palette_ind.selected_address;
+        let addr = self.cgb_sprite_palette_ind.selected_address;
 
         if addr % 2 == 0 {
-            self.cgb_sprite_palette[addr / 8].colours[addr % 8].get_high_byte()
+            self.cgb_sprite_palette[addr / 8].colours[(addr % 8) / 2].get_high_byte()
         } else {
-            self.cgb_sprite_palette[addr / 8].colours[addr % 8].get_low_byte()
+            self.cgb_sprite_palette[addr / 8].colours[(addr % 8) / 2].get_low_byte()
         }
     }
 
@@ -260,34 +264,38 @@ impl PPU {
     }
 
     pub fn set_bg_color_palette_index(&mut self, value: u8) {
-        self.cgb_palette_ind.set_value(value);
+        self.cgb_bg_palette_ind.set_value(value);
+    }
+
+    pub fn set_sprite_color_palette_index(&mut self, value: u8) {
+        self.cgb_sprite_palette_ind.set_value(value);
     }
 
     pub fn set_bg_palette_data(&mut self, value: u8) {
-        let addr = self.cgb_palette_ind.selected_address;
+        let addr = self.cgb_bg_palette_ind.selected_address;
 
         if addr % 2 == 0 {
-            self.cgb_bg_palette[addr / 8].colours[addr % 8].set_high_byte(value);
+            self.cgb_bg_palette[addr / 8].colours[(addr % 8) / 2].set_low_byte(value);
         } else {
-            self.cgb_bg_palette[addr / 8].colours[addr % 8].set_low_byte(value);
+            self.cgb_bg_palette[addr / 8].colours[(addr % 8) / 2].set_high_byte(value);
         }
 
-        if self.cgb_palette_ind.auto_increment {
-            self.cgb_palette_ind.selected_address = addr.wrapping_add(1);
+        if self.cgb_bg_palette_ind.auto_increment {
+            self.cgb_bg_palette_ind.selected_address = addr.wrapping_add(1) % 64;
         }
     }
 
     pub fn set_obj_palette_data(&mut self, value: u8) {
-        let addr = self.cgb_palette_ind.selected_address;
+        let addr = self.cgb_sprite_palette_ind.selected_address;
 
         if addr % 2 == 0 {
-            self.cgb_sprite_palette[addr / 8].colours[addr % 8].set_high_byte(value);
+            self.cgb_sprite_palette[addr / 8].colours[(addr % 8) / 2].set_low_byte(value);
         } else {
-            self.cgb_sprite_palette[addr / 8].colours[addr % 8].set_low_byte(value);
+            self.cgb_sprite_palette[addr / 8].colours[(addr % 8) / 2].set_high_byte(value);
         }
 
-        if self.cgb_palette_ind.auto_increment {
-            self.cgb_palette_ind.selected_address = addr.wrapping_add(1);
+        if self.cgb_sprite_palette_ind.auto_increment {
+            self.cgb_sprite_palette_ind.selected_address = addr.wrapping_add(1) % 64;
         }
     }
 

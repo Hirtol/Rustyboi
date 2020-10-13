@@ -89,7 +89,7 @@ fn main() {
     let bootrom_file = read("roms\\cgb_bios.bin").unwrap();
 
     let cartridge = "roms/Zelda.gb";
-    let _cpu_test = "roms/Thunderbirds (E) [C][!].gbc";
+    let _cpu_test = "roms/Pokemon - Yellow Version.gbc";
     let _cpu_test2 = "test roms/mooneye/tests/emulator-only/mbc5/mbc5_rom_512kb.gb";
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);

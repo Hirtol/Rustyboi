@@ -44,15 +44,15 @@ impl CgbTileAttribute {
 }
 
 #[derive(Debug, Default, Copy, Clone)]
-pub struct CgbBgPaletteIndex {
+pub struct CgbPaletteIndex {
     pub selected_address: usize,
     pub auto_increment: bool,
 }
 
-impl CgbBgPaletteIndex {
+impl CgbPaletteIndex {
     pub fn set_value(&mut self, value: u8) {
         self.selected_address = (value as usize) & 0x3F;
-        self.auto_increment = (value & 0x80) == 1
+        self.auto_increment = (value & 0x80) != 0;
     }
 
     pub fn get_value(&self) -> u8 {
@@ -147,6 +147,14 @@ mod tests {
         assert_eq!(rgb.b5, 0b1_1110);
         assert_eq!(rgb.get_high_byte(), 0b0111_1000);
         assert_eq!(rgb.get_low_byte(), 0b1001_1111);
+
+        let full_thing = 0b0_11001_00111_00111 as u16;
+        rgb.set_high_byte(((full_thing & 0x7F00) >> 8) as u8);
+        rgb.set_low_byte(full_thing as u8);
+
+        assert_eq!(rgb.r5, 0b00111);
+        assert_eq!(rgb.g5, 0b00111);
+        assert_eq!(rgb.b5, 0b11001);
     }
 }
 

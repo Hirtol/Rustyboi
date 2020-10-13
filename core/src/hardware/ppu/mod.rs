@@ -8,7 +8,7 @@ use crate::hardware::ppu::tiledata::*;
 use crate::hardware::ppu::Mode::{HBlank, LcdTransfer, OamSearch, VBlank};
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::scheduler::{Event, EventType, Scheduler};
-use crate::hardware::ppu::cgb_vram::{CgbTileMap, CgbBgPaletteIndex, CgbPalette};
+use crate::hardware::ppu::cgb_vram::{CgbTileMap, CgbPaletteIndex, CgbPalette};
 
 pub const RESOLUTION_WIDTH: usize = 160;
 pub const RESOLUTION_HEIGHT: usize = 144;
@@ -78,7 +78,8 @@ pub const CGB_BACKGROUND_COLOR_INDEX: u16 = 0xFF68;
 /// Each color is defined by two bytes (Bit 0-7 in first byte).
 pub const CGB_BACKGROUND_PALETTE_DATA: u16 = 0xFF69;
 /// These registers are used to initialize the Sprite Palettes OBP0-7
-pub const CGB_OBJECT_PALETTE_DATA: u16 = 0xFF6A;
+pub const CGB_SPRITE_COLOR_INDEX: u16 = 0xFF6A;
+pub const CGB_OBJECT_PALETTE_DATA: u16 = 0xFF6B;
 
 pub mod memory_binds;
 pub mod palette;
@@ -122,7 +123,8 @@ pub struct PPU {
     bg_window_palette: Palette,
     oam_palette_0: Palette,
     oam_palette_1: Palette,
-    cgb_palette_ind: CgbBgPaletteIndex,
+    cgb_bg_palette_ind: CgbPaletteIndex,
+    cgb_sprite_palette_ind: CgbPaletteIndex,
     cgb_bg_palette: [CgbPalette; 8],
     cgb_sprite_palette: [CgbPalette; 8],
 
@@ -164,7 +166,8 @@ impl PPU {
             bg_window_palette: Palette::default(),
             oam_palette_0: Palette::default(),
             oam_palette_1: Palette::default(),
-            cgb_palette_ind: CgbBgPaletteIndex::default(),
+            cgb_bg_palette_ind: CgbPaletteIndex::default(),
+            cgb_sprite_palette_ind: CgbPaletteIndex::default(),
             cgb_bg_palette: [CgbPalette::default(); 8],
             cgb_sprite_palette: [CgbPalette::default(); 8],
             compare_line: 0,
