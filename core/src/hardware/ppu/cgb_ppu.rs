@@ -125,7 +125,7 @@ impl PPU {
         for i in tile_lower_bound..tile_higher_bound {
             let mut tile_relative_address = self.get_tile_address_window(i) as usize;
             let tile_attributes = self.get_tile_attributes_cgb_window(i);
-            let mut tile_address = tile_relative_address;
+            let mut tile_address = tile_relative_address + (384 * tile_attributes.contains(CgbTileAttribute::TILE_VRAM_BANK_NUMBER) as usize);
 
             // If we've selected the 8800-97FF mode we need to add a 256 offset, and then
             // add/subtract the relative address.
