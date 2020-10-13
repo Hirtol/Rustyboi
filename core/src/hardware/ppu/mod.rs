@@ -128,7 +128,7 @@ pub struct PPU {
     cgb_sprite_palette_ind: CgbPaletteIndex,
     cgb_bg_palette: [CgbPalette; 8],
     cgb_sprite_palette: [CgbPalette; 8],
-    
+
     pub current_y: u8,
     compare_line: u8,
 
@@ -206,7 +206,7 @@ impl PPU {
         //TODO: Create an initial Scheduler event to start CGB or DMG drawing, then we can
         // get rid of this branch here and instead use separate methods.
         if selected_mode.is_cgb() {
-            //self.draw_cgb_scanline();
+            self.draw_cgb_scanline();
         } else {
             self.draw_scanline();
         }
