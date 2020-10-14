@@ -16,7 +16,6 @@ impl PPU {
         if !self.window_triggered {
             self.window_triggered = self.current_y == self.window_y;
         }
-        //TODO: Note, BG_WINDOW_PRIORITY has a different meaning for CGB!
 
         if self.lcd_control.contains(LcdControl::WINDOW_DISPLAY) {
             if !self.window_triggered || self.window_x > 7 {
@@ -150,7 +149,6 @@ impl PPU {
         let y_size: u8 = if tall_sprites { 16 } else { 8 };
         let always_display_sprite = !self.lcd_control.contains(LcdControl::BG_WINDOW_PRIORITY);
 
-        // TODO: Sort by X or OAM Position based on variable?
         let sprites_to_draw = self
             .oam
             .iter()
@@ -162,10 +160,10 @@ impl PPU {
             .collect_vec(); // Max 10 sprites per scanline
 
         // Need to reverse here since we can't take rev() after take() :(
+        // We reverse since the CGB sorts based on sprite position in OAM.
+        // Lower position takes priority, with the way we iterate we need to first reverse it because
+        // of that.
         for sprite in sprites_to_draw.into_iter().rev() {
-            // We need to cast to i16 here, as otherwise we'd wrap around when x is f.e 7.
-            // Tried a simple wrapping method, broke quite a bit.
-            // May try again another time as all this casting is ugly and probably expensive.
             let screen_x_pos = sprite.x_pos as i16 - 8;
             let screen_y_pos = sprite.y_pos as i16 - 16;
 
