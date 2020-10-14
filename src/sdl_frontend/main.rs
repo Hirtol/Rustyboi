@@ -90,21 +90,21 @@ fn main() {
 
     let cartridge = "roms/Zelda.gb";
     let _cpu_test = "roms/Pokemon - Yellow Version.gbc";
-    let _cpu_test2 = "test roms/blargg/cgb-acid2.gbc";
+    let _cpu_test2 = "test roms/blargg/window_y_trigger.gb";
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
-    test_fast(sdl_context, &mut canvas, &mut screen_texture, &read(cartridge).unwrap());
-
-    return;
+    // test_fast(sdl_context, &mut canvas, &mut screen_texture, &read(cartridge).unwrap());
+    //
+    // return;
 
     let mut timer = sdl_context.timer().unwrap();
     let emu_opts = EmulatorOptionsBuilder::new()
-        //.boot_rom(Some(bootrom_file))
+        .boot_rom(Some(bootrom_file))
         .with_mode(CGB)
         .with_display_colours(KIRBY_DISPLAY_COLOURS)
         .build();
-    let mut emulator = create_emulator(cartridge, emu_opts);
+    let mut emulator = create_emulator(_cpu_test2, emu_opts);
 
     let mut cycles = 0;
     let mut loop_cycles = 0;
@@ -330,27 +330,16 @@ fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_textu
             }
         }
 
-        // Temp loop for testing.
-        // TODO: Implement actual cycling.
         if start_time.elapsed() < Duration::new(1, 0) {
-            // loop {
-            //     emulator.emulate_cycle();
-            //     count += 1;
-            //     if count % 100_000_000 == 0 {
-            //         warn!("REACHED VALUE: {} AFTER: {:?}", count, start_time.elapsed());
-            //         break;
-            //     }
-            // }
             let mut frame_count = 0;
             let start_time = Instant::now();
-            let mut cycles = 0;
             loop {
-                while cycles < CYCLES_PER_FRAME {
-                    cycles += emulator.emulate_cycle().0;
+                while frame_count <= 20_000 {
+                    if emulator.emulate_cycle().1 {
+                        frame_count += 1;
+                    }
                 }
 
-                cycles -= CYCLES_PER_FRAME;
-                frame_count += 1;
                 if frame_count > 20_000 {
                     println!(
                         "Rendered: {} frames per second after 20_000 frames!",

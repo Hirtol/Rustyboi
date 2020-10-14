@@ -25,6 +25,7 @@ use crate::scheduler::EventType::{DMARequested, DMATransferComplete};
 use bitflags::_core::ops::{Add, Mul, Sub};
 use crate::hardware::mmu::cgb_mem::HdmaMode::HDMA;
 use itertools::Itertools;
+use crate::emulator::EmulatorMode::DMG;
 
 pub mod cgb_mem;
 mod hram;
@@ -162,9 +163,9 @@ impl Memory {
             io_registers: IORegisters::new(),
         };
 
-        // If the cartridge doesn't support CGB at all we switch to DMG mode.
-        if !result.cartridge.cartridge_header().cgb_flag {
-            result.emulation_mode = EmulatorMode::DMG;
+        // If we're not doing the CGB bootrom AND the cartridge is not a CGB, we swich to DMG
+        if !result.cartridge.cartridge_header().cgb_flag && result.boot_rom_finished() {
+            result.emulation_mode = DMG;
         }
 
         result
@@ -309,6 +310,10 @@ impl Memory {
             CGB_HDMA_5 => self.hdma.write_hdma5(value, &mut self.scheduler),
             0xFF50 if !self.boot_rom.is_finished => {
                 self.boot_rom.is_finished = true;
+                // If the cartridge doesn't support CGB at all we switch to DMG mode.
+                if !self.cartridge.cartridge_header().cgb_flag {
+                    self.emulation_mode = EmulatorMode::DMG;
+                }
                 info!("Finished executing BootRom!");
             }
             CGB_RP => self.io_registers.write_byte(address, value),
