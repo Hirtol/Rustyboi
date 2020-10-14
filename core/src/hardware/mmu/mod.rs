@@ -95,7 +95,6 @@ pub const CGB_OBJECT_PRIORITY_MODE: u16 = 0xFF6C;
 /// Work ram bank switching.
 pub const CGB_WRAM_BANK: u16 = 0xFF70;
 
-
 /// The flag used to signal that an interrupt is pending.
 pub const INTERRUPTS_FLAG: u16 = 0xFF0F;
 /// High Ram (HRAM)
@@ -364,18 +363,18 @@ impl Memory {
                 EventType::VBLANK => {
                     self.ppu.vblank(&mut self.interrupts);
                     self.scheduler
-                        .push_full_event(event.update_self(EventType::VblankWait, 456));
+                        .push_full_event(event.update_self(EventType::VblankWait, 456 << self.get_speed_shift()));
                     vblank_occurred = true;
                 }
                 EventType::OamSearch => {
                     self.ppu.oam_search(&mut self.interrupts);
                     self.scheduler
-                        .push_full_event(event.update_self(EventType::LcdTransfer, 80));
+                        .push_full_event(event.update_self(EventType::LcdTransfer, 80 << self.get_speed_shift()));
                 }
                 EventType::LcdTransfer => {
                     self.ppu.lcd_transfer(self.emulation_mode);
                     self.scheduler
-                        .push_full_event(event.update_self(EventType::HBLANK, 172));
+                        .push_full_event(event.update_self(EventType::HBLANK, 172 << self.get_speed_shift()));
                 }
                 EventType::HBLANK => {
                     self.ppu.hblank(&mut self.interrupts);
@@ -383,10 +382,10 @@ impl Memory {
                     // First 144 lines
                     if self.ppu.current_y != 143 {
                         self.scheduler
-                            .push_full_event(event.update_self(EventType::OamSearch, 204));
+                            .push_full_event(event.update_self(EventType::OamSearch, 204 << self.get_speed_shift()));
                     } else {
                         self.scheduler
-                            .push_full_event(event.update_self(EventType::VBLANK, 204));
+                            .push_full_event(event.update_self(EventType::VBLANK, 204 << self.get_speed_shift()));
                     }
 
                     // HDMA transfers 16 bytes every HBLANK
@@ -407,7 +406,7 @@ impl Memory {
 
                     if self.ppu.current_y != 0 {
                         self.scheduler
-                            .push_full_event(event.update_self(EventType::VblankWait, 456));
+                            .push_full_event(event.update_self(EventType::VblankWait, 456 << self.get_speed_shift()));
                     } else {
                         self.scheduler
                             .push_full_event(event.update_self(EventType::OamSearch, 0));
@@ -419,12 +418,12 @@ impl Memory {
                     // Be careful about reordering.
                     self.apu.tick_frame_sequencer();
                     self.scheduler
-                        .push_full_event(event.update_self(EventType::APUFrameSequencer, FRAME_SEQUENCE_CYCLES));
+                        .push_full_event(event.update_self(EventType::APUFrameSequencer, FRAME_SEQUENCE_CYCLES << self.get_speed_shift()));
                 }
                 EventType::APUSample => {
                     self.apu.tick_sampling_handler();
                     self.scheduler
-                        .push_full_event(event.update_self(EventType::APUSample, SAMPLE_CYCLES));
+                        .push_full_event(event.update_self(EventType::APUSample, SAMPLE_CYCLES << self.get_speed_shift()));
                 }
                 EventType::TimerOverflow => {
                     self.timers.timer_overflow(&mut self.scheduler, &mut self.interrupts);
@@ -495,8 +494,8 @@ impl Memory {
         }
     }
 
-    pub fn get_speed_multiplier(&mut self) -> u64 {
-        if self.cgb_data.double_speed {2} else {1}
+    pub fn get_speed_shift(&self) -> u64 {
+        self.cgb_data.double_speed as u64
     }
 }
 
@@ -534,7 +533,12 @@ impl MemoryMapper for Memory {
     }
 
     fn do_m_cycle(&mut self) -> bool {
-        self.apu.tick(4);
+        if self.cgb_data.double_speed {
+            self.apu.tick(2);
+        } else {
+            self.apu.tick(4);
+        }
+
 
         let result = self.tick_scheduler();
         // Timer has to be ticked after the Scheduler to make timings work out for MoonEye tests.
