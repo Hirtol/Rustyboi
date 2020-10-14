@@ -389,12 +389,14 @@ impl Memory {
                     }
 
                     // HDMA transfers 16 bytes every HBLANK
+                    // TODO: move this to own scheduler, since this costs ~200 fps having this here.
                     if self.hdma.transfer_ongoing && self.hdma.current_mode == HDMA {
                         log::info!("Performing HDMA transfer");
                         self.hdma_transfer();
                         if self.hdma.transfer_ongoing {
+                            self.do_m_cycle();
                             // Pass 36 (single speed)/68 (double speed) cycles where the CPU does nothing.
-                            for _ in 0..9 {
+                            for _ in 0..(8 << self.get_speed_shift()) {
                                 //TODO: Skip ahead, since CPU is halted during transfer. Account for double speed
                                 self.do_m_cycle();
                             }
@@ -533,6 +535,7 @@ impl MemoryMapper for Memory {
     }
 
     fn do_m_cycle(&mut self) -> bool {
+        //TODO: What if this is called by HDMA/GDMA?
         if self.cgb_data.double_speed {
             self.apu.tick(2);
         } else {
