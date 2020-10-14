@@ -90,7 +90,7 @@ fn main() {
 
     let cartridge = "roms/Zelda.gb";
     let _cpu_test = "roms/Pokemon - Yellow Version.gbc";
-    let _cpu_test2 = "test roms/blargg/window_y_trigger.gb";
+    let _cpu_test2 = "roms/Gameboy Color Promotional Demo (J) [C].gbc";
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 

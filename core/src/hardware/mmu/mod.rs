@@ -119,6 +119,8 @@ pub trait MemoryMapper: Debug {
     fn cartridge(&self) -> Option<&Cartridge>;
     fn interrupts(&self) -> &Interrupts;
     fn interrupts_mut(&mut self) -> &mut Interrupts;
+    fn turn_on_lcd(&mut self);
+    fn turn_off_lcd(&mut self);
     fn cgb_data(&mut self) -> &mut CgbData;
     /// Perform one M-cycle (4 cycles) on all components of the system.
     /// Returns `true` if V-blank occurred
@@ -553,6 +555,14 @@ impl MemoryMapper for Memory {
         self.timers.tick_timers(&mut self.scheduler);
 
         result
+    }
+
+    fn turn_on_lcd(&mut self) {
+        self.ppu.turn_on_lcd(&mut self.scheduler, &mut self.interrupts);
+    }
+
+    fn turn_off_lcd(&mut self) {
+        self.ppu.turn_off_lcd(&mut self.scheduler);
     }
 }
 

@@ -173,26 +173,34 @@ impl PPU {
 
         // If we turn OFF the display
         if !new_control.contains(LcdControl::LCD_DISPLAY) && self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
-            log::debug!("Turning off LCD");
-            self.current_y = 0;
-            self.window_counter = 0;
-            self.lcd_status.set_mode_flag(Mode::HBlank);
-            // Turn PPU off by removing all scheduled events. TODO: Find cleaner way to do this.
-            scheduler.remove_event_type(EventType::HBLANK);
-            scheduler.remove_event_type(EventType::VblankWait);
-            scheduler.remove_event_type(EventType::VBLANK);
-            scheduler.remove_event_type(EventType::LcdTransfer);
-            scheduler.remove_event_type(EventType::OamSearch);
+            self.turn_off_lcd(scheduler)
         }
         // If we turn ON the display
         if new_control.contains(LcdControl::LCD_DISPLAY) && !self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
-            log::debug!("Turning on LCD");
-            // Turn PPU back on. Assume pessimistic hblank timing
-            self.ly_lyc_compare(interrupts);
-            scheduler.push_relative(EventType::OamSearch, 204);
+            self.turn_on_lcd(scheduler, interrupts);
         }
 
         self.lcd_control = new_control;
+    }
+
+    pub fn turn_off_lcd(&mut self, scheduler: &mut Scheduler) {
+        log::debug!("Turning off LCD");
+        self.current_y = 0;
+        self.window_counter = 0;
+        self.lcd_status.set_mode_flag(Mode::HBlank);
+        // Turn PPU off by removing all scheduled events. TODO: Find cleaner way to do this.
+        scheduler.remove_event_type(EventType::HBLANK);
+        scheduler.remove_event_type(EventType::VblankWait);
+        scheduler.remove_event_type(EventType::VBLANK);
+        scheduler.remove_event_type(EventType::LcdTransfer);
+        scheduler.remove_event_type(EventType::OamSearch);
+    }
+
+    pub fn turn_on_lcd(&mut self, scheduler: &mut Scheduler, interrupts: &mut Interrupts) {
+        log::debug!("Turning on LCD");
+        // Turn PPU back on. Assume pessimistic hblank timing
+        self.ly_lyc_compare(interrupts);
+        scheduler.push_relative(EventType::OamSearch, 204);
     }
 
     pub fn set_lcd_status(&mut self, value: u8, interrupts: &mut Interrupts) {

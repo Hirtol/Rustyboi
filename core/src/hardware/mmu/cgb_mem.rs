@@ -17,6 +17,35 @@ pub struct CgbData {
     pub prepare_speed_switch: u8,
 }
 
+impl CgbData {
+    pub fn new() -> Self {
+        CgbData { double_speed: false, prepare_speed_switch: 0x7E }
+    }
+
+    /// Set the speed and update the `prepare_speed_switch` register.
+    /// Will always turn off bit 0 which will make `should_prepare()` return `false`
+    pub fn toggle_speed(&mut self) {
+        self.double_speed = !self.double_speed;
+        self.prepare_speed_switch = if self.double_speed {
+            0x80 | (self.prepare_speed_switch & 0x7E)
+        } else {
+            self.prepare_speed_switch & 0x7E
+        }
+    }
+
+    pub fn should_prepare(&self) -> bool {
+        (self.prepare_speed_switch & 0x01) == 1
+    }
+
+    pub fn read_prepare_switch(&self) -> u8 {
+        self.prepare_speed_switch
+    }
+
+    pub fn write_prepare_switch(&mut self, value: u8) {
+        self.prepare_speed_switch = (self.prepare_speed_switch & 0x80) | (value & 0x7F);
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
 pub enum HdmaMode {
     GDMA,
@@ -76,6 +105,7 @@ impl HdmaRegister {
     }
 
     pub fn write_hdma5(&mut self, value: u8, scheduler: &mut Scheduler) {
+        log::warn!("Writing to HDMA 5: {:#X}", value);
         self.hdma_length = value;
         self.transfer_size = ((value & 0x7F) as u16 + 1) * 16;
 
@@ -119,34 +149,5 @@ impl HdmaRegister {
         if self.transfer_size == 0 {
             self.complete_transfer();
         }
-    }
-}
-
-impl CgbData {
-    pub fn new() -> Self {
-        CgbData { double_speed: false, prepare_speed_switch: 0x7E }
-    }
-
-    /// Set the speed and update the `prepare_speed_switch` register.
-    /// Will always turn off bit 0 which will make `should_prepare()` return `false`
-    pub fn toggle_speed(&mut self) {
-        self.double_speed = !self.double_speed;
-        self.prepare_speed_switch = if self.double_speed {
-            0x80 | (self.prepare_speed_switch & 0x7E)
-        } else {
-            self.prepare_speed_switch & 0x7E
-        }
-    }
-
-    pub fn should_prepare(&self) -> bool {
-        (self.prepare_speed_switch & 0x01) == 1
-    }
-
-    pub fn read_prepare_switch(&self) -> u8 {
-        self.prepare_speed_switch
-    }
-
-    pub fn write_prepare_switch(&mut self, value: u8) {
-        self.prepare_speed_switch = (self.prepare_speed_switch & 0x80) | (value & 0x7F);
     }
 }

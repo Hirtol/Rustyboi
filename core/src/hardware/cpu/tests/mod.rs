@@ -59,6 +59,14 @@ impl MemoryMapper for TestMemory {
         &mut self.interrupts
     }
 
+    fn turn_on_lcd(&mut self) {
+        unimplemented!()
+    }
+
+    fn turn_off_lcd(&mut self) {
+        unimplemented!()
+    }
+
     fn cgb_data(&mut self) -> &mut CgbData {
         &mut self.cgb_data
     }
