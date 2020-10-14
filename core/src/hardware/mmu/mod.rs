@@ -1,17 +1,21 @@
 use std::fmt;
 
 use bitflags::_core::fmt::{Debug, Formatter};
+use bitflags::_core::ops::{Add, Mul, Sub};
+use itertools::Itertools;
 use log::*;
 
 use hram::Hram;
 
 use crate::emulator::EmulatorMode;
+use crate::emulator::EmulatorMode::DMG;
 use crate::EmulatorOptions;
 use crate::hardware::apu::{
     APU, APU_MEM_END, APU_MEM_START, FRAME_SEQUENCE_CYCLES, SAMPLE_CYCLES, WAVE_SAMPLE_END, WAVE_SAMPLE_START,
 };
 use crate::hardware::cartridge::Cartridge;
 use crate::hardware::mmu::cgb_mem::{CgbData, HdmaRegister};
+use crate::hardware::mmu::cgb_mem::HdmaMode::HDMA;
 use crate::hardware::mmu::wram::Wram;
 use crate::hardware::ppu::{DMA_TRANSFER, PPU};
 use crate::hardware::ppu::tiledata::*;
@@ -22,10 +26,6 @@ use crate::io::joypad::*;
 use crate::io::timer::*;
 use crate::scheduler::{Event, EventType, Scheduler};
 use crate::scheduler::EventType::{DMARequested, DMATransferComplete};
-use bitflags::_core::ops::{Add, Mul, Sub};
-use crate::hardware::mmu::cgb_mem::HdmaMode::HDMA;
-use itertools::Itertools;
-use crate::emulator::EmulatorMode::DMG;
 
 pub mod cgb_mem;
 mod hram;
@@ -343,7 +343,7 @@ impl Memory {
     }
 
     fn gather_gdma_data(&self) -> Vec<u8> {
-        (self.hdma.source_address..(self.hdma.source_address+self.hdma.transfer_size)).map(|i| self.read_byte(i)).collect()
+        (self.hdma.source_address..(self.hdma.source_address + self.hdma.transfer_size)).map(|i| self.read_byte(i)).collect()
     }
 
     /// Simply returns 0xFF while also printing a warning to the logger.
@@ -448,8 +448,8 @@ impl Memory {
                     self.ppu.oam_dma_finished();
                 }
                 EventType::GDMARequested => {
-                    log::info!("Performing GDMA transfer");
-                    let mut clocks_to_wait = self.hdma.transfer_size as u64 * if self.cgb_data.double_speed {64} else {32};
+                    log::info!("Performing GDMA transfer at cycle: {}", self.scheduler.current_time);
+                    let mut clocks_to_wait = (self.hdma.transfer_size / 16) as u64 * if self.cgb_data.double_speed { 64 } else { 32 };
                     self.scheduler.push_relative(EventType::GDMATransferComplete, clocks_to_wait);
                     self.gdma_transfer();
 
@@ -462,6 +462,7 @@ impl Memory {
                 EventType::GDMATransferComplete => {
                     // If a new transfer is started without updating these registers they should
                     // continue where they left off.
+                    log::warn!("Completing transfer at clock cycle: {}", self.scheduler.current_time);
                     self.hdma.source_address += self.hdma.transfer_size;
                     self.hdma.destination_address += self.hdma.transfer_size;
 
@@ -474,7 +475,8 @@ impl Memory {
 
     /// Required here since the GDMA can write to arbitrary PPU addresses.
     pub fn gdma_transfer(&mut self) {
-        let values_iter = (self.hdma.source_address..(self.hdma.source_address+self.hdma.transfer_size))
+        log::info!("Performaing GDMA from source: [{:#4X}, {:#4X}] to destination: {:#4X}", self.hdma.source_address, self.hdma.source_address+self.hdma.transfer_size, self.hdma.destination_address);
+        let values_iter = (self.hdma.source_address..(self.hdma.source_address + self.hdma.transfer_size))
             .map(|i| self.read_byte(i)).collect_vec();
 
         for (i, value) in values_iter.into_iter().enumerate() {
@@ -483,9 +485,9 @@ impl Memory {
     }
 
     /// Required here since the HDMA can write to arbitrary PPU addresses.
-    pub fn hdma_transfer(&mut self){
+    pub fn hdma_transfer(&mut self) {
         // We transfer 16 bytes every H-Blank
-        let values_iter = (self.hdma.source_address..(self.hdma.source_address+16))
+        let values_iter = (self.hdma.source_address..(self.hdma.source_address + 16))
             .map(|i| self.read_byte(i)).collect_vec();
 
         for (i, value) in values_iter.into_iter().enumerate() {

@@ -27,9 +27,9 @@ impl CgbData {
     pub fn toggle_speed(&mut self) {
         self.double_speed = !self.double_speed;
         self.prepare_speed_switch = if self.double_speed {
-            0x80 | (self.prepare_speed_switch & 0x7E)
+            0xFE
         } else {
-            self.prepare_speed_switch & 0x7E
+            0x7E
         }
     }
 
@@ -42,7 +42,7 @@ impl CgbData {
     }
 
     pub fn write_prepare_switch(&mut self, value: u8) {
-        self.prepare_speed_switch = (self.prepare_speed_switch & 0x80) | (value & 0x7F);
+        self.prepare_speed_switch = (self.prepare_speed_switch & 0x80) | 0b0111_1110 | (value & 0x1);
     }
 }
 
@@ -124,7 +124,10 @@ impl HdmaRegister {
         }
 
         match self.current_mode {
-            GDMA => scheduler.push_relative(EventType::GDMARequested, 4),
+            GDMA => {
+                log::info!("Sending request for GDMA transfer at time: {} for blocks: {}", scheduler.current_time, self.transfer_size / 16);
+                scheduler.push_relative(EventType::GDMARequested, 4)
+            },
             HDMA => {
                 //After writing a value to HDMA5 that starts the HDMA copy, the upper bit
                 // (that indicates HDMA mode when set to '1') will be cleared
