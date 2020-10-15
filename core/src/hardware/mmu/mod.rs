@@ -14,7 +14,7 @@ use crate::hardware::apu::{
     APU, APU_MEM_END, APU_MEM_START, FRAME_SEQUENCE_CYCLES, SAMPLE_CYCLES, WAVE_SAMPLE_END, WAVE_SAMPLE_START,
 };
 use crate::hardware::cartridge::Cartridge;
-use crate::hardware::mmu::cgb_mem::{CgbData, HdmaRegister};
+use crate::hardware::mmu::cgb_mem::{CgbSpeedData, HdmaRegister};
 use crate::hardware::mmu::cgb_mem::HdmaMode::HDMA;
 use crate::hardware::mmu::wram::Wram;
 use crate::hardware::ppu::{DMA_TRANSFER, PPU};
@@ -121,7 +121,7 @@ pub trait MemoryMapper: Debug {
     fn interrupts_mut(&mut self) -> &mut Interrupts;
     fn turn_on_lcd(&mut self);
     fn turn_off_lcd(&mut self);
-    fn cgb_data(&mut self) -> &mut CgbData;
+    fn cgb_data(&mut self) -> &mut CgbSpeedData;
     /// Perform one M-cycle (4 cycles) on all components of the system.
     /// Returns `true` if V-blank occurred
     fn do_m_cycle(&mut self) -> bool;
@@ -132,7 +132,7 @@ pub struct Memory {
     cartridge: Cartridge,
     pub scheduler: Scheduler,
     pub emulation_mode: EmulatorMode,
-    pub cgb_data: CgbData,
+    pub cgb_data: CgbSpeedData,
     pub hdma: HdmaRegister,
 
     pub ppu: PPU,
@@ -153,7 +153,7 @@ impl Memory {
             cartridge: Cartridge::new(cartridge, emu_opts.saved_ram),
             scheduler: Scheduler::new(),
             emulation_mode: emu_opts.emulator_mode,
-            cgb_data: CgbData::new(),
+            cgb_data: CgbSpeedData::new(),
             hdma: HdmaRegister::new(),
             ppu: PPU::new(emu_opts.display_colour),
             apu: APU::new(),
@@ -538,7 +538,7 @@ impl MemoryMapper for Memory {
         &mut self.interrupts
     }
 
-    fn cgb_data(&mut self) -> &mut CgbData {
+    fn cgb_data(&mut self) -> &mut CgbSpeedData {
         &mut self.cgb_data
     }
 

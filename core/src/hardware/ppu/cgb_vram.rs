@@ -60,8 +60,13 @@ impl CgbPaletteIndex {
     }
 }
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Default, Debug, Copy, Clone)]
+pub struct CgbPalette {
+    pub colours: [CgbRGBColour; 4],
+}
+
 /// This struct will naively convert the written 15 bit colour values to 24 bit.
+#[derive(Debug, Copy, Clone, Default)]
 pub struct CgbRGBColour{
     pub rgb: RGB,
     r5: u8,
@@ -93,11 +98,6 @@ impl CgbRGBColour {
     pub fn get_low_byte(&self) -> u8 {
         (self.g5 << 5) | self.r5
     }
-}
-
-#[derive(Default, Debug, Copy, Clone)]
-pub struct CgbPalette {
-    pub colours: [CgbRGBColour; 4],
 }
 
 #[cfg(test)]

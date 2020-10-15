@@ -248,13 +248,10 @@ impl<M: MemoryMapper> CPU<M> {
         if self.mmu.get_mode().is_cgb() && self.mmu.cgb_data().should_prepare() {
             self.mmu.cgb_data().toggle_speed();
             log::warn!("Starting speed switch");
-            //self.mmu.turn_off_lcd();
 
             for _ in 0..32768 {
                 self.mmu.do_m_cycle();
             }
-
-            //self.mmu.turn_on_lcd();
 
             log::info!("Switching to {} speed mode!", if self.mmu.cgb_data().double_speed {"double"} else {"normal"});
         } else {

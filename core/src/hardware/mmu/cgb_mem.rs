@@ -1,25 +1,25 @@
-use crate::hardware::mmu::cgb_mem::HdmaMode::{GDMA, HDMA};
 ///! In double speed mode the following will operate twice as fast:
-/// ```text
-///  The CPU (8 MHz, 1 Cycle = approx. 0.5us)
-///  Timer and Divider Registers
-///  Serial Port (Link Cable)
-///  DMA Transfer to OAM
-/// ```
+///! ```text
+///!  The CPU (8 MHz, 1 Cycle = approx. 0.5us)
+///!  Timer and Divider Registers
+///!  Serial Port (Link Cable)
+///!  DMA Transfer to OAM
+///! ```
+use crate::hardware::mmu::cgb_mem::HdmaMode::{GDMA, HDMA};
 use crate::hardware::mmu::INVALID_READ;
 use crate::scheduler::{Scheduler, EventType};
 
 #[derive(Default, Debug, Copy, Clone)]
-pub struct CgbData {
+pub struct CgbSpeedData {
     /// Whether double speed mode is currently enabled.
     pub double_speed: bool,
     /// The register to which is written in order to switch speed mode.
     pub prepare_speed_switch: u8,
 }
 
-impl CgbData {
+impl CgbSpeedData {
     pub fn new() -> Self {
-        CgbData { double_speed: false, prepare_speed_switch: 0x7E }
+        CgbSpeedData { double_speed: false, prepare_speed_switch: 0x7E }
     }
 
     /// Set the speed and update the `prepare_speed_switch` register.

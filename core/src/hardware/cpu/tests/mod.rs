@@ -13,7 +13,7 @@ use std::fmt;
 use std::rc::Rc;
 use crate::emulator::EmulatorMode;
 use crate::emulator::EmulatorMode::DMG;
-use crate::hardware::mmu::cgb_mem::CgbData;
+use crate::hardware::mmu::cgb_mem::CgbSpeedData;
 use crate::hardware::ppu::palette::DisplayColour;
 
 mod cycle_tests;
@@ -27,7 +27,7 @@ struct TestMemory {
     pub apu: APU,
     pub timers: TimerRegisters,
     pub interrupts: Interrupts,
-    pub cgb_data: CgbData
+    pub cgb_data: CgbSpeedData
 }
 
 impl MemoryMapper for TestMemory {
@@ -67,7 +67,7 @@ impl MemoryMapper for TestMemory {
         unimplemented!()
     }
 
-    fn cgb_data(&mut self) -> &mut CgbData {
+    fn cgb_data(&mut self) -> &mut CgbSpeedData {
         &mut self.cgb_data
     }
 

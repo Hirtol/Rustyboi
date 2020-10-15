@@ -7,7 +7,6 @@ use itertools::Itertools;
 use crate::hardware::ppu::cgb_vram::CgbTileAttribute;
 
 impl PPU {
-
     pub fn draw_cgb_scanline(&mut self) {
         // As soon as wy == yc ANYWHERE in the frame, the window will be considered
         // triggered for the remainder of the frame, and thus can only be disabled
@@ -118,7 +117,6 @@ impl PPU {
             (0, (-window_x) as u8)
         };
 
-        // Increment the window counter for future cycles.
         self.window_counter += 1;
 
         for i in tile_lower_bound..tile_higher_bound {
@@ -161,8 +159,6 @@ impl PPU {
 
         // Need to reverse here since we can't take rev() after take() :(
         // We reverse since the CGB sorts based on sprite position in OAM.
-        // Lower position takes priority, with the way we iterate we need to first reverse it because
-        // of that.
         for sprite in sprites_to_draw.into_iter().rev() {
             let screen_x_pos = sprite.x_pos as i16 - 8;
             let screen_y_pos = sprite.y_pos as i16 - 16;
