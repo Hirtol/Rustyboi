@@ -453,7 +453,6 @@ impl Memory {
                     self.scheduler.push_relative(EventType::GDMATransferComplete, clocks_to_wait);
                     self.gdma_transfer();
 
-                    //TODO: Skip ahead, since CPU is halted during transfer. Account for double speed
                     while clocks_to_wait > 0 {
                         self.do_m_cycle();
                         clocks_to_wait -= 4;
@@ -475,7 +474,7 @@ impl Memory {
 
     /// Required here since the GDMA can write to arbitrary PPU addresses.
     pub fn gdma_transfer(&mut self) {
-        log::info!("Performaing GDMA from source: [{:#4X}, {:#4X}] to destination: {:#4X}", self.hdma.source_address, self.hdma.source_address+self.hdma.transfer_size, self.hdma.destination_address);
+        log::info!("Performing GDMA from source: [{:#4X}, {:#4X}] to destination: {:#4X}", self.hdma.source_address, self.hdma.source_address+self.hdma.transfer_size, self.hdma.destination_address);
         let values_iter = (self.hdma.source_address..(self.hdma.source_address + self.hdma.transfer_size))
             .map(|i| self.read_byte(i)).collect_vec();
 

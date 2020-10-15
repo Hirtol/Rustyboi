@@ -22,7 +22,7 @@ use std::thread::spawn;
 use std::time::Instant;
 
 use anyhow::*;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use gumdrop::Options;
 use image::imageops::FilterType;
@@ -53,14 +53,25 @@ fn main() -> anyhow::Result<()> {
 
     let old_hashes = calculate_hashes(TESTING_PATH_OLD).unwrap_or_default();
 
-    run_test_roms(options.blargg_path, options.mooneye_path, options.boot_rom);
+    run_test_roms(options.test_path, options.dmg_boot_rom);
 
     let new_hashes = calculate_hashes(TESTING_PATH_NEW).unwrap_or_default();
 
-    for (path, hash) in old_hashes {
-        if let Some(_) = new_hashes.get(&path).filter(|t| &**t != &hash) {
+    for (path, hash) in old_hashes.iter() {
+        if let Some(_) = new_hashes.get(path).filter(|t| **t != *hash) {
             println!("Change in file: {:?}", path);
-            copy_changed_file(&path);
+            copy_changed_file(path);
+        } else if let None = new_hashes.get(path) {
+            println!("File no longer available: {:?}", path);
+        }
+    }
+
+    // Check for newly running ROMS
+    if old_hashes.len() < new_hashes.len() {
+        let old_keys: HashSet<_> = old_hashes.keys().collect();
+        let new_keys: HashSet<_> = new_hashes.keys().collect();
+        for path in new_keys.difference(&old_keys) {
+            println!("File now available: {:?}", path);
         }
     }
 
@@ -69,34 +80,20 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn run_test_roms(blargg_path: impl AsRef<str>, mooneye_path: impl AsRef<str>, bootrom: impl AsRef<Path>) {
+fn run_test_roms(test_path: impl AsRef<str>, bootrom: impl AsRef<Path>) {
     let boot_file = if bootrom.as_ref().exists() {
         read(bootrom.as_ref()).ok()
     } else {
         None
     };
 
-    if !blargg_path.as_ref().is_empty() {
-        run_path(blargg_path.as_ref(), boot_file.clone());
+    if !test_path.as_ref().is_empty() {
+        run_path(test_path.as_ref(), boot_file.clone());
     }
-
-    if !mooneye_path.as_ref().is_empty() {
-        run_path(mooneye_path.as_ref(), boot_file);
-    }
-}
-
-pub fn vec_to_bootrom(vec: &Vec<u8>) -> [u8; 256] {
-    let mut result = [0u8; 256];
-
-    for (i, instr) in vec.iter().enumerate() {
-        result[i] = *instr;
-    }
-
-    result
 }
 
 /// An incredibly naive way of doing this, by just spawning as many threads as possible for
-/// all test roms and running them for ~2 million iterations, or a custom amount if set via config.
+/// all test roms and running them for ~5 million iterations, or a custom amount if set via config.
 ///
 /// But it works!
 fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>) {

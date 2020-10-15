@@ -6,11 +6,13 @@ pub struct AppOptions {
     #[options()]
     help: bool,
     /// The path to the folder with all Blargg tests.
-    #[options(default = "test roms/blargg/")]
-    pub blargg_path: String,
-    /// The path to the folder with all MoonEyeGB tests.
-    #[options(default = "test roms/mooneye/")]
-    pub mooneye_path: String,
+    #[options(default = "test roms/auto-run/")]
+    pub test_path: String,
+    /// The path to the DMG bootrom
     #[options(default = "roms/DMG_ROM.bin")]
-    pub boot_rom: String,
+    pub dmg_boot_rom: String,
+    /// The path to the CGB bootrom
+    #[options(default = "roms/cgb_bios.bin")]
+    pub cgb_boot_rom: String,
+
 }
