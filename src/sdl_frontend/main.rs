@@ -94,9 +94,9 @@ fn main() {
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
-    test_fast(sdl_context, &mut canvas, &mut screen_texture, &read(cartridge).unwrap());
-
-    return;
+    // test_fast(sdl_context, &mut canvas, &mut screen_texture, &read(cartridge).unwrap());
+    //
+    // return;
 
     //TODO: Zelda fix, most likely SOMETHING broken with GDMA, but also something else since
     // initial scene is also broken with his head.
@@ -117,6 +117,7 @@ fn main() {
     let mut last_update_time: Instant = Instant::now();
 
     let mut fast_forward = false;
+    let mut paused = false;
 
     audio_queue.resume();
 
@@ -135,14 +136,14 @@ fn main() {
         let ticks = timer.ticks() as i32;
 
         for event in event_pump.poll_iter() {
-            if !handle_events(event, &mut emulator, &mut fast_forward) {
+            if !handle_events(event, &mut emulator, &mut fast_forward, &mut paused) {
                 break 'mainloop;
             }
         }
 
         let cycle_count_to_reach = if fast_forward { FAST_FORWARD_MULTIPLIER } else { 1 };
 
-        while cycles < cycle_count_to_reach {
+        while cycles < cycle_count_to_reach && !paused {
             if let (_, true) = emulator.emulate_cycle() {
                 cycles += 1;
             }
@@ -203,7 +204,7 @@ fn main() {
     writer.flush();
 }
 
-fn handle_events(event: Event, emulator: &mut Emulator, fast_forward: &mut bool) -> bool {
+fn handle_events(event: Event, emulator: &mut Emulator, fast_forward: &mut bool, pause: &mut bool) -> bool {
     match event {
         Event::Quit { .. }
         | Event::KeyDown {
@@ -226,6 +227,9 @@ fn handle_events(event: Event, emulator: &mut Emulator, fast_forward: &mut bool)
             } else {
                 warn!("Attempted opening of file: {} which is not a GameBoy rom!", filename);
             }
+        }
+        Event::KeyDown {keycode: Some(Keycode::P), ..} => {
+            *pause = !*pause;
         }
         Event::KeyDown { keycode: Some(key), .. } => {
             if let Some(input_key) = keycode_to_input(key) {
