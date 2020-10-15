@@ -90,13 +90,16 @@ fn main() {
 
     let cartridge = "roms/Zelda.gb";
     let _cpu_test = "roms/Pokemon - Yellow Version.gbc";
-    let _cpu_test2 = "roms/Gameboy Color Promotional Demo (J) [C].gbc";
+    let _cpu_test2 = "roms/Legend of Zelda, The - Oracle of Seasons (U) [C][!].gbc";
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
     // test_fast(sdl_context, &mut canvas, &mut screen_texture, &read(cartridge).unwrap());
     //
     // return;
+
+    //TODO: Zelda fix, most likely SOMETHING broken with GDMA, but also something else since
+    // initial scene is also broken with his head.
 
     let mut timer = sdl_context.timer().unwrap();
     let emu_opts = EmulatorOptionsBuilder::new()

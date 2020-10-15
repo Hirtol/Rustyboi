@@ -12,14 +12,14 @@ impl PPU {
     pub fn get_tile_byte(&self, address: u16) -> u8 {
         let (tile_address, byte_address) = get_tile_address(address);
         //TODO: Optimise?
-        let offset = if self.tile_bank_currently_used == 1 { 384 } else { 0 };
+        let offset = 384 * self.tile_bank_currently_used as usize;
 
         self.tiles[offset + tile_address].data[byte_address]
     }
 
     pub fn set_tile_byte(&mut self, address: u16, value: u8) {
         let (tile_address, byte_address) = get_tile_address(address);
-        let offset = if self.tile_bank_currently_used == 1 { 384 } else { 0 };
+        let offset = 384 * self.tile_bank_currently_used as usize;
 
         self.tiles[offset + tile_address].data[byte_address] = value;
     }

@@ -86,22 +86,26 @@ impl HdmaRegister {
     /// High byte source address
     pub fn write_hdma1(&mut self, value: u8) {
         self.source_address = ((value as u16) << 8) | (self.source_address & 0xFF);
+        log::debug!("HDMA 1 write, set source to: {:#4X}", self.source_address);
     }
 
     /// Low byte source address
     pub fn write_hdma2(&mut self, value: u8) {
         self.source_address = (self.source_address & 0xFF00) | ((value & 0xF0) as u16);
+        log::debug!("HDMA 2 write, set source to: {:#4X}", self.source_address);
     }
 
     /// High byte destination address
     pub fn write_hdma3(&mut self, value: u8) {
         // Destination is always in VRAM, so we ensure the top nibble is 0x8
         self.destination_address = 0x8000 | (((value & 0x1F) as u16) << 8) | (self.destination_address & 0xFF);
+        log::debug!("HDMA 3 write, set dest to: {:#4X}", self.destination_address);
     }
 
     /// Low byte destination address
     pub fn write_hdma4(&mut self, value: u8) {
         self.destination_address = (self.destination_address & 0xFF00) | ((value & 0xF0) as u16);
+        log::debug!("HDMA 4 write, set dest to: {:#4X}", self.destination_address);
     }
 
     pub fn write_hdma5(&mut self, value: u8, scheduler: &mut Scheduler) {
