@@ -3,6 +3,7 @@ use crate::hardware::ppu::tiledata::Tile;
 use crate::hardware::ppu::palette::{RGB, DisplayColour};
 
 impl PPU {
+
     /// Returns an array of the full 768 tiles rendered next to each other in a
     /// 128 * 384 RGB pixel array. (16 tiles per line)
     pub fn tiles_cgb(&self) -> [RGB; 49152] {

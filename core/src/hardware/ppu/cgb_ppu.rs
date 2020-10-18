@@ -76,7 +76,7 @@ impl PPU {
             // If we've selected the 8800-97FF mode we need to add a 256 offset, and then
             // add/subtract the relative address. (since we can then reach tiles 128-384)
             if !self.lcd_control.contains(LcdControl::BG_WINDOW_TILE_SELECT) {
-                tile_address = (256_usize).wrapping_add((tile_relative_address as i8) as usize);
+                tile_address = (256_usize).wrapping_add((tile_relative_address as i8) as usize) + (384 * tile_attributes.contains(CgbTileAttribute::TILE_VRAM_BANK_NUMBER) as usize);
             }
 
             let tile_line = if tile_attributes.contains(CgbTileAttribute::Y_FLIP) {
@@ -128,7 +128,7 @@ impl PPU {
             // If we've selected the 8800-97FF mode we need to add a 256 offset, and then
             // add/subtract the relative address.
             if !self.lcd_control.contains(LcdControl::BG_WINDOW_TILE_SELECT) {
-                tile_address = (256_usize).wrapping_add((tile_relative_address as i8) as usize);
+                tile_address = (256_usize).wrapping_add((tile_relative_address as i8) as usize) + (384 * tile_attributes.contains(CgbTileAttribute::TILE_VRAM_BANK_NUMBER) as usize);
             }
 
             let tile_line = if tile_attributes.contains(CgbTileAttribute::Y_FLIP) {
