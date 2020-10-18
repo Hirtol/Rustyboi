@@ -88,6 +88,7 @@ pub mod tiledata;
 pub mod dma;
 pub mod cgb_vram;
 pub mod cgb_ppu;
+pub mod debugging_features;
 
 // Misc:
 // If the Window is enabled while drawing the screen (LY is between 0 and 143)

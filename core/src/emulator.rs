@@ -61,6 +61,10 @@ impl Emulator {
         self.cpu.mmu.ppu.frame_buffer()
     }
 
+    pub fn vram_tiles(&self) -> [RGB; 8*8*768] {
+        self.cpu.mmu.ppu.tiles_cgb()
+    }
+
     pub fn audio_buffer(&self) -> &[f32] {
         self.cpu.mmu.apu.get_audio_buffer()
     }

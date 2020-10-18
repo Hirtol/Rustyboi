@@ -107,6 +107,7 @@ fn main() {
         .with_mode(CGB)
         .with_display_colours(KIRBY_DISPLAY_COLOURS)
         .build();
+
     let mut emulator = create_emulator(_cpu_test2, emu_opts);
 
     let mut cycles = 0;
@@ -123,7 +124,7 @@ fn main() {
 
     'mainloop: loop {
         let audio_buffer = emulator.audio_buffer();
-        //debug!("Status: {:?} - Size: {} - SUM: {}", audio_queue.status(), audio_queue.size(), audio_buffer.iter().sum::<f32>());
+
         // Temporary hack to make audio not buffer up while fast forwarding,
         // in the future could consider downsampling the sped up audio for a cool effect.
         if !fast_forward {

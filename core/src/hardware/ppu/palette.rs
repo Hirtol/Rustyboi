@@ -2,7 +2,7 @@
 pub struct Palette {
     palette_byte: u8,
     // Index into the PPUs display colour array.
-    colours: [RGB; 4],
+    pub colours: [RGB; 4],
 }
 
 #[derive(Copy, Clone, Debug, Default, PartialOrd, PartialEq)]

@@ -1,10 +1,11 @@
 ///! This module is purely for CGB specific rendering, look in ppu/mod.rs for DMG mode rendering.
-use crate::hardware::ppu::{PPU, RESOLUTION_WIDTH, is_sprite_on_scanline};
+use crate::hardware::ppu::{PPU, RESOLUTION_WIDTH, is_sprite_on_scanline, RGB_CHANNELS};
 use crate::hardware::ppu::register_flags::{LcdControl, AttributeFlags};
-use crate::hardware::ppu::tiledata::BACKGROUND_TILE_SIZE;
+use crate::hardware::ppu::tiledata::{BACKGROUND_TILE_SIZE, Tile};
 use num_integer::Integer;
 use itertools::Itertools;
 use crate::hardware::ppu::cgb_vram::CgbTileAttribute;
+use crate::hardware::ppu::palette::{RGB, DisplayColour};
 
 impl PPU {
     pub fn draw_cgb_scanline(&mut self) {
