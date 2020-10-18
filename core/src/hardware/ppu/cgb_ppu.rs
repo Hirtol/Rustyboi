@@ -181,7 +181,7 @@ impl PPU {
                 // If we're on the lower 8x8 block of the 16 pixel tall sprite
                 if line < 8 {
                     // Ignore lower bit one
-                    self.tiles[tile_index & 0xFE]
+                    self.tiles[tile_index & 0xFFFE]
                 } else {
                     // Add one, if appropriate.
                     // To me an unconditional +1 would make more sense here, however PanDocs
