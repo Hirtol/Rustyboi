@@ -25,6 +25,8 @@ use std::io::Write;
 use std::ops::Div;
 use rustyboi_core::emulator::EmulatorMode::{CGB, DMG};
 use rustyboi_core::hardware::ppu::palette::{DisplayColour, RGB};
+use image::ImageBuffer;
+use image::imageops::FilterType;
 
 mod actions;
 
@@ -99,6 +101,11 @@ fn main() {
     // return;
 
     //TODO: Zelda fix, most likely SOMETHING broken in OAM since sprites are wrong
+    //Things to do:
+    //1: Overhaul frontend for imgui
+    //2: Accuracy improvements to hopefully pass the GBC oracle of seasons. (Sprites?)
+    //3: APU improvements to use a proper sampler so that we can rearchitect the way we do ticking
+    // by doing more lazy evaluation (thus being able to move everything to the scheduler for speed)
 
     let mut timer = sdl_context.timer().unwrap();
     let emu_opts = EmulatorOptionsBuilder::new()
@@ -228,21 +235,42 @@ fn handle_events(event: Event, emulator: &mut Emulator, fast_forward: &mut bool,
                 warn!("Attempted opening of file: {} which is not a GameBoy rom!", filename);
             }
         }
-        Event::KeyDown {keycode: Some(Keycode::P), ..} => {
-            *pause = !*pause;
-        }
         Event::KeyDown { keycode: Some(key), .. } => {
             if let Some(input_key) = keycode_to_input(key) {
                 emulator.handle_input(input_key, true);
-            } else if key == Keycode::LShift {
-                *fast_forward = true;
+            } else {
+                match key {
+                    Keycode::LShift => *fast_forward = true,
+                    Keycode::P => *pause = !*pause,
+                    Keycode::O => println!("{:#?}", emulator.oam()),
+                    Keycode::L => {
+                        let mut true_image_buffer = vec![0u8; 768*8*8*3];
+
+                        for (i, colour) in emulator.vram_tiles().iter().enumerate() {
+                            let offset = i * 3;
+                            true_image_buffer[offset] = colour.0;
+                            true_image_buffer[offset + 1] = colour.1;
+                            true_image_buffer[offset + 2] = colour.2;
+                        }
+                        let temp_buffer: ImageBuffer<image::Rgb<u8>, Vec<u8>> =
+                            image::ImageBuffer::from_raw(128, 384, true_image_buffer).unwrap();
+                        let temp_buffer = image::imageops::resize(&temp_buffer, 256, 768, FilterType::Nearest);
+                        temp_buffer
+                            .save(format!("vram_dump.png"))
+                            .unwrap();
+                    }
+                    _ => {}
+                }
             }
         }
         Event::KeyUp { keycode: Some(key), .. } => {
             if let Some(input_key) = keycode_to_input(key) {
                 emulator.handle_input(input_key, false);
-            } else if key == Keycode::LShift {
-                *fast_forward = false;
+            } else {
+                match key {
+                    Keycode::LShift => *fast_forward = false,
+                    _ => {}
+                }
             }
         }
         _ => {}

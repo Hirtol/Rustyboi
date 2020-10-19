@@ -165,7 +165,7 @@ impl Memory {
             io_registers: IORegisters::new(),
         };
 
-        // If we're not doing the CGB bootrom AND the cartridge is not a CGB, we swich to DMG
+        // If we're not doing the CGB bootrom AND the cartridge is not a CGB, we switch to DMG
         if !result.cartridge.cartridge_header().cgb_flag && result.boot_rom_finished() {
             result.emulation_mode = DMG;
         }
@@ -314,6 +314,7 @@ impl Memory {
                 self.boot_rom.is_finished = true;
                 // If the cartridge doesn't support CGB at all we switch to DMG mode.
                 if !self.cartridge.cartridge_header().cgb_flag {
+                    info!("Switching to DMG mode!");
                     self.emulation_mode = EmulatorMode::DMG;
                 }
                 info!("Finished executing BootRom!");

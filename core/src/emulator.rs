@@ -11,6 +11,7 @@ use crate::hardware::ppu::{FRAMEBUFFER_SIZE, PPU};
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::io::joypad::*;
 use crate::EmulatorOptions;
+use crate::hardware::ppu::tiledata::SpriteAttribute;
 
 /// A DMG runs at `4.194304 MHz` with a Vsync of `59.7275 Hz`, so that would be
 /// `4194304 / 59.7275 = 70224 cycles/frame`
@@ -63,6 +64,10 @@ impl Emulator {
 
     pub fn vram_tiles(&self) -> [RGB; 8*8*768] {
         self.cpu.mmu.ppu.tiles_cgb()
+    }
+
+    pub fn oam(&self) -> &[SpriteAttribute; 40]{
+        &self.cpu.mmu.ppu.oam
     }
 
     pub fn audio_buffer(&self) -> &[f32] {

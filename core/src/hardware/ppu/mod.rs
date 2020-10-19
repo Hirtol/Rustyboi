@@ -117,7 +117,7 @@ pub struct PPU {
     tile_map_9c00: TileMap,
     cgb_9800_tile_map: CgbTileMap,
     cgb_9c00_tile_map: CgbTileMap,
-    oam: [SpriteAttribute; 40],
+    pub oam: [SpriteAttribute; 40],
 
     lcd_control: LcdControl,
     lcd_status: LcdStatus,
