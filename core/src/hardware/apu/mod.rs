@@ -126,7 +126,7 @@ impl APU {
 
     pub fn read_register(&self, address: u16) -> u8 {
         let address = address & 0xFF;
-
+        //TODO: No read if disabled?
         match address {
             0x10..=0x14 => self.voice1.read_register(address),
             0x15..=0x19 => self.voice2.read_register(address),

@@ -98,8 +98,7 @@ fn main() {
     //
     // return;
 
-    //TODO: Zelda fix, most likely SOMETHING broken with GDMA, but also something else since
-    // initial scene is also broken with his head.
+    //TODO: Zelda fix, most likely SOMETHING broken in OAM since sprites are wrong
 
     let mut timer = sdl_context.timer().unwrap();
     let emu_opts = EmulatorOptionsBuilder::new()
