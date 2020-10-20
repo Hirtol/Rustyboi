@@ -94,7 +94,6 @@ impl<M: MemoryMapper> CPU<M> {
     pub fn write_byte_cycle(&mut self, address: u16, value: u8) {
         self.add_cycles();
         self.mmu.write_byte(address, value);
-        //TODO: Potentially add DMA transfer cycles (160*4 cycles) here?
     }
 
     /// Read a `short` in the `MMU` and increment the cycle counter by 8.

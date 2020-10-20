@@ -91,7 +91,7 @@ fn main() {
     let bootrom_file = read("roms\\cgb_bios.bin").unwrap();
 
     let cartridge = "roms/Zelda.gb";
-    let _cpu_test = "roms/Pokemon - Yellow Version.gbc";
+    let _cpu_test = "test roms/blargg_sound/cgb_sound/rom_singles/12-wave.gb";
     let _cpu_test2 = "roms/Legend of Zelda, The - Oracle of Seasons (U) [C][!].gbc";
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
@@ -114,7 +114,7 @@ fn main() {
         .with_display_colours(KIRBY_DISPLAY_COLOURS)
         .build();
 
-    let mut emulator = create_emulator(_cpu_test2, emu_opts);
+    let mut emulator = create_emulator(_cpu_test, emu_opts);
 
     let mut cycles = 0;
     let mut loop_cycles = 0;
@@ -150,16 +150,20 @@ fn main() {
 
         let cycle_count_to_reach = if fast_forward { FAST_FORWARD_MULTIPLIER } else { 1 };
 
-        while cycles < cycle_count_to_reach && !paused {
-            if let (_, true) = emulator.emulate_cycle() {
-                cycles += 1;
+        // 30-40k seems to be a decent spot for audio syncing.
+        // I should really figure out proper audio syncing ._.
+        if audio_queue.size() < 40_000 {
+            while cycles < cycle_count_to_reach && !paused {
+                if let (_, true) = emulator.emulate_cycle() {
+                    cycles += 1;
+                }
+                if (emulator.audio_buffer().len() >= 1550) && !fast_forward {
+                    break;
+                }
             }
-            if emulator.audio_buffer().len() >= 1550 && !fast_forward{
-                break;
-            }
-        }
 
-        cycles = 0;
+            cycles = 0;
+        }
 
         fill_texture_and_copy(
             &mut canvas,
