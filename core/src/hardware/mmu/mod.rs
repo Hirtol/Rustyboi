@@ -289,7 +289,7 @@ impl Memory {
             TIMER_MODULO => self.timers.set_tma(value),
             TIMER_CONTROL => self.timers.set_timer_control(value, &mut self.scheduler),
             INTERRUPTS_FLAG => self.interrupts.overwrite_if(value),
-            APU_MEM_START..=APU_MEM_END => self.apu.write_register(address, value, &mut self.scheduler),
+            APU_MEM_START..=APU_MEM_END => self.apu.write_register(address, value, &mut self.scheduler, self.emulation_mode),
             WAVE_SAMPLE_START..=WAVE_SAMPLE_END => self.apu.write_wave_sample(address, value),
             LCD_CONTROL_REGISTER => self.ppu.set_lcd_control(value, &mut self.scheduler, &mut self.interrupts),
             LCD_STATUS_REGISTER => self.ppu.set_lcd_status(value, &mut self.interrupts),

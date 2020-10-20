@@ -1,6 +1,7 @@
 use crate::hardware::apu::channel_features::{EnvelopeFeature, LengthFeature};
 use crate::hardware::apu::{no_length_tick_next_step, test_bit};
 use crate::hardware::mmu::INVALID_READ;
+use crate::emulator::EmulatorMode;
 
 /// Relevant for voice 4 for the DMG.
 ///
@@ -148,13 +149,17 @@ impl NoiseChannel {
         }
     }
 
-    pub fn reset(&mut self) {
+    pub fn reset(&mut self, mode: EmulatorMode) {
         self.length.length_enable = false;
-        //TODO: In CGB mode we should not save the length here, instead fully reset the channel.
-        *self = Self {
-            length: self.length,
-            ..Default::default()
-        };
+
+        *self = if mode.is_cgb() {
+            Self::default()
+        } else {
+            Self {
+                length: self.length,
+                ..Default::default()
+            }
+        }
     }
 
     fn get_divisor_from_code(&self) -> u16 {

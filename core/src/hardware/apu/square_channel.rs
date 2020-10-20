@@ -1,5 +1,6 @@
-use crate::hardware::apu::channel_features::{EnvelopeFeature, LengthFeature, SweepFeature};
+use crate::emulator::EmulatorMode;
 use crate::hardware::apu::{no_length_tick_next_step, test_bit};
+use crate::hardware::apu::channel_features::{EnvelopeFeature, LengthFeature, SweepFeature};
 use crate::hardware::mmu::INVALID_READ;
 
 /// Relevant for voice 1 and 2 for the DMG.
@@ -134,12 +135,16 @@ impl SquareWaveChannel {
         }
     }
 
-    pub fn reset(&mut self) {
+    pub fn reset(&mut self, mode: EmulatorMode) {
         self.length.length_enable = false;
-        //TODO: In CGB mode we should not save the length here, instead fully reset the channel.
-        *self = Self {
-            length: self.length,
-            ..Default::default()
+
+        *self = if mode.is_cgb() {
+            Self::default()
+        } else {
+            Self {
+                length: self.length,
+                ..Default::default()
+            }
         }
     }
 

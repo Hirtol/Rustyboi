@@ -8,6 +8,7 @@ use crate::hardware::apu::square_channel::SquareWaveChannel;
 use crate::hardware::apu::wave_channel::WaveformChannel;
 use crate::scheduler::{EventType, Scheduler};
 use crate::hardware::mmu::INVALID_READ;
+use crate::emulator::EmulatorMode;
 
 mod channel_features;
 mod noise_channel;
@@ -163,14 +164,14 @@ impl APU {
         }
     }
 
-    pub fn write_register(&mut self, address: u16, value: u8, scheduler: &mut Scheduler) {
+    pub fn write_register(&mut self, address: u16, value: u8, scheduler: &mut Scheduler, mode: EmulatorMode) {
         //log::info!("APU Write on address: 0x{:02X} with value: 0x{:02X}", address, value);
         let address = address & 0xFF;
 
         // It's not possible to access any registers beside 0x26 while the sound is disabled.
         // *Caveat*: In DMG mode you CAN write to the Length registers while disabled (f.e 0x20).
-        // TODO: However in CGB mode this is not possible, and should thus not be allowed.
-        if !self.global_sound_enable && address != 0x26 && ![0x20, 0x1B].contains(&address) {
+        // However in CGB mode this is not possible, and should thus not be allowed.
+        if !self.global_sound_enable && address != 0x26 && (mode.is_cgb() || (mode.is_dmg() && ![0x20, 0x1B].contains(&address))) {
             log::warn!("Tried to write APU while inaccessible to address: 0x{:02X}", address);
             return;
         }
@@ -198,7 +199,7 @@ impl APU {
                 let previous_enable = self.global_sound_enable;
                 self.global_sound_enable = test_bit(value, 7);
                 if !self.global_sound_enable {
-                    self.reset(scheduler);
+                    self.reset(scheduler, mode);
                 } else if !previous_enable {
                     // Re-add the frame sequence event.
                     scheduler.push_relative(EventType::APUFrameSequencer, FRAME_SEQUENCE_CYCLES);
@@ -267,11 +268,11 @@ impl APU {
         self.voice1.tick_sweep();
     }
 
-    fn reset(&mut self, scheduler: &mut Scheduler) {
-        self.voice1.reset();
-        self.voice2.reset();
+    fn reset(&mut self, scheduler: &mut Scheduler, mode: EmulatorMode) {
+        self.voice1.reset(mode);
+        self.voice2.reset(mode);
         self.voice3.reset();
-        self.voice4.reset();
+        self.voice4.reset(mode);
         self.vin_l_enable = false;
         self.vin_r_enable = false;
         self.right_volume = 0;
