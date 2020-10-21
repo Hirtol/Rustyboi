@@ -16,8 +16,6 @@ use std::fs::{read, File};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-use crate::actions::*;
-
 use hound::{SampleFormat, WavSpec};
 use sdl2::audio::{AudioQueue, AudioSpecDesired};
 use sdl2::event::Event;
@@ -27,8 +25,7 @@ use rustyboi_core::emulator::EmulatorMode::{CGB, DMG};
 use rustyboi_core::hardware::ppu::palette::{DisplayColour, RGB};
 use image::ImageBuffer;
 use image::imageops::FilterType;
-
-mod actions;
+use rustyboi::actions::{save_rom, create_emulator};
 
 const KIRBY_DISPLAY_COLOURS: DisplayColour = DisplayColour {
     black: RGB(44, 44, 150),

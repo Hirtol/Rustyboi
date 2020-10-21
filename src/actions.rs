@@ -62,13 +62,3 @@ pub fn find_saved_ram(name: impl AsRef<str>) -> Option<Vec<u8>> {
 pub fn find_rom_name(rom: &[u8]) -> String {
     CartridgeHeader::new(rom).title.trim().to_owned()
 }
-
-pub fn vec_to_bootrom(vec: &Vec<u8>) -> [u8; 256] {
-    let mut result = [0u8; 256];
-
-    for (i, instr) in vec.iter().enumerate() {
-        result[i] = *instr;
-    }
-
-    result
-}
