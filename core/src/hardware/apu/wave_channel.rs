@@ -20,6 +20,7 @@ pub struct WaveformChannel {
     volume_load: u8,
     volume: u8,
     sample_buffer: [u8; 32],
+    wave_ram: [u8; 16],
     sample_pointer: usize,
 }
 
@@ -98,16 +99,11 @@ impl WaveformChannel {
                 // Further, on the DMG accesses will only work in this manner if made within a
                 // couple of clocks of the wave channel accessing wave RAM;
                 // if made at any other time, reads return $FF and writes have no effect.
-                let offset_address = if self.trigger {
-                    if self.sample_pointer % 2 == 1 {
-                        (self.sample_pointer - 1) as usize
-                    } else {
-                        self.sample_pointer as usize
-                    }
+                if self.trigger {
+                    self.wave_ram[self.sample_pointer / 2]
                 } else {
-                    ((address - 0x30) * 2) as usize
-                };
-                (self.sample_buffer[offset_address] << 4) | self.sample_buffer[offset_address + 1]
+                    self.wave_ram[(address - 0x30) as usize]
+                }
             }
             _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address),
         }
@@ -142,9 +138,15 @@ impl WaveformChannel {
                 }
             }
             0x30..=0x3F => {
-                let offset_address = ((address - 0x30) * 2) as usize;
-                self.sample_buffer[offset_address] = value >> 4;
-                self.sample_buffer[offset_address + 1] = value & 0xF;
+                if self.trigger {
+                    self.wave_ram[self.sample_pointer / 2] = value;
+                } else {
+                    let offset_address = ((address - 0x30) * 2) as usize;
+                    self.sample_buffer[offset_address] = value >> 4;
+                    self.sample_buffer[offset_address + 1] = value & 0xF;
+
+                    self.wave_ram[offset_address / 2] = value;
+                }
             }
             _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address),
         }
