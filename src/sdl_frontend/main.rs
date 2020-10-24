@@ -16,7 +16,6 @@ use std::fs::{read, File};
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-use hound::{SampleFormat, WavSpec};
 use sdl2::audio::{AudioQueue, AudioSpecDesired};
 use sdl2::event::Event;
 use std::io::Write;
@@ -26,6 +25,10 @@ use rustyboi_core::hardware::ppu::palette::{DisplayColour, RGB};
 use image::ImageBuffer;
 use image::imageops::FilterType;
 use rustyboi::actions::{save_rom, create_emulator};
+use crate::sdl::{setup_sdl, fill_texture_and_copy};
+
+
+mod sdl;
 
 const KIRBY_DISPLAY_COLOURS: DisplayColour = DisplayColour {
     black: RGB(44, 44, 150),
@@ -101,7 +104,7 @@ fn main() {
     //Things to do:
     //1: Overhaul frontend for imgui
     //2: Accuracy improvements to hopefully pass the GBC oracle of seasons. (Sprites?)
-    //3: APU improvements to use a proper sampler so that we can rearchitect the way we do ticking
+    //3: APU improvements to use a proper sampler so that we can re-architect the way we do ticking
     // by doing more lazy evaluation (thus being able to move everything to the scheduler for speed)
 
     let mut timer = sdl_context.timer().unwrap();
@@ -190,26 +193,6 @@ fn main() {
             last_update_time = Instant::now();
         }
     }
-
-    let out_file = File::create("output.wav").unwrap();
-
-    let mut writer = hound::WavWriter::new(
-        out_file,
-        WavSpec {
-            channels: 2,
-            sample_rate: 44100,
-            bits_per_sample: 32,
-            sample_format: SampleFormat::Float,
-        },
-    )
-    .unwrap();
-
-    // Temp audio stuff to save to WAV file for testing.
-    emulator.audio_buffer().iter().for_each(|f| {
-        writer.write_sample(*f);
-    });
-
-    writer.flush();
 }
 
 fn handle_events(event: Event, emulator: &mut Emulator, fast_forward: &mut bool, pause: &mut bool) -> bool {
@@ -223,7 +206,6 @@ fn handle_events(event: Event, emulator: &mut Emulator, fast_forward: &mut bool,
             return false;
         }
         Event::DropFile { filename, .. } => {
-            // GBC games are not guaranteed to work
             if filename.ends_with(".gb") || filename.ends_with(".gbc") {
                 debug!("Opening file: {}", filename);
                 save_rom(emulator);
@@ -292,36 +274,6 @@ fn keycode_to_input(key: Keycode) -> Option<InputKey> {
         Keycode::T => Some(InputKey::START),
         _ => None,
     }
-}
-
-fn setup_sdl(canvas: &mut WindowCanvas) -> Texture {
-    canvas.set_draw_color(Color::RGB(0, 0, 0));
-    canvas.clear();
-
-    // Ensure aspect ratio is kept, in the future we could change this if we want more GUI elements.
-    // Or just render ImGui on top ㄟ( ▔, ▔ )ㄏ
-    canvas.set_logical_size(160, 144);
-    canvas.set_scale(1.0, 1.0);
-
-    canvas.present();
-    canvas.create_texture_streaming(RGB24, 160, 144).unwrap()
-}
-
-/// This function assumes pixel_buffer size * 3 == texture buffer size, otherwise panic
-fn fill_texture_and_copy(
-    canvas: &mut WindowCanvas,
-    texture: &mut Texture,
-    pixel_buffer: &[RGB],
-) {
-    texture.with_lock(Option::None, |arr, _pitch| {
-        for (i, colour) in pixel_buffer.iter().enumerate() {
-            let offset = i * 3;
-            arr[offset] = colour.0;
-            arr[offset + 1] = colour.1;
-            arr[offset + 2] = colour.2;
-        }
-    });
-    canvas.copy(&texture, None, None);
 }
 
 fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_texture: &mut Texture, cpu_test: &Vec<u8>) {
