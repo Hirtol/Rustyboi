@@ -2,9 +2,10 @@
 //! too cluttered.
 
 use crate::hardware::cpu::CPU;
-use crate::hardware::mmu::MemoryMapper;
+use crate::hardware::mmu::{MemoryMapper, INTERRUPTS_FLAG, INTERRUPTS_ENABLE};
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::scheduler::{Event, EventType};
+use crate::hardware::cpu::instructions::get_assembly_from_opcode;
 
 impl<M: MemoryMapper> CPU<M> {
     /// Add 4 cycles to the internal counter
@@ -51,9 +52,9 @@ impl<M: MemoryMapper> CPU<M> {
                 self.halted = false;
             }
         } else if self.mmu.interrupts().interrupts_pending() {
-            let interrupt = self.mmu.interrupts().get_immediate_interrupt();
+            // Since we know one is currently pending, unwrap is fine.
+            let interrupt = self.mmu.interrupts().get_highest_priority();
             //log::debug!("Firing {:?} interrupt", interrupt);
-            self.mmu.interrupts_mut().remove_interrupt(interrupt);
 
             self.interrupts_routine(interrupt);
 
@@ -120,5 +121,19 @@ impl<M: MemoryMapper> CPU<M> {
         } else {
             false
         }
+    }
+
+    pub fn log_instr(&self) {
+        let ie = self.mmu.read_byte(INTERRUPTS_ENABLE);
+        let if_flag = self.mmu.read_byte(INTERRUPTS_FLAG);
+        log::trace!(
+            "Executing opcode: {:04X} registers: {} - IE: {:02X} - IF: {:02X} - ime: {} - name: {:<22}",
+            self.opcode,
+            self.registers,
+            ie,
+            if_flag,
+            self.ime,
+            get_assembly_from_opcode(self.opcode),
+        );
     }
 }

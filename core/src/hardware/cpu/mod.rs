@@ -1,20 +1,20 @@
 //! The CPU is the main executor of any ROM's code, and will also keep
 //! track of the cycles the CPU has performed so far.
 
+use std::fmt::*;
+
+use log::*;
+
+use registers::{Flags, Reg16, Registers};
+use registers::Reg8::A;
+
 use crate::emulator::*;
 use crate::hardware::cpu::execute::{InstructionAddress, JumpModifier, WrapperEnum};
-
-use crate::hardware::cpu::traits::{SetU16, SetU8, ToU16, ToU8};
-
-use crate::hardware::mmu::*;
-use registers::Reg8::A;
-use registers::{Flags, Reg16, Registers};
-use crate::io::interrupts::{InterruptFlags, Interrupts};
-
 use crate::hardware::cpu::execute::JumpModifier::Always;
 use crate::hardware::cpu::instructions::get_assembly_from_opcode;
-use log::*;
-use std::fmt::*;
+use crate::hardware::cpu::traits::{SetU16, SetU8, ToU16, ToU8};
+use crate::hardware::mmu::*;
+use crate::io::interrupts::{InterruptFlags, Interrupts};
 
 #[cfg(test)]
 mod tests;
@@ -81,40 +81,41 @@ impl<M: MemoryMapper> CPU<M> {
 
         self.opcode = self.get_next_opcode();
 
-        // let ie = self.mmu.read_byte(INTERRUPTS_ENABLE);
-        // let if_flag = self.mmu.read_byte(INTERRUPTS_FLAG);
-        // trace!(
-        //     "Executing opcode: {:04X} - name: {:<22}\n----------- registers: {} - IE: {:02X} - IF: {:02X} - ime: {}",
-        //     self.opcode,
-        //     get_assembly_from_opcode(self.opcode),
-        //     self.registers,
-        //     ie,
-        //     if_flag,
-        //     self.ime
-        // );
+        //self.log_instr();
 
         self.execute(self.opcode);
     }
 
     /// The routine to be used whenever any kind of `interrupt` is called.
     /// This will reset the `ime` flag and jump to the proper interrupt address.
-    pub fn interrupts_routine(&mut self, interrupt: InterruptFlags) {
+    pub fn interrupts_routine(&mut self, mut interrupt: InterruptFlags) {
         // Two wait cycles
         self.add_cycles();
         self.add_cycles();
 
         self.ime = false;
         self.halted = false;
-        // Stack push
-        self.registers.sp = self.registers.sp.wrapping_sub(2);
-        self.write_short_cycle(self.registers.sp, self.registers.pc);
 
+        // Stack push, MSB can cancel interrupt if it overwrites IE
+        self.registers.sp = self.registers.sp.wrapping_sub(1);
+        self.write_byte_cycle(self.registers.sp, (self.registers.pc >> 8) as u8);
+
+        interrupt = self.mmu.interrupts().get_highest_priority();
+
+        // LSB write, can no longer cancel interrupt
+        self.registers.sp = self.registers.sp.wrapping_sub(1);
+        self.write_byte_cycle(self.registers.sp, (self.registers.pc & 0xFF) as u8);
+
+        self.mmu.interrupts_mut().remove_interrupt(interrupt);
         self.registers.pc = match interrupt {
             InterruptFlags::VBLANK => 0x0040,
             InterruptFlags::LCD => 0x0048,
             InterruptFlags::TIMER => 0x0050,
             InterruptFlags::SERIAL => 0x0058,
             InterruptFlags::JOYPAD => 0x0060,
+            // This is for the emulator, if there is no interrupt after the MSB has been overwritten
+            // then PC is set to 0
+            InterruptFlags::UNUSED => 0x0,
             _ => panic!("Invalid interrupt passed to interrupt handler!"),
         };
     }
@@ -128,9 +129,9 @@ impl<M: MemoryMapper> CPU<M> {
     /// OR
     /// `ld   SP,HL       F9         8 ---- SP=HL`
     fn load_16<T: Copy, U: Copy>(&mut self, destination: T, source: U)
-    where
-        Self: SetU16<T>,
-        Self: ToU16<U>,
+        where
+            Self: SetU16<T>,
+            Self: ToU16<U>,
     {
         let source_value = self.read_u16_value(source);
 
@@ -139,10 +140,10 @@ impl<M: MemoryMapper> CPU<M> {
 
     /// `ld` never sets any flags.
     fn load_8<T: Copy, U: Copy>(&mut self, destination: T, source: U)
-    where
-        T: Debug,
-        Self: SetU8<T>,
-        Self: ToU8<U>,
+        where
+            T: Debug,
+            Self: SetU8<T>,
+            Self: ToU8<U>,
     {
         let source_value = self.read_u8_value(source);
 
@@ -155,9 +156,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `z0h-`
     fn increment<T: Copy>(&mut self, target: T)
-    where
-        Self: ToU8<T>,
-        Self: SetU8<T>,
+        where
+            Self: ToU8<T>,
+            Self: SetU8<T>,
     {
         let old_value = self.read_u8_value(target);
         let new_value = old_value.wrapping_add(1);
@@ -209,9 +210,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `z1h-`
     fn decrement<T: Copy>(&mut self, target: T)
-    where
-        Self: ToU8<T>,
-        Self: SetU8<T>,
+        where
+            Self: ToU8<T>,
+            Self: SetU8<T>,
     {
         let old_value = self.read_u8_value(target);
         let new_value = old_value.wrapping_sub(1);
@@ -253,7 +254,7 @@ impl<M: MemoryMapper> CPU<M> {
                 self.mmu.do_m_cycle();
             }
 
-            log::info!("Switching to {} speed mode!", if self.mmu.cgb_data().double_speed {"double"} else {"normal"});
+            log::info!("Switching to {} speed mode!", if self.mmu.cgb_data().double_speed { "double" } else { "normal" });
         } else {
             unimplemented!("STOP called, implement!");
         }
@@ -371,8 +372,8 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z0HC`
     fn add<T: Copy>(&mut self, target: T)
-    where
-        Self: ToU8<T>,
+        where
+            Self: ToU8<T>,
     {
         let value = self.read_u8_value(target);
         let (new_value, overflowed) = self.registers.a.overflowing_add(value);
@@ -391,8 +392,8 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z0HC`
     fn adc<T: Copy>(&mut self, target: T)
-    where
-        Self: ToU8<T>,
+        where
+            Self: ToU8<T>,
     {
         let value = self.read_u8_value(target);
         let carry_flag = self.registers.cf() as u8;
@@ -412,8 +413,8 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z1HC`
     fn sub<T: Copy>(&mut self, target: T)
-    where
-        Self: ToU8<T>,
+        where
+            Self: ToU8<T>,
     {
         let value = self.read_u8_value(target);
         let new_value = self.registers.a.wrapping_sub(value);
@@ -430,8 +431,8 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z1HC`
     fn sbc<T: Copy>(&mut self, target: T)
-    where
-        Self: ToU8<T>,
+        where
+            Self: ToU8<T>,
     {
         let value = self.read_u8_value(target);
         let carry_flag = self.registers.cf() as u8;
@@ -456,8 +457,8 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z010`
     fn and<T: Copy>(&mut self, target: T)
-    where
-        Self: ToU8<T>,
+        where
+            Self: ToU8<T>,
     {
         self.registers.a &= self.read_u8_value(target);
 
@@ -471,8 +472,8 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z000`
     fn xor<T: Copy>(&mut self, target: T)
-    where
-        Self: ToU8<T>,
+        where
+            Self: ToU8<T>,
     {
         self.registers.a ^= self.read_u8_value(target);
 
@@ -486,8 +487,8 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z000`
     fn or<T: Copy>(&mut self, target: T)
-    where
-        Self: ToU8<T>,
+        where
+            Self: ToU8<T>,
     {
         self.registers.a |= self.read_u8_value(target);
 
@@ -502,8 +503,8 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z1HC`
     fn compare<T: Copy>(&mut self, target: T)
-    where
-        Self: ToU8<T>,
+        where
+            Self: ToU8<T>,
     {
         let value = self.read_u8_value(target);
         let new_value = self.registers.a.wrapping_sub(value);
@@ -705,9 +706,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z00C`
     fn rlc<T: Copy>(&mut self, target: T)
-    where
-        Self: ToU8<T>,
-        Self: SetU8<T>,
+        where
+            Self: ToU8<T>,
+            Self: SetU8<T>,
     {
         self.rotate_left(target);
     }
@@ -719,9 +720,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z00C`
     fn rrc<T: Copy>(&mut self, target: T)
-    where
-        Self: ToU8<T>,
-        Self: SetU8<T>,
+        where
+            Self: ToU8<T>,
+            Self: SetU8<T>,
     {
         self.rotate_right(target);
     }
@@ -733,9 +734,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z00C`
     fn rl<T: Copy>(&mut self, target: T)
-    where
-        Self: ToU8<T>,
-        Self: SetU8<T>,
+        where
+            Self: ToU8<T>,
+            Self: SetU8<T>,
     {
         self.rotate_left_carry(target);
     }
@@ -747,9 +748,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z00C`
     fn rr<T: Copy>(&mut self, target: T)
-    where
-        Self: ToU8<T>,
-        Self: SetU8<T>,
+        where
+            Self: ToU8<T>,
+            Self: SetU8<T>,
     {
         self.rotate_right_carry(target);
     }
@@ -761,9 +762,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z00C`
     fn sla<T: Copy>(&mut self, target: T)
-    where
-        Self: ToU8<T>,
-        Self: SetU8<T>,
+        where
+            Self: ToU8<T>,
+            Self: SetU8<T>,
     {
         self.shift_left(target);
     }
@@ -775,9 +776,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z00C`
     fn sra<T: Copy>(&mut self, target: T)
-    where
-        Self: ToU8<T>,
-        Self: SetU8<T>,
+        where
+            Self: ToU8<T>,
+            Self: SetU8<T>,
     {
         let value = self.read_u8_value(target);
         let new_value = (value & 0x80) | value.wrapping_shr(1);
@@ -795,9 +796,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z000`
     fn swap<T: Copy>(&mut self, target: T)
-    where
-        Self: ToU8<T>,
-        Self: SetU8<T>,
+        where
+            Self: ToU8<T>,
+            Self: SetU8<T>,
     {
         let value = self.read_u8_value(target);
         let new_value = ((value & 0x0F) << 4) | ((value & 0xF0) >> 4);
@@ -817,9 +818,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z00C`
     fn srl<T: Copy>(&mut self, target: T)
-    where
-        Self: ToU8<T>,
-        Self: SetU8<T>,
+        where
+            Self: ToU8<T>,
+            Self: SetU8<T>,
     {
         self.shift_right(target);
     }
@@ -829,8 +830,8 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z01-`
     fn bit<T: Copy + Debug>(&mut self, bit: u8, target: T)
-    where
-        Self: ToU8<T>,
+        where
+            Self: ToU8<T>,
     {
         let value = self.read_u8_value(target);
         let bitmask = 1 << bit;
@@ -846,9 +847,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `----`
     fn set<T: Copy>(&mut self, bit: u8, target: T)
-    where
-        Self: ToU8<T>,
-        Self: SetU8<T>,
+        where
+            Self: ToU8<T>,
+            Self: SetU8<T>,
     {
         let value = self.read_u8_value(target);
         let bitmask: u8 = 1 << bit;
@@ -862,9 +863,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `----`
     fn res<T: Copy>(&mut self, bit: u8, target: T)
-    where
-        Self: ToU8<T>,
-        Self: SetU8<T>,
+        where
+            Self: ToU8<T>,
+            Self: SetU8<T>,
     {
         let value = self.read_u8_value(target);
         let bit_mask: u8 = 0x1 << bit;

@@ -38,11 +38,12 @@ impl Interrupts {
         (self.interrupt_flag.bits & self.interrupt_enable.bits & 0x1F) != 0
     }
 
+    /// Test if the provided `interrupt` should be triggered.
     pub fn interrupt_should_trigger(&self, interrupt: InterruptFlags) -> bool {
         !(interrupt & self.interrupt_flag & self.interrupt_enable).is_empty()
     }
 
-    pub fn get_immediate_interrupt(&self) -> InterruptFlags {
+    pub fn get_highest_priority(&self) -> InterruptFlags {
         if self.interrupt_should_trigger(InterruptFlags::VBLANK) {
             InterruptFlags::VBLANK
         } else if self.interrupt_should_trigger(InterruptFlags::LCD) {
@@ -54,7 +55,7 @@ impl Interrupts {
         } else if self.interrupt_should_trigger(InterruptFlags::JOYPAD) {
             InterruptFlags::JOYPAD
         } else {
-            panic!("No flag available when immediate_interrupt was called!")
+            InterruptFlags::UNUSED
         }
     }
 }
@@ -72,7 +73,7 @@ bitflags! {
         const SERIAL = 0b0000_1000;
         /// Joypad
         const JOYPAD = 0b0001_0000;
-        /// Unused, not yet sure if necessary.
+        /// Unused
         const UNUSED = 0b1110_0000;
     }
 }

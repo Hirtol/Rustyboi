@@ -58,7 +58,7 @@ const FAST_FORWARD_MULTIPLIER: u32 = 40;
 fn main() {
     CombinedLogger::init(vec![
         TermLogger::new(LevelFilter::Debug, Config::default(), TerminalMode::Mixed),
-        //WriteLogger::new(LevelFilter::Trace, ConfigBuilder::new().set_location_level(LevelFilter::Off).set_time_level(LevelFilter::Off).set_target_level(LevelFilter::Off).build(), BufWriter::new(File::create("rustyboi.log").unwrap())),
+        //WriteLogger::new(LevelFilter::Trace, ConfigBuilder::new().set_location_level(LevelFilter::Off).set_time_level(LevelFilter::Off).set_target_level(LevelFilter::Off).build(), std::io::BufWriter::new(File::create("rustyboi.log").unwrap())),
     ])
     .unwrap();
 
@@ -92,7 +92,7 @@ fn main() {
 
     let cartridge = "roms/Zelda.gb";
     let yellow = "roms/Pokemon - Yellow Version.gbc";
-    let _cpu_test = "test roms/blargg_sound/cgb_sound/cgb_sound.gb";
+    let _cpu_test = "test roms/auto-run/mooneye/tests/acceptance/interrupts/ie_push.gb";
     let _cpu_test2 = "roms/Legend of Zelda, The - Oracle of Seasons (U) [C][!].gbc";
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
@@ -103,9 +103,8 @@ fn main() {
 
     //TODO: Zelda fix, most likely SOMETHING broken in OAM since sprites are wrong
     //Things to do:
-    //1: Overhaul frontend for imgui
-    //2: Accuracy improvements to hopefully pass the GBC oracle of seasons. (Sprites?)
-    //3: APU improvements to use a proper sampler so that we can re-architect the way we do ticking
+    //1: Accuracy improvements to hopefully pass the GBC oracle of seasons. (Sprites?)
+    //2: APU improvements to use a proper sampler so that we can re-architect the way we do ticking
     // by doing more lazy evaluation (thus being able to move everything to the scheduler for speed)
 
     let mut timer = sdl_context.timer().unwrap();
