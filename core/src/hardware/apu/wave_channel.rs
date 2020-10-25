@@ -189,6 +189,9 @@ impl WaveformChannel {
             0b0_10_0_0000 => 1, // 50% volume
             0b0_11_0_0000 => 2, // 75% volume
             _ => panic!("Received invalid entry in set_volume!"),
-        }
+        };
+
+        // Since the volume is different we should update our current sample.
+        self.output_volume = (self.sample_buffer[self.sample_pointer] >> self.volume)
     }
 }

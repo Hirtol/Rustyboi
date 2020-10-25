@@ -152,7 +152,7 @@ fn main() {
 
         // 30-40k seems to be a decent spot for audio syncing.
         // I should really figure out proper audio syncing ._.
-        if audio_queue.size() < 40_000 {
+        if audio_queue.size() < 50_000 {
             while cycles < cycle_count_to_reach && !paused {
                 if let (_, true) = emulator.emulate_cycle() {
                     cycles += 1;
