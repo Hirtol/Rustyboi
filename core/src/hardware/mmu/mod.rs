@@ -167,6 +167,7 @@ impl Memory {
 
         // If we're not doing the CGB bootrom AND the cartridge is not a CGB, we switch to DMG
         if !result.cartridge.cartridge_header().cgb_flag && result.boot_rom_finished() {
+            info!("Switching to DMG mode!");
             result.emulation_mode = DMG;
         }
 

@@ -16,6 +16,7 @@ pub struct Cartridge {
 impl Cartridge {
     pub fn new(rom: &[u8], saved_ram: Option<Vec<u8>>) -> Self {
         let header = CartridgeHeader::new(rom);
+        log::debug!("Loading ROM with type: {:#X}, CGB-flag: {}", header.cartridge_type, header.cgb_flag);
         let mbc = create_mbc(&header, rom, saved_ram);
         Cartridge { header, mbc }
     }
@@ -53,8 +54,6 @@ impl Debug for Cartridge {
 
 fn create_mbc(header: &CartridgeHeader, rom: &[u8], saved_ram: Option<Vec<u8>>) -> Box<dyn MBC> {
     let rom_vec = rom.to_vec();
-
-    log::debug!("Loading ROM with type: {:#X}, CGB-mode: {}", header.cartridge_type, header.cgb_flag);
 
     match header.cartridge_type {
         0x0 => Box::new(MBC0::new(rom_vec)),
