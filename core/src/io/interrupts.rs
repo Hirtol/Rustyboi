@@ -55,7 +55,7 @@ impl Interrupts {
         } else if self.interrupt_should_trigger(InterruptFlags::JOYPAD) {
             InterruptFlags::JOYPAD
         } else {
-            InterruptFlags::UNUSED
+            InterruptFlags::NONE
         }
     }
 }
@@ -75,5 +75,7 @@ bitflags! {
         const JOYPAD = 0b0001_0000;
         /// Unused
         const UNUSED = 0b1110_0000;
+        /// Enum state to represent no interrupt
+        const NONE   = 0b0000_0000;
     }
 }

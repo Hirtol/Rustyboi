@@ -113,9 +113,8 @@ impl<M: MemoryMapper> CPU<M> {
             InterruptFlags::TIMER => 0x0050,
             InterruptFlags::SERIAL => 0x0058,
             InterruptFlags::JOYPAD => 0x0060,
-            // This is for the emulator, if there is no interrupt after the MSB has been overwritten
-            // then PC is set to 0
-            InterruptFlags::UNUSED => 0x0,
+            // If there is no interrupt after the MSB (may have) overwritten IE then PC is set to 0
+            InterruptFlags::NONE => 0x0,
             _ => panic!("Invalid interrupt passed to interrupt handler!"),
         };
     }
