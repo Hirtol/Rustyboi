@@ -92,7 +92,7 @@ fn main() {
 
     let cartridge = "roms/Zelda.gb";
     let yellow = "roms/Pokemon - Yellow Version.gbc";
-    let _cpu_test = "test roms/auto-run/mooneye/tests/acceptance/interrupts/ie_push.gb";
+    let _cpu_test = "test roms/auto-run/mooneye/tests/acceptance/oam_dma_start.gb";
     let _cpu_test2 = "roms/Legend of Zelda, The - Oracle of Seasons (U) [C][!].gbc";
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
@@ -109,7 +109,7 @@ fn main() {
 
     let mut timer = sdl_context.timer().unwrap();
     let emu_opts = EmulatorOptionsBuilder::new()
-        .boot_rom(Some(bootrom_file))
+        //.boot_rom(Some(bootrom_file))
         .with_mode(CGB)
         .with_display_colours(KIRBY_DISPLAY_COLOURS)
         .build();
