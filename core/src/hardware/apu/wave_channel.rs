@@ -37,12 +37,9 @@ impl WaveformChannel {
         }
     }
 
+    /// Output a sample for this channel, returns `0` if the channel or DAC isn't enabled.
     pub fn output_volume(&self) -> u8 {
-        if self.trigger && self.dac_power {
-            self.output_volume
-        } else {
-            0
-        }
+        self.output_volume * self.trigger as u8 * self.dac_power as u8
     }
 
     pub fn triggered(&self) -> bool {

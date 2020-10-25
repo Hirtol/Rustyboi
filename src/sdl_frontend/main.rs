@@ -91,6 +91,7 @@ fn main() {
     let bootrom_file = read("roms\\cgb_bios.bin").unwrap();
 
     let cartridge = "roms/Zelda.gb";
+    let yellow = "roms/Pokemon - Yellow Version.gbc";
     let _cpu_test = "test roms/blargg_sound/cgb_sound/cgb_sound.gb";
     let _cpu_test2 = "roms/Legend of Zelda, The - Oracle of Seasons (U) [C][!].gbc";
 

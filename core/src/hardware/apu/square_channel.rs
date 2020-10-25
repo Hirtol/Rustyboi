@@ -33,12 +33,9 @@ impl SquareWaveChannel {
         [0, 1, 1, 1, 1, 1, 1, 0], // 75%
     ];
 
+    /// Output a sample for this channel, returns `0` if the channel isn't enabled.
     pub fn output_volume(&self) -> u8 {
-        if self.trigger {
-            self.output_volume
-        } else {
-            0
-        }
+        self.output_volume * self.trigger as u8
     }
 
     pub fn triggered(&self) -> bool {
