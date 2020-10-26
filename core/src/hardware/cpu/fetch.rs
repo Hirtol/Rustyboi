@@ -52,7 +52,6 @@ impl<M: MemoryMapper> CPU<M> {
                 self.halted = false;
             }
         } else if self.mmu.interrupts().interrupts_pending() {
-            // Since we know one is currently pending, unwrap is fine.
             let interrupt = self.mmu.interrupts().get_highest_priority();
             //log::debug!("Firing {:?} interrupt", interrupt);
 

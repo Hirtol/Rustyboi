@@ -30,7 +30,7 @@ It's therefore easiest to just keep 2 separate lists with the current button inp
 * We don't pass `call_timing2`, `push_timing`, `rst_timing`, `call_cc_timing2` due to 
 instant OAM transfer, would need to switch to gradual transfer to pass these, doesn't seem worth it.
 * In `oam_dma_start` at the end of test_round_1 we're supposed to execute one INC B, where B
-would then be set to 0x01. We however immediately execute RST which should occur 1 cycle later? Log example:
+would then be set to 0x01. We however immediately execute RST which should occur 1 cycle later? (keep in mind the actual PC is PC-1) Log example:
 ```
 [TRACE] (1) Executing opcode: 0021 registers: PC:0197 SP:fffe A:80 F:11000000 B:00 C:00 D:04 E:d8 H:ff L:40 - IE: 00 - IF: 01 - ime: false - name: load_16bit HL DIRECT  
 [TRACE] (1) Executing opcode: 00C3 registers: PC:019a SP:fffe A:80 F:11000000 B:00 C:00 D:04 E:d8 H:ff L:46 - IE: 00 - IF: 01 - ime: false - name: jump Always           

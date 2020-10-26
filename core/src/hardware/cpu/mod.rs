@@ -114,8 +114,7 @@ impl<M: MemoryMapper> CPU<M> {
             InterruptFlags::SERIAL => 0x0058,
             InterruptFlags::JOYPAD => 0x0060,
             // If there is no interrupt after the MSB (may have) overwritten IE then PC is set to 0
-            InterruptFlags::NONE => 0x0,
-            _ => panic!("Invalid interrupt passed to interrupt handler!"),
+            _ => 0x0,
         };
     }
 
@@ -361,8 +360,8 @@ impl<M: MemoryMapper> CPU<M> {
             self.execute(self.opcode);
         } else {
             // Normal halt
-            self.halted = true;
             self.add_cycles();
+            self.halted = true;
         }
     }
 

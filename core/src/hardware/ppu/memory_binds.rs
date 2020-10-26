@@ -70,7 +70,7 @@ impl PPU {
 
             self.oam[relative_address as usize].get_byte((address % 4) as u8)
         } else {
-            log::info!("Attempted read of blocked OAM, transfer ongoing: {}", self.oam_transfer_ongoing);
+            log::info!("Attempted read of blocked OAM (0x{:4X}), value: (0x{:2X}), transfer ongoing: {}", address, self.oam[((address - OAM_ATTRIBUTE_START) / 4) as usize].get_byte((address % 4) as u8), self.oam_transfer_ongoing);
             INVALID_READ
         }
     }
