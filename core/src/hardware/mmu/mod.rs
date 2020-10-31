@@ -57,8 +57,6 @@ pub const WRAM_BANK_NN_END: u16 = 0xDFFF;
 /// Mirror of C000~DDFF (ECHO RAM). Typically not used
 pub const ECHO_RAM_START: u16 = 0xE000;
 pub const ECHO_RAM_END: u16 = 0xFDFF;
-/// The amount the ECHO_RAM_ADDRESS needs to have subtracted to get to the corresponding WRAM.
-pub const ECHO_RAM_OFFSET: u16 = 0x2000;
 /// Sprite attribute table (OAM)
 pub const OAM_ATTRIBUTE_START: u16 = 0xFE00;
 pub const OAM_ATTRIBUTE_END: u16 = 0xFE9F;
@@ -333,7 +331,6 @@ impl Memory {
 
     /// Starts the sequence of events for a OAM DMA transfer.
     fn dma_transfer(&mut self, value: u8) {
-        log::trace!("Sending DMA request with value: {:#X}", value);
         self.io_registers.write_byte(DMA_TRANSFER, value);
         // In case a previous DMA was running we should cancel it.
         self.scheduler.remove_event_type(DMATransferComplete);
@@ -433,12 +430,10 @@ impl Memory {
                     self.timers.just_overflowed = false;
                 }
                 EventType::DMARequested => {
-                    log::trace!("Requesting DMA transfer from address: {:#X}", self.io_registers.read_byte(DMA_TRANSFER) as usize);
                     let address = (self.io_registers.read_byte(DMA_TRANSFER) as usize) << 8;
                     self.ppu.oam_dma_transfer(&self.gather_shadow_oam(address), &mut self.scheduler);
                 }
                 EventType::DMATransferComplete => {
-                    log::trace!("Completing DMA");
                     self.ppu.oam_dma_finished();
                 }
                 EventType::GDMARequested => {

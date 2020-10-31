@@ -1,21 +1,24 @@
-use crate::hardware::mmu::{INVALID_READ, WRAM_BANK_00_START, WRAM_BANK_NN_START, WRAM_BANK_00_END, WRAM_BANK_NN_END, ECHO_RAM_OFFSET};
+use crate::hardware::mmu::{INVALID_READ, WRAM_BANK_00_START, WRAM_BANK_NN_START, WRAM_BANK_00_END, WRAM_BANK_NN_END};
 
 pub const WRAM_BANK_SIZE: usize = 0x1000;
 pub const WRAM_SIZE: usize = WRAM_BANK_SIZE * 8;
 
 const WRAM_OFFSET: u16 = WRAM_BANK_00_START;
 const WRAM_BANK_N_OFFSET: u16 = WRAM_BANK_NN_START;
+/// The amount the ECHO_RAM_ADDRESS needs to have subtracted to get to the corresponding WRAM.
+pub const ECHO_RAM_OFFSET: u16 = 0x2000;
 
 /// Work ram is 8KB in DMG mode, and 32 KB in CGB mode, we'll just allocate 32KB regardless
 #[derive(Debug)]
 pub struct Wram {
     memory: [u8; WRAM_SIZE],
-    bank_selected: usize,
+    internal_bank_select: usize,
+    bank_select: u8,
 }
 
 impl Wram {
     pub fn new() -> Self {
-        Wram { memory: [INVALID_READ; WRAM_SIZE], bank_selected: 1 }
+        Wram { memory: [INVALID_READ; WRAM_SIZE], internal_bank_select: 1, bank_select: 1 }
     }
 
     pub fn read_bank_0(&self, address: u16) -> u8 {
@@ -23,7 +26,7 @@ impl Wram {
     }
 
     pub fn read_bank_n(&self, address: u16) -> u8 {
-        let address = self.bank_selected * WRAM_BANK_SIZE + (address - WRAM_BANK_N_OFFSET) as usize;
+        let address = self.internal_bank_select * WRAM_BANK_SIZE + (address - WRAM_BANK_N_OFFSET) as usize;
         self.memory[address]
     }
 
@@ -37,7 +40,7 @@ impl Wram {
     }
 
     pub fn read_bank_select(&self) -> u8 {
-        self.bank_selected as u8
+        0xF8 | self.bank_select
     }
 
     pub fn write_bank_0(&mut self, address: u16, value: u8) {
@@ -45,7 +48,7 @@ impl Wram {
     }
 
     pub fn write_bank_n(&mut self, address: u16, value: u8) {
-        let address = self.bank_selected * WRAM_BANK_SIZE + (address - WRAM_BANK_N_OFFSET) as usize;
+        let address = self.internal_bank_select * WRAM_BANK_SIZE + (address - WRAM_BANK_N_OFFSET) as usize;
         self.memory[address] = value;
     }
 
@@ -59,11 +62,11 @@ impl Wram {
     }
 
     pub fn write_bank_select(&mut self, value: u8) {
-        log::trace!("Bank selecting: {:#}", value & 0x3);
-        self.bank_selected = (value & 0x3) as usize;
+        self.bank_select = (value & 0x7);
+        self.internal_bank_select = self.bank_select as usize;
 
-        if self.bank_selected == 0 {
-            self.bank_selected = 1;
+        if self.internal_bank_select == 0 {
+            self.internal_bank_select = 1;
         }
     }
 }
