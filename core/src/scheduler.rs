@@ -18,6 +18,7 @@ pub enum EventType {
     DMATransferComplete = 10,
     GDMARequested = 13,
     GDMATransferComplete = 14,
+    Y153TickToZero = 15,
 }
 
 #[derive(Debug, Copy, Clone, Eq)]

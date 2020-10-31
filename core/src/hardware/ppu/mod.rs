@@ -2,13 +2,13 @@ use itertools::Itertools;
 use num_integer::Integer;
 
 use crate::emulator::{CYCLES_PER_FRAME, EmulatorMode};
-use crate::hardware::ppu::palette::{Palette, DisplayColour, RGB};
+use crate::hardware::ppu::cgb_vram::{CgbPalette, CgbPaletteIndex, CgbTileMap};
+use crate::hardware::ppu::Mode::{HBlank, LcdTransfer, OamSearch, VBlank};
+use crate::hardware::ppu::palette::{DisplayColour, Palette, RGB};
 use crate::hardware::ppu::register_flags::*;
 use crate::hardware::ppu::tiledata::*;
-use crate::hardware::ppu::Mode::{HBlank, LcdTransfer, OamSearch, VBlank};
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::scheduler::{Event, EventType, Scheduler};
-use crate::hardware::ppu::cgb_vram::{CgbTileMap, CgbPaletteIndex, CgbPalette};
 
 pub const RESOLUTION_WIDTH: usize = 160;
 pub const RESOLUTION_HEIGHT: usize = 144;
@@ -153,7 +153,7 @@ impl PPU {
     /// if in DMG mode.
     pub fn new(dmg_display_colour: DisplayColour) -> Self {
         PPU {
-            frame_buffer: [RGB(0,255,0); FRAMEBUFFER_SIZE],
+            frame_buffer: [RGB(0, 255, 0); FRAMEBUFFER_SIZE],
             scanline_buffer: [RGB::default(); RESOLUTION_WIDTH],
             scanline_buffer_unpalette: [(0, false); RESOLUTION_WIDTH],
             tiles: [Tile::default(); 768],
@@ -223,7 +223,6 @@ impl PPU {
     }
 
     pub fn vblank(&mut self, interrupts: &mut Interrupts) {
-        //log::warn!("VBLANK ON: {}", self.current_y);
         self.lcd_status.set_mode_flag(VBlank);
 
         // Check for line 144 lyc.
@@ -241,14 +240,15 @@ impl PPU {
     }
 
     pub fn vblank_wait(&mut self, interrupts: &mut Interrupts) {
-        if self.current_y == 153 {
-            // Not sure if we should immediately set to 0 (add a bit of delay?)
-            self.current_y = 0;
-            self.ly_lyc_compare(interrupts);
-        } else {
-            self.current_y = self.current_y.wrapping_add(1);
-            self.ly_lyc_compare(interrupts);
-        }
+        self.current_y = self.current_y.wrapping_add(1);
+        self.ly_lyc_compare(interrupts);
+    }
+
+    /// On line 153 (the line right before we transfer to OAM Search) the LY register only
+    /// reads 153 for 4 cycles, this method will set LY to 0 and do the ly_lyc compare.
+    pub fn late_y_153_to_0(&mut self, interrupts: &mut Interrupts) {
+        self.current_y = 0;
+        self.ly_lyc_compare(interrupts);
     }
 
     fn draw_scanline(&mut self) {
@@ -445,7 +445,7 @@ impl PPU {
                 if (pixel < 0)
                     || (pixel > 159)
                     || (is_background_sprite
-                        && self.scanline_buffer_unpalette[pixel as usize].0 != 0)
+                    && self.scanline_buffer_unpalette[pixel as usize].0 != 0)
                 {
                     continue;
                 }
@@ -481,7 +481,7 @@ impl PPU {
                     break;
                 }
                 let colour = self.get_pixel_colour(j, top_pixel_data, bottom_pixel_data);
-                self.scanline_buffer[*pixel_counter as usize] =  self.bg_window_palette.colour(colour);
+                self.scanline_buffer[*pixel_counter as usize] = self.bg_window_palette.colour(colour);
                 self.scanline_buffer_unpalette[*pixel_counter as usize] = (colour, false);
                 *pixel_counter += 1;
             }
@@ -492,7 +492,7 @@ impl PPU {
     /// get_pixel_calls().
     #[inline(always)]
     fn draw_contiguous_bg_window_block(&mut self, pixel_counter: usize, top_pixel_data: u8, bottom_pixel_data: u8) {
-        let colour0 = top_pixel_data & 0x1 | ((bottom_pixel_data & 0x1) << 1) ;
+        let colour0 = top_pixel_data & 0x1 | ((bottom_pixel_data & 0x1) << 1);
         let colour1 = (top_pixel_data & 0x2) >> 1 | (bottom_pixel_data & 0x2);
         let colour2 = (top_pixel_data & 4) >> 2 | ((bottom_pixel_data & 4) >> 1);
         let colour3 = (top_pixel_data & 8) >> 3 | ((bottom_pixel_data & 8) >> 2);
@@ -516,7 +516,7 @@ impl PPU {
         self.scanline_buffer_unpalette[pixel_counter + 3] = (colour4, false);
         self.scanline_buffer_unpalette[pixel_counter + 2] = (colour5, false);
         self.scanline_buffer_unpalette[pixel_counter + 1] = (colour6, false);
-        self.scanline_buffer_unpalette[pixel_counter]     = (colour7, false);
+        self.scanline_buffer_unpalette[pixel_counter] = (colour7, false);
     }
 
     fn get_pixel_colour(&self, bit_offset: u8, top_pixel_data: u8, bottom_pixel_data: u8) -> u8 {

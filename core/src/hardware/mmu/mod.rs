@@ -333,6 +333,7 @@ impl Memory {
 
     /// Starts the sequence of events for a OAM DMA transfer.
     fn dma_transfer(&mut self, value: u8) {
+        log::trace!("Sending DMA request with value: {:#X}", value);
         self.io_registers.write_byte(DMA_TRANSFER, value);
         // In case a previous DMA was running we should cancel it.
         self.scheduler.remove_event_type(DMATransferComplete);
@@ -403,12 +404,13 @@ impl Memory {
                 EventType::VblankWait => {
                     self.ppu.vblank_wait(&mut self.interrupts);
 
-                    if self.ppu.current_y != 0 {
+                    if self.ppu.current_y != 153 {
                         self.scheduler
                             .push_full_event(event.update_self(EventType::VblankWait, 456 << self.get_speed_shift()));
                     } else {
                         self.scheduler
-                            .push_full_event(event.update_self(EventType::OamSearch, 0));
+                            .push_full_event(event.update_self(EventType::OamSearch, 456 << self.get_speed_shift()));
+                        self.scheduler.push_relative(EventType::Y153TickToZero, 4);
                     }
                 }
                 EventType::APUFrameSequencer => {
@@ -431,10 +433,12 @@ impl Memory {
                     self.timers.just_overflowed = false;
                 }
                 EventType::DMARequested => {
+                    log::trace!("Requesting DMA transfer from address: {:#X}", self.io_registers.read_byte(DMA_TRANSFER) as usize);
                     let address = (self.io_registers.read_byte(DMA_TRANSFER) as usize) << 8;
                     self.ppu.oam_dma_transfer(&self.gather_shadow_oam(address), &mut self.scheduler);
                 }
                 EventType::DMATransferComplete => {
+                    log::trace!("Completing DMA");
                     self.ppu.oam_dma_finished();
                 }
                 EventType::GDMARequested => {
@@ -456,6 +460,9 @@ impl Memory {
                     self.hdma.destination_address += self.hdma.transfer_size;
 
                     self.hdma.complete_transfer();
+                }
+                EventType::Y153TickToZero => {
+                    self.ppu.late_y_153_to_0(&mut self.interrupts);
                 }
             };
         }
