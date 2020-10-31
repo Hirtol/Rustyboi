@@ -362,9 +362,9 @@ impl Memory {
             match event.event_type {
                 EventType::NONE => {
                     // On startup we should add OAM
-                    self.scheduler.push_full_event(event.update_self(EventType::OamSearch, 0));
-                    self.scheduler.push_event(EventType::APUFrameSequencer, 8192);
-                    self.scheduler.push_event(EventType::APUSample, 95);
+                    self.scheduler.push_event(EventType::OamSearch, 0);
+                    self.scheduler.push_event(EventType::APUFrameSequencer, FRAME_SEQUENCE_CYCLES);
+                    self.scheduler.push_event(EventType::APUSample, SAMPLE_CYCLES);
                 }
                 EventType::VBLANK => {
                     self.ppu.vblank(&mut self.interrupts);
