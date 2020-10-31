@@ -81,7 +81,8 @@ impl<M: MemoryMapper> CPU<M> {
 
         self.opcode = self.get_next_opcode();
 
-        //self.log_instr();
+        #[cfg(feature = "cpu-logging")]
+        self.log_instr();
 
         self.execute(self.opcode);
     }
@@ -145,7 +146,8 @@ impl<M: MemoryMapper> CPU<M> {
     {
         let source_value = self.read_u8_value(source);
 
-        //trace!("LD {:?} 0x{:02X}", destination, source_value);
+        #[cfg(feature = "cpu-logging")]
+        trace!("LD {:?} 0x{:02X}", destination, source_value);
 
         self.set_u8_value(destination, source_value);
     }

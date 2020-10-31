@@ -57,7 +57,7 @@ const FAST_FORWARD_MULTIPLIER: u32 = 40;
 
 fn main() {
     CombinedLogger::init(vec![
-        TermLogger::new(LevelFilter::Debug, Config::default(), TerminalMode::Mixed),
+        TermLogger::new(LevelFilter::Trace, Config::default(), TerminalMode::Mixed),
         //WriteLogger::new(LevelFilter::Trace, ConfigBuilder::new().set_location_level(LevelFilter::Off).set_time_level(LevelFilter::Off).set_target_level(LevelFilter::Off).build(), std::io::BufWriter::new(File::create("rustyboi.log").unwrap())),
     ])
     .unwrap();
@@ -92,7 +92,7 @@ fn main() {
 
     let cartridge = "roms/Zelda.gb";
     let yellow = "roms/Pokemon - Yellow Version.gbc";
-    let _cpu_test = "test roms/auto-run/mooneye/tests/acceptance/oam_dma_start.gb";
+    let _cpu_test = "test roms/auto-run/window_y_trigger.gb";
     let _cpu_test2 = "roms/Legend of Zelda, The - Oracle of Seasons (U) [C][!].gbc";
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
@@ -114,7 +114,7 @@ fn main() {
         .with_display_colours(KIRBY_DISPLAY_COLOURS)
         .build();
 
-    let mut emulator = create_emulator(_cpu_test, emu_opts);
+    let mut emulator = create_emulator(_cpu_test2, emu_opts);
 
     let mut cycles = 0;
     let mut loop_cycles = 0;

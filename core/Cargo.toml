@@ -21,6 +21,9 @@ criterion = "0.3.3"
 #[profile.release]
 #debug = true
 
+[features]
+cpu-logging= []
+
 [[bench]]
 name = "test_benchmark"
 harness = false

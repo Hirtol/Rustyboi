@@ -1,7 +1,7 @@
-use crate::hardware::cpu::execute::InstructionAddress;
 use crate::hardware::cpu::CPU;
-use crate::hardware::mmu::MemoryMapper;
+use crate::hardware::cpu::execute::InstructionAddress;
 use crate::hardware::cpu::registers::{Reg16, Reg8};
+use crate::hardware::mmu::MemoryMapper;
 
 /// This trait should be used where we might pass either a direct
 /// registry address, or a combined registry which points to a memory address.
@@ -83,6 +83,7 @@ impl<T: MemoryMapper> ToU8<InstructionAddress> for CPU<T> {
             }
             IoDirect => {
                 let address = self.get_instr_u8() as u16;
+                #[cfg(feature = "cpu-logging")]
                 log::trace!("IoDirect read from address: 0x{:04X}", IO_START + address);
                 self.read_byte_cycle(IO_START + address)
             }
@@ -110,6 +111,7 @@ impl<T: MemoryMapper> SetU8<InstructionAddress> for CPU<T> {
             }
             DIRECT | DirectMem => {
                 let address = self.get_instr_u16();
+                #[cfg(feature = "cpu-logging")]
                 log::trace!(
                     "Direct memory write to address: 0x{:04X} with value: 0x{:02X}",
                     address,
@@ -119,6 +121,7 @@ impl<T: MemoryMapper> SetU8<InstructionAddress> for CPU<T> {
             }
             IoDirect => {
                 let addition = self.get_instr_u8() as u16;
+                #[cfg(feature = "cpu-logging")]
                 log::trace!(
                     "IoDirect write to address: 0x{:04X} with value: 0x{:02X}",
                     IO_START + addition,

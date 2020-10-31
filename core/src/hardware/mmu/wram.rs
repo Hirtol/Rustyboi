@@ -59,6 +59,7 @@ impl Wram {
     }
 
     pub fn write_bank_select(&mut self, value: u8) {
+        log::trace!("Bank selecting: {:#}", value & 0x3);
         self.bank_selected = (value & 0x3) as usize;
 
         if self.bank_selected == 0 {
