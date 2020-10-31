@@ -252,7 +252,7 @@ impl PPU {
     }
 
     fn draw_scanline(&mut self) {
-        // As soon as wy == yc ANYWHERE in the frame, the window will be considered
+        // As soon as wy == ly ANYWHERE in the frame, the window will be considered
         // triggered for the remainder of the frame, and thus can only be disabled
         // if LCD Control WINDOW_DISPlAY is reset.
         // This trigger can happen even if the WINDOW_DISPLAY bit is not set.

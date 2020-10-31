@@ -88,7 +88,8 @@ fn main() {
     let mut canvas = window.into_canvas().accelerated().build().unwrap();
     let mut screen_texture = setup_sdl(&mut canvas);
 
-    let bootrom_file = read("roms\\cgb_bios.bin").unwrap();
+    let bootrom_file_dmg = read("roms/DMG_ROM.bin").unwrap();
+    let bootrom_file_cgb = read("roms\\cgb_bios.bin").unwrap();
 
     let cartridge = "roms/Zelda.gb";
     let yellow = "roms/Pokemon - Yellow Version.gbc";
@@ -103,18 +104,17 @@ fn main() {
 
     //TODO: Zelda fix, most likely SOMETHING broken in OAM since sprites are wrong
     //Things to do:
-    //1: Accuracy improvements to hopefully pass the GBC oracle of seasons. (Sprites?)
     //2: APU improvements to use a proper sampler so that we can re-architect the way we do ticking
     // by doing more lazy evaluation (thus being able to move everything to the scheduler for speed)
 
     let mut timer = sdl_context.timer().unwrap();
     let emu_opts = EmulatorOptionsBuilder::new()
-        //.boot_rom(Some(bootrom_file))
-        .with_mode(CGB)
+        .boot_rom(Some(bootrom_file_dmg))
+        .with_mode(DMG)
         .with_display_colours(KIRBY_DISPLAY_COLOURS)
         .build();
 
-    let mut emulator = create_emulator(_cpu_test2, emu_opts);
+    let mut emulator = create_emulator(_cpu_test, emu_opts);
 
     let mut cycles = 0;
     let mut loop_cycles = 0;
