@@ -67,9 +67,7 @@ pub const OB_PALETTE_1: u16 = 0xFF49;
 /// Source:      XX00-XX9F   ;XX in range from 00-F1h
 /// Destination: FE00-FE9F
 /// ```
-/// The transfer takes 160 machine cycles, definitely read more [here]
-///
-/// [here]: https://gbdev.io/pandocs/#lcd-oam-dma-transfers
+/// The transfer takes 160 machine cycles.
 pub const DMA_TRANSFER: u16 = 0xFF46;
 /// This register is used to address a byte in the CGBs Background Palette Memory.
 /// Each two byte in that memory define a color value. The first 8 bytes define Color 0-3 of Palette 0 (BGP0), and so on for BGP1-7.
@@ -89,13 +87,6 @@ pub mod dma;
 pub mod cgb_vram;
 pub mod cgb_ppu;
 pub mod debugging_features;
-
-// Misc:
-// If the Window is enabled while drawing the screen (LY is between 0 and 143)
-// then if it is disabled by changing the Bit 5 in LCDC, the Game Boy "remembers"
-// what line it was last rendering from the Window.
-// If the Window, once disabled, is again enabled before VBlank,
-// it starts drawing the Window from the last line it "remembers".
 
 #[derive(Debug, PartialOrd, PartialEq, Copy, Clone)]
 pub enum Mode {
@@ -205,8 +196,6 @@ impl PPU {
         self.lcd_status.set_mode_flag(LcdTransfer);
 
         // Draw our actual line once we enter Drawing mode.
-        //TODO: Create an initial Scheduler event to start CGB or DMG drawing, then we can
-        // get rid of this branch here and instead use separate methods.
         if selected_mode.is_cgb() {
             self.draw_cgb_scanline();
         } else {
@@ -359,7 +348,6 @@ impl PPU {
             (0, (-window_x) as u8)
         };
 
-        // Increment the window counter for future cycles.
         self.window_counter += 1;
 
         for i in tile_lower_bound..tile_higher_bound {
@@ -396,8 +384,6 @@ impl PPU {
 
         for sprite in sprites_to_draw {
             // We need to cast to i16 here, as otherwise we'd wrap around when x is f.e 7.
-            // Tried a simple wrapping method, broke quite a bit.
-            // May try again another time as all this casting is ugly and probably expensive.
             let screen_x_pos = sprite.x_pos as i16 - 8;
             let screen_y_pos = sprite.y_pos as i16 - 16;
 

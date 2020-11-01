@@ -1,15 +1,3 @@
-//! Tiles are always indexed using an 8-bit integer, but the addressing method may differ.
-//! The "8000 method" uses $8000 as its base pointer and uses an unsigned addressing,
-//! meaning that tiles 0-127 are in block 0, and tiles 128-255 are in block 1.
-//! The "8800 method" uses $9000 as its base pointer and uses a signed addressing.
-//! To put it differently, "8000 addressing" takes tiles 0-127 from block 0
-//! and tiles 128-255 from block 1, whereas "8800 addressing" takes tiles 0-127
-//! from block 2 and tiles 128-255 from block 1.
-//! (You can notice that block 1 is shared by both addressing methods)
-//!
-//! Sprites always use 8000 addressing,
-//! but the BG and Window can use either mode, controlled by LCDC bit 4 (`BG_WINDOW_TILE_SELECT`).
-
 use crate::hardware::ppu::register_flags::AttributeFlags;
 use bitflags::_core::fmt::Formatter;
 use std::fmt;

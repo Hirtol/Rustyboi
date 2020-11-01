@@ -210,7 +210,7 @@ impl PPU {
     pub fn set_lcd_status(&mut self, value: u8, interrupts: &mut Interrupts) {
         // Mask the 3 lower bits, which are read only and must therefore be preserved.
         let read_only_bits = self.lcd_status.bits() & 0x7;
-        // For Stat IRQ blocking, note: currently not actually working (stat irq blocking that is)
+        // For Stat IRQ blocking, TODO: note: currently not actually working (stat irq blocking that is)
         let none = self.count_currently_true_stat_interrupts() == 0;
         // Mask bit 3..=6 in case a game tries to write to the three lower bits as well.
         self.lcd_status = LcdStatus::from_bits_truncate(0x80 | (value & 0x78) | read_only_bits);

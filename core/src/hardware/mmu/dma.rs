@@ -31,7 +31,7 @@ impl Memory {
         (self.hdma.source_address..(self.hdma.source_address + self.hdma.transfer_size)).map(|i| self.read_byte(i)).collect()
     }
 
-    /// Checks, assuming the current PPU mode is HBLANK, whether an HDMA transfer should
+    /// Checks, assuming the current PPU mode is `HBLANK`, whether an `HDMA` transfer should
     /// occur at this point in time. If so, it also executes it.
     pub fn hdma_check_and_transfer(&mut self) {
         if self.hdma.transfer_ongoing && self.hdma.current_mode == HDMA {
