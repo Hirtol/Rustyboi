@@ -79,6 +79,7 @@ impl Scheduler {
 
     /// Returns a `Some(&Event)` if there is an event available which has a timestamp
     /// which is at or below the `current_time` for the `Scheduler`
+    #[inline(always)]
     pub fn pop_closest(&mut self) -> Option<Event> {
         if let Some(event) = self.event_queue.peek() {
             if event.timestamp <= self.current_time {
@@ -90,11 +91,11 @@ impl Scheduler {
 
     /// Add a new event to the `Scheduler`.
     pub fn push_event(&mut self, event_type: EventType, timestamp: u64) {
-        self.event_queue.push(Event { timestamp, event_type });
+        self.add_event(Event { timestamp, event_type });
     }
 
     pub fn push_relative(&mut self, event_type: EventType, relative_timestamp: u64) {
-        self.event_queue.push(Event {
+        self.add_event(Event {
             timestamp: self.current_time + relative_timestamp,
             event_type,
         });
@@ -105,6 +106,11 @@ impl Scheduler {
     /// say in the `pop_closest()` loop for the scheduler. Instead we can then reuse that event
     /// and push it back in here.
     pub fn push_full_event(&mut self, event: Event) {
+        self.add_event(event)
+    }
+
+    #[inline(always)]
+    fn add_event(&mut self, event: Event) {
         self.event_queue.push(event);
     }
 
