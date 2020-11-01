@@ -225,7 +225,7 @@ impl Memory {
             JOYPAD_REGISTER => self.joypad_register.get_register(),
             SIO_DATA => self.io_registers.read_byte(address),
             SIO_CONT => self.io_registers.read_byte(address),
-            DIVIDER_REGISTER => self.timers.divider_register(),
+            DIVIDER_REGISTER => self.timers.divider_register(&self.scheduler),
             TIMER_COUNTER => self.timers.timer_counter,
             TIMER_MODULO => self.timers.timer_modulo,
             TIMER_CONTROL => self.timers.timer_control.to_bits(),
@@ -355,6 +355,7 @@ impl Memory {
                     self.scheduler.push_event(EventType::OamSearch, 0);
                     self.scheduler.push_event(EventType::APUFrameSequencer, FRAME_SEQUENCE_CYCLES);
                     self.scheduler.push_event(EventType::APUSample, SAMPLE_CYCLES);
+                    self.timers.push_timer_tick_scheduler(&mut self.scheduler);
                 }
                 EventType::VBLANK => {
                     self.ppu.vblank(&mut self.interrupts);
@@ -449,6 +450,9 @@ impl Memory {
                 EventType::Y153TickToZero => {
                     self.ppu.late_y_153_to_0(&mut self.interrupts);
                 }
+                EventType::TimerTick => {
+                    self.timers.scheduled_timer_tick(&mut self.scheduler)
+                }
             };
         }
         vblank_occurred
@@ -511,7 +515,7 @@ impl MemoryMapper for Memory {
 
         let result = self.tick_scheduler();
         // Timer has to be ticked after the Scheduler to make timings work out for MoonEye tests.
-        self.timers.tick_timers(&mut self.scheduler);
+        //self.timers.tick_timers(&mut self.scheduler);
 
         result
     }

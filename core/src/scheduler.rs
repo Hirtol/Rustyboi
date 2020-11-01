@@ -14,11 +14,12 @@ pub enum EventType {
     APUSample = 6,
     TimerOverflow = 7,
     TimerPostOverflow = 8,
-    DMARequested = 9,
-    DMATransferComplete = 10,
-    GDMARequested = 13,
-    GDMATransferComplete = 14,
-    Y153TickToZero = 15,
+    TimerTick = 9,
+    DMARequested = 10,
+    DMATransferComplete = 11,
+    GDMARequested = 12,
+    GDMATransferComplete = 13,
+    Y153TickToZero = 14,
 }
 
 #[derive(Debug, Copy, Clone, Eq)]

@@ -32,29 +32,17 @@ pub struct TimerControl {
 
 #[derive(Debug, Default)]
 pub struct TimerRegisters {
-    pub system_clock: u16,
     pub timer_counter: u8,
     pub timer_modulo: u8,
     pub timer_control: TimerControl,
     pub just_overflowed: bool,
     timer_overflowed: bool,
+    last_div_reset: u64,
 }
 
 impl TimerRegisters {
-    pub fn divider_register(&self) -> u8 {
-        (self.system_clock >> 8) as u8
-    }
-
-    pub fn tick_timers(&mut self, scheduler: &mut Scheduler) {
-        self.system_clock = self.system_clock.wrapping_add(4);
-
-        if self.timer_control.timer_enabled {
-            let select_bit = self.timer_control.input_select.to_relevant_bit();
-            // Subtract 4 for the old clock since we increment it by 4 before here.
-            if self.fallen_sys_clock(self.system_clock.wrapping_sub(4), select_bit) {
-                self.tick_timer(scheduler);
-            }
-        }
+    pub fn divider_register(&self, scheduler: &Scheduler) -> u8 {
+        (self.get_time_passed(scheduler) >> 8) as u8
     }
 
     /// Is called 4 cycles after an overflow actually occurred by the `Scheduler`.
@@ -68,11 +56,18 @@ impl TimerRegisters {
         scheduler.push_relative(EventType::TimerPostOverflow, 4);
     }
 
-    fn fallen_sys_clock(&self, old_clock: u16, select_bit: u16) -> bool {
-        (old_clock & select_bit) != 0 && (self.system_clock & select_bit) == 0
+    fn fallen_sys_clock(&self, old_clock: u16, current_sys_clock: u16, select_bit: u16) -> bool {
+        (old_clock & select_bit) != 0 && (current_sys_clock & select_bit) == 0
     }
 
-    fn tick_timer(&mut self, scheduler: &mut Scheduler) {
+    pub fn scheduled_timer_tick(&mut self, scheduler: &mut Scheduler) {
+        self.push_timer_tick_scheduler(scheduler);
+        if self.timer_control.timer_enabled {
+            self.tick_timer(scheduler);
+        }
+    }
+
+    pub fn tick_timer(&mut self, scheduler: &mut Scheduler) {
         let (new_value, overflowed) = self.timer_counter.overflowing_add(1);
 
         self.timer_counter = new_value;
@@ -119,17 +114,23 @@ impl TimerRegisters {
 
     /// Write to the divider register, this will always reset it to 0x00.
     pub fn set_divider(&mut self, scheduler: &mut Scheduler) {
-        let old_sys_clock = self.system_clock;
-        self.system_clock = 0;
+        let old_sys_clock = self.get_time_passed(scheduler);
 
         // If we've already halfway passed our cycle count then we'll increase our timer
         // due to the falling edge detector in the DMG.
-        if self.fallen_sys_clock(old_sys_clock, self.timer_control.input_select.to_relevant_bit()) {
+        if self.fallen_sys_clock(old_sys_clock, 0, self.timer_control.input_select.to_relevant_bit()) {
             self.tick_timer(scheduler);
         }
+
+        self.last_div_reset = scheduler.current_time;
+
+        scheduler.remove_event_type(EventType::TimerTick);
+        self.push_timer_tick_scheduler(scheduler);
     }
 
     pub fn set_timer_control(&mut self, value: u8, scheduler: &mut Scheduler) {
+        let delta_passed = self.get_time_passed(scheduler);
+
         let old_control = self.timer_control;
         self.timer_control = TimerControl::from(value);
         let old_select_bit = old_control.input_select.to_relevant_bit();
@@ -137,7 +138,7 @@ impl TimerRegisters {
 
         // When disabling the timer the DMG will increment the timer register if our system clock
         // was already half way through it's cycle due to the falling edge detector.
-        if old_control.timer_enabled && !self.timer_control.timer_enabled && (self.system_clock & (select_bit)) != 0 {
+        if old_control.timer_enabled && !self.timer_control.timer_enabled && (delta_passed & (select_bit)) != 0 {
             self.tick_timer(scheduler);
         }
 
@@ -147,11 +148,21 @@ impl TimerRegisters {
         // but our new control will have done so, then we'll increment our timer.
         if old_control.timer_enabled
             && self.timer_control.timer_enabled
-            && (self.system_clock & (old_select_bit)) != 0
-            && (self.system_clock & (select_bit)) == 0
+            && (delta_passed & (old_select_bit)) != 0
+            && (delta_passed & (select_bit)) == 0
         {
             self.tick_timer(scheduler)
         }
+    }
+
+    pub fn push_timer_tick_scheduler(&self, scheduler: &mut Scheduler) {
+        scheduler.push_relative(EventType::TimerTick, self.timer_control.input_select.to_timer_ticks());
+    }
+
+    fn get_time_passed(&self, scheduler: &Scheduler) -> u16 {
+        // It's fine if the difference is greater than u16:MAX, as that'll essentially
+        // act as a wrap-around.
+        (scheduler.current_time - self.last_div_reset) as u16
     }
 }
 
@@ -200,6 +211,15 @@ impl InputClock {
             InputClock::C64 => 0x0020,
             InputClock::C256 => 0x0080,
             InputClock::C1024 => 0x0200,
+        }
+    }
+
+    pub fn to_timer_ticks(&self) -> u64 {
+        match self {
+            InputClock::C16 => 16,
+            InputClock::C64 => 64,
+            InputClock::C256 => 256,
+            InputClock::C1024 => 1024,
         }
     }
 }
