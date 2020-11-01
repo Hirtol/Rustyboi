@@ -308,7 +308,13 @@ impl Memory {
             CGB_HDMA_2 => self.hdma.write_hdma2(value),
             CGB_HDMA_3 => self.hdma.write_hdma3(value),
             CGB_HDMA_4 => self.hdma.write_hdma4(value),
-            CGB_HDMA_5 => self.hdma.write_hdma5(value, &mut self.scheduler),
+            CGB_HDMA_5 => {
+                self.hdma.write_hdma5(value, &mut self.scheduler);
+                // If a HDMA is started during HBlank one copy occurs right away.
+                if self.ppu.get_current_mode() == Mode::HBlank {
+                    self.hdma_check()
+                }
+            },
             0xFF50 if !self.boot_rom.is_finished => {
                 self.boot_rom.is_finished = true;
                 // If the cartridge doesn't support CGB at all we switch to DMG mode.

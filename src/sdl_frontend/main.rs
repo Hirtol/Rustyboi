@@ -104,7 +104,7 @@ fn main() {
 
     //TODO: Zelda fix, most likely SOMETHING broken in OAM since sprites are wrong
     //Things to do:
-    //2: APU improvements to use a proper sampler so that we can re-architect the way we do ticking
+    // 1: APU improvements to use a proper sampler so that we can re-architect the way we do ticking
     // by doing more lazy evaluation (thus being able to move everything to the scheduler for speed)
 
     let mut timer = sdl_context.timer().unwrap();

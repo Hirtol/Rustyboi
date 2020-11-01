@@ -9,6 +9,10 @@ use crate::scheduler::EventType::{DMATransferComplete, HBLANK, VBLANK};
 use super::*;
 
 impl PPU {
+    pub fn get_current_mode(&self) -> Mode {
+        self.lcd_status.mode_flag()
+    }
+
     pub fn get_tile_byte(&self, address: u16) -> u8 {
         let (tile_address, byte_address) = get_tile_address(address);
         //TODO: Optimise?
