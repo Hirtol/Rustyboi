@@ -172,6 +172,10 @@ impl TimerControl {
 
         result | self.input_select as u8
     }
+
+    pub fn get_clock_interval(&self) -> u64 {
+        self.input_select.to_timer_ticks()
+    }
 }
 
 impl Default for TimerControl {

@@ -355,7 +355,7 @@ impl Memory {
                     self.scheduler.push_event(EventType::OamSearch, 0);
                     self.scheduler.push_event(EventType::APUFrameSequencer, FRAME_SEQUENCE_CYCLES);
                     self.scheduler.push_event(EventType::APUSample, SAMPLE_CYCLES);
-                    self.timers.push_timer_tick_scheduler(&mut self.scheduler);
+                    self.scheduler.push_event(EventType::TimerTick, self.timers.timer_control.get_clock_interval());
                 }
                 EventType::VBLANK => {
                     self.ppu.vblank(&mut self.interrupts);
