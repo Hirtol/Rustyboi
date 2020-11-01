@@ -53,7 +53,8 @@ impl<M: MemoryMapper> CPU<M> {
             }
         } else if self.mmu.interrupts().interrupts_pending() {
             let interrupt = self.mmu.interrupts().get_highest_priority();
-            //log::debug!("Firing {:?} interrupt", interrupt);
+            #[cfg(feature = "cpu-logging")]
+            log::debug!("Firing {:?} interrupt", interrupt);
 
             self.interrupts_routine(interrupt);
 

@@ -16,7 +16,7 @@ pub const TIMER_MODULO: u16 = 0xFF06;
 /// Several flags to indicate incrementing rate of the timer.
 pub const TIMER_CONTROL: u16 = 0xFF07;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, Hash)]
 enum InputClock {
     C16 = 0x1,
     C64 = 0x2,
@@ -62,6 +62,7 @@ impl TimerRegisters {
 
     pub fn scheduled_timer_tick(&mut self, scheduler: &mut Scheduler) {
         self.push_timer_tick_scheduler(scheduler);
+        
         if self.timer_control.timer_enabled {
             self.tick_timer(scheduler);
         }
@@ -152,6 +153,13 @@ impl TimerRegisters {
             && (delta_passed & (select_bit)) == 0
         {
             self.tick_timer(scheduler)
+        }
+
+        //TODO: Currently we seem to be out by one cycle with our new implementation compared
+        // to our old one, check with games.
+        if old_control.input_select != self.timer_control.input_select {
+            scheduler.remove_event_type(EventType::TimerTick);
+            self.push_timer_tick_scheduler(scheduler);
         }
     }
 
