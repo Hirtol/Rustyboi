@@ -1,15 +1,15 @@
-use binary_heap_plus::{BinaryHeap, MinComparator};
-use bitflags::_core::cmp::Ordering;
+use std::cmp::{Ordering, Reverse};
+use std::collections::VecDeque;
 
-#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Eq, Hash)]
 #[repr(u8)]
 pub enum EventType {
-    NONE        = 255,
-    VBLANK      = 0,
-    OamSearch   = 1,
+    NONE = 255,
+    VBLANK = 0,
+    OamSearch = 1,
     LcdTransfer = 2,
-    HBLANK      = 3,
-    VblankWait  = 4,
+    HBLANK = 3,
+    VblankWait = 4,
     APUFrameSequencer = 5,
     APUSample = 6,
     TimerOverflow = 7,
@@ -22,28 +22,10 @@ pub enum EventType {
     Y153TickToZero = 14,
 }
 
-#[derive(Debug, Copy, Clone, Eq)]
+#[derive(Debug, Copy, Clone, Eq, Hash, PartialOrd, PartialEq)]
 pub struct Event {
     pub timestamp: u64,
     pub event_type: EventType,
-}
-
-impl PartialEq for Event {
-    fn eq(&self, other: &Self) -> bool {
-        self.timestamp == other.timestamp
-    }
-}
-
-impl PartialOrd for Event {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.timestamp.partial_cmp(&other.timestamp)
-    }
-}
-
-impl Ord for Event {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.timestamp.cmp(&other.timestamp)
-    }
 }
 
 impl Event {
@@ -59,18 +41,17 @@ impl Event {
 
 #[derive(Debug)]
 pub struct Scheduler {
-    // Want the smallest timestamp first, so MinComparator
-    event_queue: BinaryHeap<Event, MinComparator>,
+    event_queue: VecDeque<Event>,
     pub current_time: u64,
 }
 
 impl Scheduler {
     pub fn new() -> Self {
         let mut result = Self {
-            event_queue: BinaryHeap::with_capacity_min(64),
+            event_queue: VecDeque::with_capacity(20),
             current_time: 0,
         };
-        result.event_queue.push(Event {
+        result.event_queue.push_front(Event {
             timestamp: 0,
             event_type: EventType::NONE,
         });
@@ -80,9 +61,9 @@ impl Scheduler {
     /// Returns a `Some(&Event)` if there is an event available which has a timestamp
     /// which is at or below the `current_time` for the `Scheduler`
     pub fn pop_closest(&mut self) -> Option<Event> {
-        if let Some(event) = self.event_queue.peek() {
+        if let Some(event) = self.event_queue.front() {
             if event.timestamp <= self.current_time {
-                return self.event_queue.pop();
+                return self.event_queue.pop_front();
             }
         }
         None
@@ -90,11 +71,11 @@ impl Scheduler {
 
     /// Add a new event to the `Scheduler`.
     pub fn push_event(&mut self, event_type: EventType, timestamp: u64) {
-        self.event_queue.push(Event { timestamp, event_type });
+        self.add_event(Event { timestamp, event_type });
     }
 
     pub fn push_relative(&mut self, event_type: EventType, relative_timestamp: u64) {
-        self.event_queue.push(Event {
+        self.add_event(Event {
             timestamp: self.current_time + relative_timestamp,
             event_type,
         });
@@ -105,19 +86,31 @@ impl Scheduler {
     /// say in the `pop_closest()` loop for the scheduler. Instead we can then reuse that event
     /// and push it back in here.
     pub fn push_full_event(&mut self, event: Event) {
-        self.event_queue.push(event);
+        self.add_event(event)
+    }
+
+    fn add_event(&mut self, event: Event) {
+        if let Some(back_event) = self.event_queue.back() {
+            // If the time it happens is later than the latest we currently have, just insert at the back
+            if back_event.timestamp <= event.timestamp {
+                self.event_queue.push_back(event);
+            } else {
+                let mut place_to_insert= self.event_queue.len()-1;
+                for (i, event_iter) in self.event_queue.iter().enumerate() {
+                    if event_iter.timestamp >= event.timestamp {
+                        place_to_insert = i;
+                        break;
+                    }
+                }
+                self.event_queue.insert(place_to_insert, event);
+            }
+        } else {
+            self.event_queue.push_front(event);
+        }
     }
 
     pub fn remove_event_type(&mut self, event_type: EventType) {
-        // Very inefficient way of doing this, but until we start needing to do more dynamic
-        // removal of events it doesn't really matter.
-        self.event_queue = BinaryHeap::from_vec(
-            self.event_queue
-                .iter()
-                .filter(|e| e.event_type != event_type)
-                .map(|e| *e)
-                .collect(),
-        );
+        self.event_queue.retain(|event| event.event_type != event_type);
     }
 
     #[inline]
