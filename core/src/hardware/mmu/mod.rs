@@ -478,15 +478,15 @@ impl Memory {
     fn hdma_check(&mut self) {
         if self.hdma.transfer_ongoing && self.hdma.current_mode == HDMA {
             log::info!("Performing HDMA transfer");
-            self.hdma_transfer();
             if self.hdma.transfer_ongoing {
                 self.do_m_cycle();
                 // Pass 36 (single speed)/68 (double speed) cycles where the CPU does nothing.
                 for _ in 0..(8 << self.get_speed_shift()) {
-                    //TODO: Skip ahead, since CPU is halted during transfer. Account for double speed
+                    //TODO: Skip ahead, since CPU is halted during transfer.
                     self.do_m_cycle();
                 }
             }
+            self.hdma_transfer();
         }
     }
 
