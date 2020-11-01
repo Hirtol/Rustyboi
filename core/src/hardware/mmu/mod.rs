@@ -30,6 +30,7 @@ use crate::scheduler::EventType::{DMARequested, DMATransferComplete};
 pub mod cgb_mem;
 mod hram;
 mod wram;
+mod dma;
 
 pub const MEMORY_SIZE: usize = 0x10000;
 /// 16 KB ROM bank, usually 00. From Cartridge, read-only
@@ -312,7 +313,7 @@ impl Memory {
                 self.hdma.write_hdma5(value, &mut self.scheduler);
                 // If a HDMA is started during HBlank one copy occurs right away.
                 if self.ppu.get_current_mode() == Mode::HBlank {
-                    self.hdma_check()
+                    self.hdma_check_and_transfer()
                 }
             },
             0xFF50 if !self.boot_rom.is_finished => {
@@ -333,23 +334,6 @@ impl Memory {
             CGB_WRAM_BANK => self.wram.write_bank_select(value),
             _ => self.io_registers.write_byte(address, value)
         }
-    }
-
-    /// Starts the sequence of events for a OAM DMA transfer.
-    fn dma_transfer(&mut self, value: u8) {
-        self.io_registers.write_byte(DMA_TRANSFER, value);
-        // In case a previous DMA was running we should cancel it.
-        self.scheduler.remove_event_type(DMATransferComplete);
-        // 4 Cycles after the request is when the DMA is actually started.
-        self.scheduler.push_relative(DMARequested, 4);
-    }
-
-    fn gather_shadow_oam(&self, start_address: usize) -> Vec<u8> {
-        (0..0xA0).map(|i| self.read_byte((start_address + i) as u16)).collect()
-    }
-
-    fn gather_gdma_data(&self) -> Vec<u8> {
-        (self.hdma.source_address..(self.hdma.source_address + self.hdma.transfer_size)).map(|i| self.read_byte(i)).collect()
     }
 
     /// Simply returns 0xFF while also printing a warning to the logger.
@@ -402,7 +386,7 @@ impl Memory {
 
                     // HDMA transfers 16 bytes every HBLANK
                     // TODO: move this to own scheduler, since this costs ~200 fps having this here.
-                    self.hdma_check();
+                    self.hdma_check_and_transfer();
                 }
                 EventType::VblankWait => {
                     self.ppu.vblank_wait(&mut self.interrupts);
@@ -468,45 +452,6 @@ impl Memory {
             };
         }
         vblank_occurred
-    }
-
-    /// Required here since the GDMA can write to arbitrary PPU addresses.
-    fn gdma_transfer(&mut self) {
-        log::info!("Performing GDMA from source: [{:#4X}, {:#4X}] to destination: {:#4X}", self.hdma.source_address, self.hdma.source_address+self.hdma.transfer_size, self.hdma.destination_address);
-        let values_iter = (self.hdma.source_address..(self.hdma.source_address + self.hdma.transfer_size))
-            .map(|i| self.read_byte(i)).collect_vec();
-
-        for (i, value) in values_iter.into_iter().enumerate() {
-            self.write_byte(self.hdma.destination_address + i as u16, value);
-        }
-    }
-
-    fn hdma_check(&mut self) {
-        if self.hdma.transfer_ongoing && self.hdma.current_mode == HDMA {
-            log::info!("Performing HDMA transfer");
-            if self.hdma.transfer_ongoing {
-                self.do_m_cycle();
-                // Pass 36 (single speed)/68 (double speed) cycles where the CPU does nothing.
-                for _ in 0..(8 << self.get_speed_shift()) {
-                    //TODO: Skip ahead, since CPU is halted during transfer.
-                    self.do_m_cycle();
-                }
-            }
-            self.hdma_transfer();
-        }
-    }
-
-    /// Required here since the HDMA can write to arbitrary PPU addresses.
-    fn hdma_transfer(&mut self) {
-        // We transfer 16 bytes every H-Blank
-        let values_iter = (self.hdma.source_address..(self.hdma.source_address + 16))
-            .map(|i| self.read_byte(i)).collect_vec();
-
-        for (i, value) in values_iter.into_iter().enumerate() {
-            self.write_byte(self.hdma.destination_address + i as u16, value);
-        }
-
-        self.hdma.advance_hdma();
     }
 
     /// Add a new interrupt to the IF flag.

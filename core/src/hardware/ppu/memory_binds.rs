@@ -202,8 +202,8 @@ impl PPU {
 
     pub fn turn_on_lcd(&mut self, scheduler: &mut Scheduler, interrupts: &mut Interrupts) {
         log::debug!("Turning on LCD");
-        // Turn PPU back on. Assume pessimistic hblank timing
         self.ly_lyc_compare(interrupts);
+        // Turn PPU back on. Assume pessimistic hblank timing
         scheduler.push_relative(EventType::OamSearch, 204);
     }
 
