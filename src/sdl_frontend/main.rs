@@ -98,9 +98,9 @@ fn main() {
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
-    test_fast(sdl_context, &mut canvas, &mut screen_texture, &read(cartridge).unwrap());
-
-    return;
+    // test_fast(sdl_context, &mut canvas, &mut screen_texture, &read(cartridge).unwrap());
+    //
+    // return;
 
     //Things to do:
     // 1: APU improvements to use a proper sampler so that we can re-architect the way we do ticking
