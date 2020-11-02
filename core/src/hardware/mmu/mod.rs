@@ -420,6 +420,9 @@ impl Memory {
                 EventType::TimerPostOverflow => {
                     self.timers.just_overflowed = false;
                 }
+                EventType::TimerTick => {
+                    self.timers.scheduled_timer_tick(&mut self.scheduler)
+                }
                 EventType::DMARequested => {
                     let address = (self.io_registers.read_byte(DMA_TRANSFER) as usize) << 8;
                     self.ppu.oam_dma_transfer(&self.gather_shadow_oam(address), &mut self.scheduler);
@@ -441,7 +444,7 @@ impl Memory {
                 EventType::GDMATransferComplete => {
                     // If a new transfer is started without updating these registers they should
                     // continue where they left off.
-                    log::warn!("Completing transfer at clock cycle: {}", self.scheduler.current_time);
+                    log::info!("Completing GDMA transfer at clock cycle: {}", self.scheduler.current_time);
                     self.hdma.source_address += self.hdma.transfer_size;
                     self.hdma.destination_address += self.hdma.transfer_size;
 
@@ -449,9 +452,6 @@ impl Memory {
                 }
                 EventType::Y153TickToZero => {
                     self.ppu.late_y_153_to_0(&mut self.interrupts);
-                }
-                EventType::TimerTick => {
-                    self.timers.scheduled_timer_tick(&mut self.scheduler)
                 }
             };
         }
@@ -500,6 +500,14 @@ impl MemoryMapper for Memory {
         &mut self.interrupts
     }
 
+    fn turn_on_lcd(&mut self) {
+        self.ppu.turn_on_lcd(&mut self.scheduler, &mut self.interrupts);
+    }
+
+    fn turn_off_lcd(&mut self) {
+        self.ppu.turn_off_lcd(&mut self.scheduler);
+    }
+
     fn cgb_data(&mut self) -> &mut CgbSpeedData {
         &mut self.cgb_data
     }
@@ -512,20 +520,7 @@ impl MemoryMapper for Memory {
             self.apu.tick(4);
         }
 
-
-        let result = self.tick_scheduler();
-        // Timer has to be ticked after the Scheduler to make timings work out for MoonEye tests.
-        //self.timers.tick_timers(&mut self.scheduler);
-
-        result
-    }
-
-    fn turn_on_lcd(&mut self) {
-        self.ppu.turn_on_lcd(&mut self.scheduler, &mut self.interrupts);
-    }
-
-    fn turn_off_lcd(&mut self) {
-        self.ppu.turn_off_lcd(&mut self.scheduler);
+        self.tick_scheduler()
     }
 }
 

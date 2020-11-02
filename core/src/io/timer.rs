@@ -45,6 +45,16 @@ impl TimerRegisters {
         (self.get_time_passed(scheduler) >> 8) as u8
     }
 
+    /// Is called by the `Scheduler` at the rate specified by `timer_control`.
+    /// Increments the timer, if it is enabled.
+    pub fn scheduled_timer_tick(&mut self, scheduler: &mut Scheduler) {
+        self.push_timer_tick_scheduler(scheduler);
+
+        if self.timer_control.timer_enabled {
+            self.tick_timer(scheduler);
+        }
+    }
+
     /// Is called 4 cycles after an overflow actually occurred by the `Scheduler`.
     pub fn timer_overflow(&mut self, scheduler: &mut Scheduler, interrupts: &mut Interrupts) {
         self.timer_counter = self.timer_modulo;
@@ -54,18 +64,6 @@ impl TimerRegisters {
         // In the 4 cycles after an overflow certain special options are available
         // See `set_timer_counter()`
         scheduler.push_relative(EventType::TimerPostOverflow, 4);
-    }
-
-    fn fallen_sys_clock(&self, old_clock: u16, current_sys_clock: u16, select_bit: u16) -> bool {
-        (old_clock & select_bit) != 0 && (current_sys_clock & select_bit) == 0
-    }
-
-    pub fn scheduled_timer_tick(&mut self, scheduler: &mut Scheduler) {
-        self.push_timer_tick_scheduler(scheduler);
-        
-        if self.timer_control.timer_enabled {
-            self.tick_timer(scheduler);
-        }
     }
 
     pub fn tick_timer(&mut self, scheduler: &mut Scheduler) {
@@ -119,7 +117,7 @@ impl TimerRegisters {
 
         // If we've already halfway passed our cycle count then we'll increase our timer
         // due to the falling edge detector in the DMG.
-        if self.fallen_sys_clock(old_sys_clock, 0, self.timer_control.input_select.to_relevant_bit()) {
+        if (old_sys_clock & self.timer_control.input_select.to_relevant_bit()) != 0 {
             self.tick_timer(scheduler);
         }
 

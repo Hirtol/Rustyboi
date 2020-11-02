@@ -277,7 +277,7 @@ fn keycode_to_input(key: Keycode) -> Option<InputKey> {
 
 fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_texture: &mut Texture, cpu_test: &Vec<u8>) {
     let mut emulator = Emulator::new(&cpu_test, EmulatorOptionsBuilder::new()
-        .with_mode(DMG)
+        .with_mode(CGB)
         .with_display_colours(DEFAULT_DISPLAY_COLOURS)
         .build());
     let _count: u128 = 0;
