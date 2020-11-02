@@ -35,6 +35,8 @@ impl NoiseChannel {
 
     pub fn tick_timer(&mut self, cycles: u16) {
         let (new_val, overflowed) = self.timer.overflowing_sub(cycles);
+        //TODO: This new_val seems off, why do we u:16::MAX - new_val if new_val == 0?
+
         // Using a noise channel clock shift of 14 or 15 results in the LFSR receiving no clocks.
         if new_val == 0 {
             self.timer = self.get_divisor_from_code() << self.clock_shift;

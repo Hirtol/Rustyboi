@@ -386,7 +386,6 @@ impl Memory {
                     }
 
                     // HDMA transfers 16 bytes every HBLANK
-                    // TODO: move this to own scheduler, since this costs ~200 fps having this here.
                     self.hdma_check_and_transfer();
                 }
                 EventType::VblankWait => {
