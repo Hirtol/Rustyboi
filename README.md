@@ -14,7 +14,7 @@ one would best refer to another fully working emulator, e.g [PyBoy](https://gith
 2. `cd Rustyboi`
 3. `cargo build --release`
 4. `cd target/release`
-5. Execute `rustyboi.exe` or your OS's equivalent.
+5. Execute `rustyboi_sdl.exe` or your OS's equivalent.
 
 ## Sources
 * https://blog.ryanlevick.com/DMG-01/public/book/introduction.html
