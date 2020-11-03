@@ -172,24 +172,22 @@ fn main() {
 
         canvas.present();
 
-        let frame_time = timer.ticks() as i32;
-
-        let frame_time = frame_time - ticks;
+        let frame_time = timer.ticks() as i32 - ticks;
 
         if FRAME_DELAY.as_millis() as i32 > frame_time {
             let sleeptime = (FRAME_DELAY.as_millis() as i32 - frame_time) as u64;
             std::thread::sleep(Duration::from_millis(sleeptime));
         }
 
-        loop_cycles += 1;
+        loop_cycles += if fast_forward { FAST_FORWARD_MULTIPLIER } else { 1 };
 
-        if loop_cycles == 10 {
-            let average_delta = last_update_time.elapsed().div(10);
-            loop_cycles = 0;
+        if last_update_time.elapsed() >= Duration::from_millis(500) {
+            let average_delta = last_update_time.elapsed();
             canvas
                 .window_mut()
-                .set_title(format!("RustyBoi - {:.2} FPS", (1.0 / average_delta.as_secs_f64() * (if fast_forward { FAST_FORWARD_MULTIPLIER } else { 1 } as f64))).as_str());
+                .set_title(format!("RustyBoi - {:.2} FPS", (loop_cycles as f64 / average_delta.as_secs_f64())).as_str());
             last_update_time = Instant::now();
+            loop_cycles = 0;
         }
     }
 }

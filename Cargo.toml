@@ -24,7 +24,6 @@ image = "0.23.8"
 blake2 = "0.9.0"
 gumdrop = "0.8.0"
 directories = "3.0.1"
-hound = "3.4.0"
 memmap2 = "0.1.0"
 #imgui = "0.5.0"
 
@@ -33,7 +32,7 @@ memmap2 = "0.1.0"
 
 [dependencies.sdl2]
 version = "0.34.3"
-features = ["unsafe_textures"]
+features = ["unsafe_textures", "bundled", "static-link"]
 
 
 #[profile.release]

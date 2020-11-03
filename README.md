@@ -5,7 +5,7 @@ as well as learning about the GB. For actual emulation purposes
 one would best refer to another fully working emulator, e.g [PyBoy](https://github.com/Baekalfen/PyBoy).
 
 ## Prerequisites
-- [SDL2](https://github.com/Rust-SDL2/rust-sdl2)
+- `cmake` and `gcc` for [SDL2](https://github.com/Rust-SDL2/rust-sdl2)
 - Rust 1.47.0
 
 ## Installation
