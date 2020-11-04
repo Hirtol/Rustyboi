@@ -2,6 +2,8 @@ use sdl2::render::{WindowCanvas, Texture};
 use sdl2::pixels::Color;
 use sdl2::pixels::PixelFormatEnum::RGB24;
 use rustyboi_core::hardware::ppu::palette::RGB;
+use rustyboi_core::hardware::ppu::{FRAMEBUFFER_SIZE, RESOLUTION_WIDTH};
+use core::mem;
 
 pub fn setup_sdl(canvas: &mut WindowCanvas) -> Texture {
     canvas.set_draw_color(Color::RGB(0, 0, 0));
@@ -20,16 +22,18 @@ pub fn setup_sdl(canvas: &mut WindowCanvas) -> Texture {
 pub fn fill_texture_and_copy(
     canvas: &mut WindowCanvas,
     texture: &mut Texture,
-    pixel_buffer: &[RGB],
+    pixel_buffer: &[RGB; FRAMEBUFFER_SIZE],
 ) {
-    texture.with_lock(Option::None, |arr, _pitch| {
-        for (i, colour) in pixel_buffer.iter().enumerate() {
-            let offset = i * 3;
-            arr[offset] = colour.0;
-            arr[offset + 1] = colour.1;
-            arr[offset + 2] = colour.2;
-        }
-    });
+    texture.update(None, transmute_framebuffer(pixel_buffer), RESOLUTION_WIDTH*3);
 
     canvas.copy(&texture, None, None);
+}
+
+/// Real dirty way of doing this, but the most performant way I've found so far.
+/// Instead of copying the buffer twice we just reinterpret the reference to refer to a
+/// `u8` RGB array.
+fn transmute_framebuffer(pixel_buffer: &[RGB; FRAMEBUFFER_SIZE]) -> &[u8; FRAMEBUFFER_SIZE*3]{
+    unsafe {
+        mem::transmute(pixel_buffer)
+    }
 }
