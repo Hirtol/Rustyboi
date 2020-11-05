@@ -104,12 +104,10 @@ impl Emulator {
     /// for timing purposes by the consumer of the emulator.
     ///
     /// Also returns whether VBlank occurred in this emulator cycle.
-    pub fn emulate_cycle(&mut self) -> (u64, bool) {
-        let mut prior_cycles = self.cpu.cycles_performed;
-
+    pub fn emulate_cycle(&mut self) -> bool {
         self.cpu.step_cycle();
 
-        (self.cpu.cycles_performed - prior_cycles, self.cpu.added_vblank())
+        self.cpu.added_vblank()
     }
 
     /// Pass the provided `InputKey` to the emulator and ensure it's `pressed` state

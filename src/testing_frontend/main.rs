@@ -106,25 +106,22 @@ fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>) {
         let list_copy = custom_list.clone();
         threads.push(spawn(move || {
             let file_stem = path.file_stem().unwrap().to_owned();
-            let mut cycles_to_do = 5_000_000;
+            let mut frames_to_render = 600;
+            let mut emu_frames_drawn = 0;
             let emu_opts = EmulatorOptionsBuilder::new()
                 .boot_rom(boot_rom)
                 .with_display_colours(TEST_COLOURS)
                 .build();
             let mut emu = Emulator::new(&read(path).unwrap(), emu_opts);
 
-            if let Some(cycles) = list_copy.get(file_stem.to_str().unwrap_or_default()) {
-                cycles_to_do = *cycles;
+            if let Some(frames) = list_copy.get(file_stem.to_str().unwrap_or_default()) {
+                frames_to_render = *frames;
             }
 
-            for _ in 0..cycles_to_do {
-                emu.emulate_cycle();
-            }
-
-            let mut remaining_cycles_for_frame = (emu.cycles_performed() % CYCLES_PER_FRAME as u64) as i64;
-
-            while remaining_cycles_for_frame > 0 {
-                remaining_cycles_for_frame -= emu.emulate_cycle().0 as i64;
+            while emu_frames_drawn < frames_to_render {
+                if emu.emulate_cycle() {
+                    emu_frames_drawn += 1;
+                }
             }
 
             save_image(emu.frame_buffer(), format!("{}.png", file_stem.to_str().unwrap()));
@@ -225,7 +222,7 @@ fn save_image(framebuffer: &[RGB], file_name: impl AsRef<str>) {
 /// file_name_no_extension=3000
 /// ```
 ///
-/// Where `file_name_no_extension` is the ROM, and `3000` is the amount of emulator cycles.
+/// Where `file_name_no_extension` is the ROM, and `3000` is the amount of emulator frames to render.
 fn get_custom_list(filename: impl AsRef<str>) -> HashMap<String, u32> {
     let mut result = HashMap::with_capacity(10);
 

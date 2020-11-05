@@ -158,7 +158,7 @@ fn main() {
         // I should really figure out proper audio syncing ._.
         if audio_queue.size() < 50_000 {
             while emu_frames_drawn < frames_to_go && !app_state.emulator_paused {
-                if let (_, true) = emulator.emulate_cycle() {
+                if emulator.emulate_cycle() {
                     emu_frames_drawn += 1;
                 }
             }
@@ -305,7 +305,7 @@ fn test_fast(cpu_test: &Vec<u8>, sender: SyncSender<[RGB; FRAMEBUFFER_SIZE]>) {
             let start_time = Instant::now();
             loop {
                 while frame_count <= 20_000 {
-                    if emulator.emulate_cycle().1 {
+                    if emulator.emulate_cycle() {
                         frame_count += 1;
                         sender.send(emulator.frame_buffer().clone());
                     }
