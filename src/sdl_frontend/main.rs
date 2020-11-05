@@ -26,7 +26,7 @@ use image::ImageBuffer;
 use image::imageops::FilterType;
 use rustyboi::actions::{save_rom, create_emulator};
 use crate::sdl::{setup_sdl, fill_texture_and_copy};
-use std::sync::mpsc::{sync_channel, SyncSender, Receiver, channel};
+use crossbeam::channel::*;
 use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
 use crate::state::AppState;
 
@@ -102,7 +102,7 @@ fn main() {
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
-    // let (frame_sender, frame_receiver) = sync_channel(1);
+    // let (frame_sender, frame_receiver) = bounded(1);
     //
     // std::thread::spawn(move || test_fast( &read(cartridge).unwrap(), frame_sender));
     // render_fast(&mut canvas, &mut screen_texture, frame_receiver);
@@ -275,7 +275,7 @@ fn keycode_to_input(key: Keycode) -> Option<InputKey> {
     }
 }
 
-fn run_emulator(emulator: Emulator, sender: SyncSender<[RGB; FRAMEBUFFER_SIZE]>) {
+fn run_emulator(emulator: Emulator, sender: Sender<[RGB; FRAMEBUFFER_SIZE]>) {
 
 }
 
@@ -291,7 +291,7 @@ fn render_fast(mut canvas: &mut Canvas<Window>, mut screen_texture: &mut Texture
     }
 }
 
-fn test_fast(cpu_test: &Vec<u8>, sender: SyncSender<[RGB; FRAMEBUFFER_SIZE]>) {
+fn test_fast(cpu_test: &Vec<u8>, sender: Sender<[RGB; FRAMEBUFFER_SIZE]>) {
     let mut emulator = Emulator::new(&cpu_test, EmulatorOptionsBuilder::new()
         .with_mode(CGB)
         .with_display_colours(DEFAULT_DISPLAY_COLOURS)
