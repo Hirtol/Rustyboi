@@ -32,7 +32,7 @@ pub fn fill_texture_and_copy(
 /// Real dirty way of doing this, but the most performant way I've found so far.
 /// Instead of copying the buffer twice we just reinterpret the reference to refer to a
 /// `u8` RGB array.
-fn transmute_framebuffer(pixel_buffer: &[RGB; FRAMEBUFFER_SIZE]) -> &[u8; FRAMEBUFFER_SIZE*3]{
+pub fn transmute_framebuffer(pixel_buffer: &[RGB]) -> &[u8]{
     unsafe {
         mem::transmute(pixel_buffer)
     }

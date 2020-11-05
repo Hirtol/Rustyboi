@@ -13,7 +13,7 @@ use simplelog::{CombinedLogger, Config, ConfigBuilder, TermLogger, TerminalMode,
 
 use std::fs::{read, File};
 
-use std::thread::sleep;
+use std::thread::{sleep, spawn};
 use std::time::{Duration, Instant};
 
 use sdl2::audio::{AudioQueue, AudioSpecDesired};
@@ -26,6 +26,8 @@ use image::ImageBuffer;
 use image::imageops::FilterType;
 use rustyboi::actions::{save_rom, create_emulator};
 use crate::sdl::{setup_sdl, fill_texture_and_copy};
+use std::sync::mpsc::{sync_channel, SyncSender, Receiver, channel};
+use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
 
 
 mod sdl;
@@ -98,7 +100,10 @@ fn main() {
 
     //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
-    // test_fast(sdl_context, &mut canvas, &mut screen_texture, &read(cartridge).unwrap());
+    // let (frame_sender, frame_receiver) = sync_channel(1);
+    //
+    // std::thread::spawn(move || test_fast( &read(cartridge).unwrap(), frame_sender));
+    // render_fast(&mut canvas, &mut screen_texture, frame_receiver);
     //
     // return;
 
@@ -273,14 +278,29 @@ fn keycode_to_input(key: Keycode) -> Option<InputKey> {
     }
 }
 
-fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_texture: &mut Texture, cpu_test: &Vec<u8>) {
+fn run_emulator(emulator: Emulator, sender: SyncSender<[RGB; FRAMEBUFFER_SIZE]>) {
+
+}
+
+fn render_fast(mut canvas: &mut Canvas<Window>, mut screen_texture: &mut Texture, receiver: Receiver<[RGB; FRAMEBUFFER_SIZE]>) {
+    loop {
+        let res = receiver.recv().unwrap();
+
+        fill_texture_and_copy(
+            &mut canvas,
+            &mut screen_texture, &res,
+        );
+
+        canvas.present();
+    }
+}
+
+fn test_fast(cpu_test: &Vec<u8>, sender: SyncSender<[RGB; FRAMEBUFFER_SIZE]>) {
     let mut emulator = Emulator::new(&cpu_test, EmulatorOptionsBuilder::new()
         .with_mode(CGB)
         .with_display_colours(DEFAULT_DISPLAY_COLOURS)
         .build());
     let _count: u128 = 0;
-
-    let mut event_pump = sdl_context.event_pump().unwrap();
 
     let start_time = Instant::now();
 
@@ -298,23 +318,6 @@ fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_textu
             sleep(to_sleep);
         }
 
-        for event in event_pump.poll_iter() {
-            use sdl2::event::Event;
-            match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
-                    keycode: Some(Keycode::Escape),
-                    ..
-                } => {
-                    break 'mainloop;
-                }
-                Event::DropFile { filename, .. } => {
-                    debug!("Dropped file: {}", filename);
-                }
-                _ => {}
-            }
-        }
-
         if start_time.elapsed() < Duration::new(1, 0) {
             let mut frame_count = 0;
             let start_time = Instant::now();
@@ -322,6 +325,7 @@ fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_textu
                 while frame_count <= 20_000 {
                     if emulator.emulate_cycle().1 {
                         frame_count += 1;
+                        sender.send(emulator.frame_buffer().clone());
                     }
                 }
 
@@ -335,16 +339,6 @@ fn test_fast(sdl_context: Sdl, mut canvas: &mut Canvas<Window>, mut screen_textu
             }
         }
 
-        fill_texture_and_copy(
-            &mut canvas,
-            &mut screen_texture, emulator.frame_buffer(),
-        );
-
-        canvas.present();
-
-        canvas
-            .window_mut()
-            .set_title(format!("RustyBoi - {} FPS", 1.0 / last_update_time.elapsed().as_secs_f64()).as_str());
         last_update_time = frame_start;
     }
 }
