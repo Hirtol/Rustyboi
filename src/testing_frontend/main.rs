@@ -93,7 +93,7 @@ fn run_test_roms(test_path: impl AsRef<str>, bootrom: impl AsRef<Path>) {
 }
 
 /// An incredibly naive way of doing this, by just spawning as many threads as possible for
-/// all test roms and running them for ~5 million iterations, or a custom amount if set via config.
+/// all test roms and running them for ~600 frames, or a custom amount if set via config.
 ///
 /// But it works!
 fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>) {
