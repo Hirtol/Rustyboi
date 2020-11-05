@@ -28,9 +28,11 @@ use rustyboi::actions::{save_rom, create_emulator};
 use crate::sdl::{setup_sdl, fill_texture_and_copy};
 use std::sync::mpsc::{sync_channel, SyncSender, Receiver, channel};
 use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
+use crate::state::AppState;
 
 
 mod sdl;
+mod state;
 
 const KIRBY_DISPLAY_COLOURS: DisplayColour = DisplayColour {
     black: RGB(44, 44, 150),
@@ -120,15 +122,13 @@ fn main() {
 
     let mut emulator = create_emulator(_cpu_test2, emu_opts);
 
-    let mut cycles = 0;
     let mut loop_cycles = 0;
 
     let mut event_pump = sdl_context.event_pump().unwrap();
 
     let mut last_update_time: Instant = Instant::now();
 
-    let mut fast_forward = false;
-    let mut paused = false;
+    let mut app_state = AppState::default();
 
     audio_queue.resume();
 
@@ -137,36 +137,31 @@ fn main() {
 
         // Temporary hack to make audio not buffer up while fast forwarding,
         // in the future could consider downsampling the sped up audio for a cool effect.
-        if !fast_forward {
+        if !app_state.fast_forward {
             audio_queue.queue(audio_buffer);
-        } else {
-            audio_queue.clear();
         }
+
         emulator.clear_audio_buffer();
 
         let ticks = timer.ticks() as i32;
 
         for event in event_pump.poll_iter() {
-            if !handle_events(event, &mut emulator, &mut fast_forward, &mut paused) {
+            if !handle_events(event, &mut emulator, &mut app_state) {
                 break 'mainloop;
             }
         }
 
-        let cycle_count_to_reach = if fast_forward { FAST_FORWARD_MULTIPLIER } else { 1 };
+        let mut emu_frames_drawn = 0;
+        let frames_to_go = if app_state.fast_forward { FAST_FORWARD_MULTIPLIER } else { 1 };
 
-        // 30-40k seems to be a decent spot for audio syncing.
+        // 50k seems to be a decent spot for audio syncing.
         // I should really figure out proper audio syncing ._.
         if audio_queue.size() < 50_000 {
-            while cycles < cycle_count_to_reach && !paused {
+            while emu_frames_drawn < frames_to_go && !app_state.emulator_paused {
                 if let (_, true) = emulator.emulate_cycle() {
-                    cycles += 1;
-                }
-                if (emulator.audio_buffer().len() >= 1550) && !fast_forward {
-                    break;
+                    emu_frames_drawn += 1;
                 }
             }
-
-            cycles = 0;
         }
 
         fill_texture_and_copy(
@@ -177,14 +172,7 @@ fn main() {
 
         canvas.present();
 
-        let frame_time = timer.ticks() as i32 - ticks;
-
-        if FRAME_DELAY.as_millis() as i32 > frame_time {
-            let sleeptime = (FRAME_DELAY.as_millis() as i32 - frame_time) as u64;
-            std::thread::sleep(Duration::from_millis(sleeptime));
-        }
-
-        loop_cycles += if fast_forward { FAST_FORWARD_MULTIPLIER } else { 1 };
+        loop_cycles += frames_to_go;
 
         if last_update_time.elapsed() >= Duration::from_millis(500) {
             let average_delta = last_update_time.elapsed();
@@ -194,10 +182,18 @@ fn main() {
             last_update_time = Instant::now();
             loop_cycles = 0;
         }
+        // Ideally we'd use Instant instead of SDL timer, but for some reason when using Instant
+        // we sleep more than we should, leaving us at ~58 fps which causes audio stutters.
+        let frame_time = timer.ticks() as i32 - ticks;
+
+        if FRAME_DELAY.as_millis() as i32 > frame_time {
+            let sleep_time = (FRAME_DELAY.as_millis() as i32 - frame_time) as u64;
+            std::thread::sleep(Duration::from_millis(sleep_time));
+        }
     }
 }
 
-fn handle_events(event: Event, emulator: &mut Emulator, fast_forward: &mut bool, pause: &mut bool) -> bool {
+fn handle_events(event: Event, emulator: &mut Emulator, app_state: &mut AppState) -> bool {
     match event {
         Event::Quit { .. }
         | Event::KeyDown {
@@ -205,6 +201,7 @@ fn handle_events(event: Event, emulator: &mut Emulator, fast_forward: &mut bool,
             ..
         } => {
             save_rom(emulator);
+            app_state.exit = true;
             return false;
         }
         Event::DropFile { filename, .. } => {
@@ -225,8 +222,8 @@ fn handle_events(event: Event, emulator: &mut Emulator, fast_forward: &mut bool,
                 emulator.handle_input(input_key, true);
             } else {
                 match key {
-                    Keycode::LShift => *fast_forward = true,
-                    Keycode::P => *pause = !*pause,
+                    Keycode::LShift => app_state.fast_forward = true,
+                    Keycode::P => app_state.emulator_paused = !app_state.emulator_paused,
                     Keycode::O => println!("{:#?}", emulator.oam()),
                     Keycode::L => {
                         let mut true_image_buffer = vec![0u8; 768*8*8*3];
@@ -253,7 +250,7 @@ fn handle_events(event: Event, emulator: &mut Emulator, fast_forward: &mut bool,
                 emulator.handle_input(input_key, false);
             } else {
                 match key {
-                    Keycode::LShift => *fast_forward = false,
+                    Keycode::LShift => app_state.fast_forward = false,
                     _ => {}
                 }
             }
@@ -285,7 +282,6 @@ fn run_emulator(emulator: Emulator, sender: SyncSender<[RGB; FRAMEBUFFER_SIZE]>)
 fn render_fast(mut canvas: &mut Canvas<Window>, mut screen_texture: &mut Texture, receiver: Receiver<[RGB; FRAMEBUFFER_SIZE]>) {
     loop {
         let res = receiver.recv().unwrap();
-
         fill_texture_and_copy(
             &mut canvas,
             &mut screen_texture, &res,
@@ -300,24 +296,10 @@ fn test_fast(cpu_test: &Vec<u8>, sender: SyncSender<[RGB; FRAMEBUFFER_SIZE]>) {
         .with_mode(CGB)
         .with_display_colours(DEFAULT_DISPLAY_COLOURS)
         .build());
-    let _count: u128 = 0;
 
     let start_time = Instant::now();
 
-    let mut last_update_time: Instant = Instant::now();
-    let mut delta_time: Duration = Duration::default();
-
     'mainloop: loop {
-        let frame_start = Instant::now();
-
-        delta_time = frame_start.duration_since(last_update_time);
-
-        let to_sleep = FRAME_DELAY.checked_sub(delta_time);
-
-        if let Some(to_sleep) = to_sleep {
-            sleep(to_sleep);
-        }
-
         if start_time.elapsed() < Duration::new(1, 0) {
             let mut frame_count = 0;
             let start_time = Instant::now();
@@ -338,7 +320,5 @@ fn test_fast(cpu_test: &Vec<u8>, sender: SyncSender<[RGB; FRAMEBUFFER_SIZE]>) {
                 }
             }
         }
-
-        last_update_time = frame_start;
     }
 }
