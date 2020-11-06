@@ -7,7 +7,7 @@ use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::pixels::PixelFormatEnum::RGB24;
 use sdl2::render::{Canvas, Texture, WindowCanvas};
-use sdl2::video::Window;
+use sdl2::video::{Window, GLProfile};
 use sdl2::Sdl;
 use simplelog::{CombinedLogger, Config, ConfigBuilder, TermLogger, TerminalMode, WriteLogger};
 
@@ -29,10 +29,14 @@ use crate::sdl::{setup_sdl, fill_texture_and_copy};
 use crossbeam::channel::*;
 use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
 use crate::state::AppState;
+use imgui::Context;
+use crate::rendering::Renderer;
+use crate::rendering::imgui::ImguiBoi;
 
 
 mod sdl;
 mod state;
+mod rendering;
 
 const KIRBY_DISPLAY_COLOURS: DisplayColour = DisplayColour {
     black: RGB(44, 44, 150),
@@ -81,16 +85,8 @@ fn main() {
         )
         .unwrap();
 
-    let window = video_subsystem
-        .window("RustyBoi", 800, 720)
-        .position_centered()
-        .resizable()
-        .allow_highdpi()
-        .build()
-        .unwrap();
-
-    let mut canvas = window.into_canvas().accelerated().build().unwrap();
-    let mut screen_texture = setup_sdl(&mut canvas);
+    let mut renderer: Renderer<ImguiBoi> = Renderer::new(video_subsystem).unwrap();
+    renderer.setup_immediate_gui("Rustyboi ImGui");
 
     let bootrom_file_dmg = read("roms/DMG_ROM.bin").unwrap();
     let bootrom_file_cgb = read("roms\\cgb_bios.bin").unwrap();
@@ -146,6 +142,16 @@ fn main() {
         let ticks = timer.ticks() as i32;
 
         for event in event_pump.poll_iter() {
+            if let Some(gui) = &mut renderer.immediate_gui {
+                let second_window_id = renderer.debug_window.as_ref().unwrap().id();
+                if !event.get_window_id().is_some() || (event.get_window_id().unwrap() == second_window_id) {
+                    gui.input_handler.handle_event(&mut gui.imgui_context, &event);
+                    if gui.input_handler.ignore_event(&event) {
+                        continue;
+                    }
+                }
+            }
+
             if !handle_events(event, &mut emulator, &mut app_state) {
                 break 'mainloop;
             }
@@ -164,20 +170,14 @@ fn main() {
             }
         }
 
-        fill_texture_and_copy(
-            &mut canvas,
-            &mut screen_texture,
-            emulator.frame_buffer(),
-        );
-
-        canvas.present();
+        renderer.render_main_window(emulator.frame_buffer());
+        renderer.render_immediate_gui(&event_pump);
 
         loop_cycles += frames_to_go;
 
         if last_update_time.elapsed() >= Duration::from_millis(500) {
             let average_delta = last_update_time.elapsed();
-            canvas
-                .window_mut()
+            renderer.main_window.window_mut()
                 .set_title(format!("RustyBoi - {:.2} FPS", (loop_cycles as f64 / average_delta.as_secs_f64())).as_str());
             last_update_time = Instant::now();
             loop_cycles = 0;
