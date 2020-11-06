@@ -14,6 +14,7 @@ pub struct ImguiBoi {
 impl ImguiBoi {
     pub fn new(video_subsystem: &sdl2::VideoSubsystem, host_window: &sdl2::video::Window) -> Self {
         let mut imgui_context = imgui::Context::create();
+        imgui_context.io_mut().font_allow_user_scaling = true;
         let opengl_renderer = imgui_opengl_renderer::Renderer::new(&mut imgui_context, |s| video_subsystem.gl_get_proc_address(s) as _);
         let input_handler = imgui_sdl2::ImguiSdl2::new(&mut imgui_context, host_window);
         Self {
