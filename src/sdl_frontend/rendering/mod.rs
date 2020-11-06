@@ -20,7 +20,7 @@ pub struct Renderer<T>
     pub debug_window: Option<Window>,
     pub immediate_gui: Option<T>,
     /// For SDL we require OpenGL, which uses a Vsync which would block the main thread.
-    /// By using this we'll ensure the GUI only renders at the resolution of the current monitor
+    /// By using this we'll ensure the GUI only renders at the refresh rate of the current monitor.
     last_immediate_frame: Instant,
     gl_context: Option<GLContext>,
 }
