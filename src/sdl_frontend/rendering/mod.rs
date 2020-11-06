@@ -12,6 +12,9 @@ use sdl2::{VideoSubsystem, EventPump};
 pub mod immediate;
 pub mod imgui;
 
+/// The Rust SDL2 crate doesn't seem to have these constants, so I'll have to create it here instead.
+const SDL_WINDOW_MOUSE_FOCUS: u32 = 0x400;
+
 pub struct Renderer<T>
     where T: ImmediateGui {
     pub sdl_video_system: sdl2::VideoSubsystem,
@@ -91,7 +94,7 @@ impl<T> Renderer<T>
                 self.last_immediate_frame = Instant::now();
                 // Check whether the main window has SDL_WINDOW_MOUSE_FOCUS, if so, ignore the mouse event.
                 let mouse_state =
-                    if (self.main_window.window().window_flags() & 0x0400) != 0 {
+                    if (self.main_window.window().window_flags() & SDL_WINDOW_MOUSE_FOCUS) != 0 {
                         MouseState::from_sdl_state(0)
                     } else {
                         event_pump.mouse_state()
