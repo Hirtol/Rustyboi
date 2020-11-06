@@ -9,11 +9,10 @@ pub struct ImguiBoi {
     pub imgui_context: imgui::Context,
     pub opengl_renderer: Renderer,
     pub input_handler: ImguiSdl2,
-    gl_context: GLContext,
 }
 
 impl ImguiBoi {
-    pub fn new(video_subsystem: &sdl2::VideoSubsystem, host_window: &sdl2::video::Window, gl_context: GLContext) -> Self {
+    pub fn new(video_subsystem: &sdl2::VideoSubsystem, host_window: &sdl2::video::Window) -> Self {
         let mut imgui_context = imgui::Context::create();
         let opengl_renderer = imgui_opengl_renderer::Renderer::new(&mut imgui_context, |s| video_subsystem.gl_get_proc_address(s) as _);
         let input_handler = imgui_sdl2::ImguiSdl2::new(&mut imgui_context, host_window);
@@ -21,14 +20,13 @@ impl ImguiBoi {
             imgui_context,
             opengl_renderer,
             input_handler,
-            gl_context,
         }
     }
 }
 
 impl ImmediateGui for ImguiBoi {
-    fn new(video_subsystem: &VideoSubsystem, host_window: &Window, gl_context: GLContext) -> Self {
-        Self::new(video_subsystem, host_window, gl_context)
+    fn new(video_subsystem: &VideoSubsystem, host_window: &Window) -> Self {
+        Self::new(video_subsystem, host_window)
     }
 
     fn query_emulator(&mut self) {

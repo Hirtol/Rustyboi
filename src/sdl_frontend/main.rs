@@ -17,7 +17,7 @@ use std::thread::{sleep, spawn};
 use std::time::{Duration, Instant};
 
 use sdl2::audio::{AudioQueue, AudioSpecDesired};
-use sdl2::event::Event;
+use sdl2::event::{Event, WindowEvent};
 use std::io::Write;
 use std::ops::Div;
 use rustyboi_core::emulator::EmulatorMode::{CGB, DMG};
@@ -101,7 +101,7 @@ fn main() {
     // let (frame_sender, frame_receiver) = bounded(1);
     //
     // std::thread::spawn(move || test_fast( &read(cartridge).unwrap(), frame_sender));
-    // render_fast(&mut canvas, &mut screen_texture, frame_receiver);
+    // render_fast(&mut renderer, frame_receiver);
     //
     // return;
 
@@ -152,7 +152,7 @@ fn main() {
                 }
             }
 
-            if !handle_events(event, &mut emulator, &mut app_state) {
+            if !handle_events(event, &mut emulator, &mut app_state, &mut renderer) {
                 break 'mainloop;
             }
         }
@@ -193,16 +193,20 @@ fn main() {
     }
 }
 
-fn handle_events(event: Event, emulator: &mut Emulator, app_state: &mut AppState) -> bool {
+fn handle_events(event: Event, emulator: &mut Emulator, app_state: &mut AppState, renderer: &mut Renderer<ImguiBoi>) -> bool {
     match event {
         Event::Quit { .. }
         | Event::KeyDown {
             keycode: Some(Keycode::Escape),
             ..
-        } => {
+        }
+        | Event::Window {window_id: 1, win_event: WindowEvent::Close, ..} => {
             save_rom(emulator);
             app_state.exit = true;
             return false;
+        }
+        Event::Window {window_id, win_event: WindowEvent::Close, ..} => {
+            renderer.close_immediate_gui();
         }
         Event::DropFile { filename, .. } => {
             if filename.ends_with(".gb") || filename.ends_with(".gbc") {
@@ -224,6 +228,7 @@ fn handle_events(event: Event, emulator: &mut Emulator, app_state: &mut AppState
                 match key {
                     Keycode::LShift => app_state.fast_forward = true,
                     Keycode::P => app_state.emulator_paused = !app_state.emulator_paused,
+                    Keycode::K => renderer.setup_immediate_gui("Rustyboi Debugging").unwrap(),
                     Keycode::O => println!("{:#?}", emulator.oam()),
                     Keycode::L => {
                         let mut true_image_buffer = vec![0u8; 768*8*8*3];
@@ -279,15 +284,10 @@ fn run_emulator(emulator: Emulator, sender: Sender<[RGB; FRAMEBUFFER_SIZE]>) {
 
 }
 
-fn render_fast(mut canvas: &mut Canvas<Window>, mut screen_texture: &mut Texture, receiver: Receiver<[RGB; FRAMEBUFFER_SIZE]>) {
+fn render_fast(renderer: &mut Renderer<ImguiBoi>, receiver: Receiver<[RGB; FRAMEBUFFER_SIZE]>) {
     loop {
         let res = receiver.recv().unwrap();
-        fill_texture_and_copy(
-            &mut canvas,
-            &mut screen_texture, &res,
-        );
-
-        canvas.present();
+        renderer.render_main_window(&res);
     }
 }
 
