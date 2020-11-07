@@ -11,7 +11,6 @@ use sdl2::{VideoSubsystem, EventPump};
 
 pub mod immediate;
 pub mod imgui;
-pub mod egui;
 
 pub struct Renderer<T>
     where T: ImmediateGui {

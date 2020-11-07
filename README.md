@@ -1,5 +1,5 @@
 # Rustyboi
-This is an attempt at yet another GameBoy (just DMG for now) emulator written in Rust.  
+This is an attempt at yet another GameBoy (and GameBoy Colour) emulator written in Rust.  
 This is not supposed to be anything but a learning experience for both creating something in Rust, 
 as well as learning about the GB. For actual emulation purposes
 one would best refer to another fully working emulator, e.g [PyBoy](https://github.com/Baekalfen/PyBoy).
