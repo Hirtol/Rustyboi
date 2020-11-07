@@ -28,11 +28,13 @@ use rustyboi::actions::{save_rom, create_emulator};
 use crate::sdl::{setup_sdl, fill_texture_and_copy};
 use crossbeam::channel::*;
 use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
-use crate::state::AppState;
+use crate::state::AppEmulatorState;
 use imgui::Context;
 use crate::rendering::Renderer;
 use crate::rendering::imgui::ImguiBoi;
 use rustyboi::actions;
+use rustyboi::storage::FileStorage;
+use std::sync::Arc;
 
 
 mod sdl;
@@ -70,7 +72,7 @@ fn main() {
         //WriteLogger::new(LevelFilter::Trace, ConfigBuilder::new().set_location_level(LevelFilter::Off).set_time_level(LevelFilter::Off).set_target_level(LevelFilter::Off).build(), std::io::BufWriter::new(File::create("rustyboi.log").unwrap())),
     ])
     .unwrap();
-    actions::initialise_dirs();
+    let file_storage = Arc::new(FileStorage::new().unwrap());
     let sdl_context = sdl2::init().expect("Failed to initialise SDL context!");
     let audio_subsystem = sdl_context.audio().expect("SDL context failed to initialise audio!");
     let video_subsystem = sdl_context.video().expect("SDL context failed to initialise video!");
@@ -86,7 +88,7 @@ fn main() {
         )
         .unwrap();
 
-    let mut renderer: Renderer<ImguiBoi> = Renderer::new(video_subsystem).unwrap();
+    let mut renderer: Renderer<ImguiBoi> = Renderer::new(video_subsystem, file_storage.clone()).unwrap();
     renderer.setup_immediate_gui("Rustyboi ImGui");
 
     let bootrom_file_dmg = read("roms/DMG_ROM.bin").unwrap();
@@ -125,7 +127,7 @@ fn main() {
 
     let mut last_update_time: Instant = Instant::now();
 
-    let mut app_state = AppState::default();
+    let mut app_state = AppEmulatorState::default();
 
     audio_queue.resume();
 
@@ -194,7 +196,7 @@ fn main() {
     }
 }
 
-fn handle_events(event: Event, emulator: &mut Emulator, app_state: &mut AppState, renderer: &mut Renderer<ImguiBoi>) -> bool {
+fn handle_events(event: Event, emulator: &mut Emulator, app_state: &mut AppEmulatorState, renderer: &mut Renderer<ImguiBoi>) -> bool {
     match event {
         Event::Quit { .. }
         | Event::KeyDown {

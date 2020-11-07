@@ -1,4 +1,4 @@
-use std::fs::read;
+use std::fs::{read, File};
 
 use imgui::*;
 use imgui::internal::RawCast;
@@ -10,9 +10,17 @@ use sdl2::VideoSubsystem;
 
 use font::COUSINE_REGULAR_UNCOMPRESSED_DATA;
 use crate::rendering::immediate::ImmediateGui;
-use rustyboi::actions::get_config_path;
+use crate::rendering::imgui::state::State;
+use std::io::Write;
+use nanoserde::{SerJsonState, SerJson};
+use std::fs;
+use std::sync::Arc;
+use rustyboi::storage::{Storage, FileStorage};
 
 mod font;
+mod state;
+
+const STATE_FILE_NAME: &str = "debug_config.json";
 
 //TODO: Add dynamic hidpi native support, sadly SDL doesn't have a hidpi query
 // function.
@@ -22,12 +30,14 @@ pub struct ImguiBoi {
     pub opengl_renderer: Renderer,
     pub input_handler: ImguiSdl2,
     state: State,
+    storage: Arc<FileStorage>
 }
 
 impl ImguiBoi {
-    pub fn new(video_subsystem: &sdl2::VideoSubsystem, host_window: &sdl2::video::Window) -> Self {
+    pub fn new(video_subsystem: &sdl2::VideoSubsystem, host_window: &sdl2::video::Window, storage: Arc<FileStorage>) -> Self {
+        let state: State = storage.get_value(STATE_FILE_NAME).unwrap_or_default();
         let mut imgui_context = imgui::Context::create();
-        imgui_context.set_ini_filename(Some(get_config_path().join("imgui.ini")));
+        imgui_context.set_ini_filename(Some(storage.get_dirs().config_dir().join("imgui.ini")));
 
         let ddpi = video_subsystem.display_dpi(0).unwrap().0;
         let scale = ddpi / 72.0;
@@ -40,7 +50,8 @@ impl ImguiBoi {
             imgui_context,
             opengl_renderer,
             input_handler,
-            state: Default::default(),
+            state,
+            storage
         }
     }
 
@@ -56,8 +67,8 @@ impl ImguiBoi {
 }
 
 impl ImmediateGui for ImguiBoi {
-    fn new(video_subsystem: &VideoSubsystem, host_window: &sdl2::video::Window) -> Self {
-        Self::new(video_subsystem, host_window)
+    fn new(video_subsystem: &VideoSubsystem, host_window: &sdl2::video::Window, storage: Arc<FileStorage>) -> Self {
+        Self::new(video_subsystem, host_window, storage)
     }
 
     fn query_emulator(&mut self) {
@@ -84,6 +95,12 @@ impl ImmediateGui for ImguiBoi {
     }
 }
 
+impl Drop for ImguiBoi {
+    fn drop(&mut self) {
+        self.storage.save_value(STATE_FILE_NAME, &self.state);
+    }
+}
+
 fn size(ui: &Ui, size: f32) -> f32 {
     size * ui.current_font_size()
 }
@@ -91,16 +108,4 @@ fn size(ui: &Ui, size: f32) -> f32 {
 fn size_a(ui: &Ui, mut sizes: [f32; 2]) -> [f32; 2] {
     sizes.iter_mut().map(|s| size(ui, *s));
     sizes
-}
-
-#[derive(Default)]
-struct State {
-    example: u32,
-    notify_text: &'static str,
-}
-
-impl State {
-    fn reset(&mut self) {
-        *self = Self::default()
-    }
 }

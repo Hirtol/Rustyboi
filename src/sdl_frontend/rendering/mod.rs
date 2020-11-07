@@ -1,13 +1,17 @@
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+
+use sdl2::{EventPump, VideoSubsystem};
+use sdl2::mouse::MouseState;
 use sdl2::render::{Canvas, Texture};
-use sdl2::video::{Window, GLProfile, GLContext, WindowPos};
+use sdl2::video::{GLContext, GLProfile, Window, WindowPos};
+
+use rustyboi_core::hardware::ppu::{FRAMEBUFFER_SIZE, RESOLUTION_WIDTH};
+use rustyboi_core::hardware::ppu::palette::RGB;
 
 use crate::rendering::immediate::ImmediateGui;
-use rustyboi_core::hardware::ppu::palette::RGB;
-use rustyboi_core::hardware::ppu::{FRAMEBUFFER_SIZE, RESOLUTION_WIDTH};
 use crate::sdl::{fill_texture_and_copy, setup_sdl, transmute_framebuffer};
-use std::time::{Instant, Duration};
-use sdl2::mouse::MouseState;
-use sdl2::{VideoSubsystem, EventPump};
+use rustyboi::storage::{Storage, FileStorage};
 
 pub mod immediate;
 pub mod imgui;
@@ -23,11 +27,12 @@ pub struct Renderer<T>
     /// By using this we'll ensure the GUI only renders at the refresh rate of the current monitor.
     last_immediate_frame: Instant,
     gl_context: Option<GLContext>,
+    storage: Arc<FileStorage>,
 }
 
 impl<T> Renderer<T>
     where T: ImmediateGui {
-    pub fn new(sdl_video_system: VideoSubsystem) -> anyhow::Result<Self> {
+    pub fn new(sdl_video_system: VideoSubsystem, storage: Arc<FileStorage>) -> anyhow::Result<Self> {
         let mut main_window = sdl_video_system
             .window("RustyBoi", 800, 720)
             .position_centered()
@@ -46,12 +51,13 @@ impl<T> Renderer<T>
             debug_window: None,
             immediate_gui: None,
             last_immediate_frame: Instant::now(),
-            gl_context: None
+            gl_context: None,
+            storage
         })
     }
 
     /// Create a second window and setup the debug context within
-    pub fn setup_immediate_gui(&mut self, title: impl AsRef<str>) -> anyhow::Result<()>{
+    pub fn setup_immediate_gui(&mut self, title: impl AsRef<str>) -> anyhow::Result<()> {
         if let (Some(_), Some(_)) = (&self.debug_window, &self.immediate_gui) {
             Ok(())
         } else {
@@ -66,7 +72,7 @@ impl<T> Renderer<T>
             self.gl_context = Some(self.debug_window.as_ref().unwrap().gl_create_context().unwrap());
             gl::load_with(|s| self.sdl_video_system.gl_get_proc_address(s) as _);
 
-            self.immediate_gui = Some(T::new(&self.sdl_video_system, self.debug_window.as_ref().unwrap()));
+            self.immediate_gui = Some(T::new(&self.sdl_video_system, self.debug_window.as_ref().unwrap(), self.storage.clone()));
             Ok(())
         }
     }
@@ -81,7 +87,7 @@ impl<T> Renderer<T>
     /// Render a new frame in the main window.
     #[inline(always)]
     pub fn render_main_window(&mut self, framebuffer: &[RGB; FRAMEBUFFER_SIZE]) {
-        self.main_texture.update(None, transmute_framebuffer(framebuffer), RESOLUTION_WIDTH*3);
+        self.main_texture.update(None, transmute_framebuffer(framebuffer), RESOLUTION_WIDTH * 3);
 
         self.main_window.copy(&self.main_texture, None, None);
 
@@ -91,11 +97,11 @@ impl<T> Renderer<T>
     /// Render, if the immediate GUI has been setup, a new frame in the ImGUI.
     /// Can be called very frequently, will never render more than the current monitor's refresh rate.
     #[inline(always)]
-    pub fn render_immediate_gui(&mut self, event_pump: &EventPump) -> anyhow::Result<()>{
+    pub fn render_immediate_gui(&mut self, event_pump: &EventPump) -> anyhow::Result<()> {
         if let (Some(window), Some(gui)) = (&self.debug_window, &mut self.immediate_gui) {
             let window_flags = window.window_flags();
             if self.last_immediate_frame.elapsed().as_secs_f64() >= 1.0 / window.display_mode().unwrap().refresh_rate as f64
-            && window_flags & sdl2::sys::SDL_WindowFlags::SDL_WINDOW_HIDDEN as u32 == 0 {
+                && window_flags & sdl2::sys::SDL_WindowFlags::SDL_WINDOW_HIDDEN as u32 == 0 {
                 let delta = self.last_immediate_frame.elapsed();
                 let delta_s = delta.as_nanos() as f32 * 1e-9;
                 self.last_immediate_frame = Instant::now();
@@ -119,13 +125,13 @@ impl<T> Renderer<T>
     }
 
     /// Simple helper function for setting up the immediate gui.
-    fn setup_second_window(&mut self, title: impl AsRef<str>) -> anyhow::Result<()>{
+    fn setup_second_window(&mut self, title: impl AsRef<str>) -> anyhow::Result<()> {
         let nr_of_displays = self.sdl_video_system.num_video_displays().unwrap();
         let (x, y) = if nr_of_displays > 1 {
-                (self.sdl_video_system.display_bounds(1).unwrap().x(), self.sdl_video_system.display_bounds(1).unwrap().y())
-            } else {
-                (0, 0)
-            };
+            (self.sdl_video_system.display_bounds(1).unwrap().x(), self.sdl_video_system.display_bounds(1).unwrap().y())
+        } else {
+            (0, 0)
+        };
 
         self.debug_window = Some(self.sdl_video_system.window(title.as_ref(), 800, 720)
             .position_centered()
