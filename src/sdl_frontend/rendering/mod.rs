@@ -94,7 +94,7 @@ impl<T> Renderer<T>
     pub fn render_immediate_gui(&mut self, event_pump: &EventPump) -> anyhow::Result<()>{
         if let (Some(window), Some(gui)) = (&self.debug_window, &mut self.immediate_gui) {
             let window_flags = window.window_flags();
-            if self.last_immediate_frame.elapsed() > Duration::from_secs_f64(1.0 / window.display_mode().unwrap().refresh_rate as f64)
+            if self.last_immediate_frame.elapsed().as_secs_f64() >= 1.0 / window.display_mode().unwrap().refresh_rate as f64
             && window_flags & sdl2::sys::SDL_WindowFlags::SDL_WINDOW_HIDDEN as u32 == 0 {
                 let delta = self.last_immediate_frame.elapsed();
                 let delta_s = (delta.as_secs_f32() + delta.subsec_nanos() as f32) / 1_000_000_000.0;
