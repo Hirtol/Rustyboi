@@ -11,6 +11,7 @@ use sdl2::{VideoSubsystem, EventPump};
 
 pub mod immediate;
 pub mod imgui;
+mod font;
 
 pub struct Renderer<T>
     where T: ImmediateGui {
@@ -138,6 +139,7 @@ impl<T> Renderer<T>
         // Center on second screen
         let (w_x, w_y) = self.debug_window.as_ref().unwrap().position();
         self.debug_window.as_mut().unwrap().set_position(WindowPos::Positioned(x + w_x), WindowPos::Positioned(y + w_y));
+        self.debug_window.as_mut().unwrap().maximize();
         self.debug_window.as_mut().unwrap().show();
         Ok(())
     }
