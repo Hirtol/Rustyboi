@@ -16,6 +16,7 @@ use nanoserde::{SerJsonState, SerJson};
 use std::fs;
 use std::sync::Arc;
 use rustyboi::storage::{Storage, FileStorage};
+use sdl2::keyboard::Scancode;
 
 mod font;
 mod state;
@@ -83,6 +84,11 @@ impl ImmediateGui for ImguiBoi {
     fn render(&mut self, host_window: &sdl2::video::Window) {
         let mut ui = self.imgui_context.frame();
         ui.show_demo_window(&mut true);
+        {
+            create_main_menu_bar(&mut self.state, &ui);
+            show_metrics(&mut self.state, &ui);
+            show_palette_view(&mut self.state, &ui);
+        }
 
         // Need to clean the canvas before rendering the next set.
         unsafe {
@@ -98,6 +104,49 @@ impl ImmediateGui for ImguiBoi {
 impl Drop for ImguiBoi {
     fn drop(&mut self) {
         self.storage.save_value(STATE_FILE_NAME, &self.state);
+    }
+}
+
+fn create_main_menu_bar(state: &mut State, ui: &Ui) {
+    ui.main_menu_bar(|| {
+        ui.menu(im_str!("Debug"), true, || {
+            if MenuItem::new(im_str!("ImGui Metrics"))
+                .build_with_ref(ui, &mut state.show_metrics) {
+            }
+        });
+        ui.menu(im_str!("Views"), true,|| {
+            if MenuItem::new(im_str!("Palette View"))
+                .shortcut(im_str!("Ctrl+P"))
+                .build_with_ref(ui, &mut state.palette_window) {
+            }
+        });
+        add_main_menu_shortcuts(state, ui);
+    })
+}
+
+#[inline(always)]
+fn add_main_menu_shortcuts(state: &mut State, ui: &Ui) {
+    if ui.io().key_ctrl && ui.is_key_pressed(Scancode::P as u32){
+        state.palette_window = !state.palette_window;
+    }
+}
+
+fn show_metrics(state: &mut State, ui: &Ui) {
+    if state.show_metrics {
+        ui.show_metrics_window(&mut state.show_metrics);
+    }
+}
+
+fn show_palette_view(state: &mut State, ui: &Ui) {
+    if state.palette_window {
+        Window::new(im_str!("Palette View"))
+            .size(size_a(ui, [200.0, 100.0]), Condition::Appearing)
+            .opened(&mut state.palette_window)
+            .build(ui, || {
+                ui.text("Hello World!");
+                ColorButton::new(im_str!("color_button"), [1.0, 0.0, 0.0, 1.0])
+                    .build(&ui);
+            })
     }
 }
 

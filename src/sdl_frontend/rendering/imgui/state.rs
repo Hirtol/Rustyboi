@@ -2,8 +2,8 @@ use nanoserde::{DeJson, SerJson};
 
 #[derive(Default, Debug, Copy, Clone, DeJson, SerJson)]
 pub struct State {
-    example: u32,
-    hello: bool,
+    pub show_metrics: bool,
+    pub palette_window: bool,
 }
 
 impl State {
