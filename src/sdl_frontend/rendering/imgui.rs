@@ -13,7 +13,6 @@ use crate::rendering::immediate::ImmediateGui;
 
 //TODO: Add dynamic hidpi native support, sadly SDL doesn't have a hidpi query
 // function.
-pub const HIDPI_FACTOR: f32 = 1.4;
 
 pub struct ImguiBoi {
     pub imgui_context: imgui::Context,
@@ -25,8 +24,10 @@ pub struct ImguiBoi {
 impl ImguiBoi {
     pub fn new(video_subsystem: &sdl2::VideoSubsystem, host_window: &sdl2::video::Window) -> Self {
         let mut imgui_context = imgui::Context::create();
-        Self::add_fonts(&mut imgui_context);
-        imgui_context.style_mut().scale_all_sizes(HIDPI_FACTOR);
+        let ddpi = video_subsystem.display_dpi(0).unwrap().0;
+        let scale = ddpi / 72.0;
+        Self::add_fonts(&mut imgui_context, scale);
+        imgui_context.style_mut().scale_all_sizes(scale);
         let opengl_renderer = imgui_opengl_renderer::Renderer::new(&mut imgui_context, |s| video_subsystem.gl_get_proc_address(s) as _);
         let input_handler = imgui_sdl2::ImguiSdl2::new(&mut imgui_context, host_window);
         Self {
@@ -37,22 +38,14 @@ impl ImguiBoi {
         }
     }
 
-    fn add_fonts(imgui_ctx: &mut Context) {
+    fn add_fonts(imgui_ctx: &mut Context, scale:  f32) {
         imgui_ctx.fonts().add_font(&[FontSource::TtfData {
             data: &COUSINE_REGULAR_UNCOMPRESSED_DATA,
-            size_pixels: 13.0 * HIDPI_FACTOR,
+            size_pixels: 14.0 * scale,
             config: None,
         }]);
-        //imgui_ctx.fonts().add_font(&[FontSource::DefaultFontData { config: Self::font() }]);
         imgui_ctx.fonts().build_rgba32_texture();
         imgui_ctx.io_mut().font_allow_user_scaling = true;
-    }
-
-    fn font() -> Option<FontConfig> {
-        let mut conf = FontConfig::default();
-
-        conf.size_pixels = 13.0 * HIDPI_FACTOR;
-        Some(conf)
     }
 }
 
