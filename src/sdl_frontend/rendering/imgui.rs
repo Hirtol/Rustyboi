@@ -4,6 +4,7 @@ use imgui_opengl_renderer::Renderer;
 use sdl2::video::{GLProfile, Window, GLContext};
 use sdl2::VideoSubsystem;
 use sdl2::mouse::MouseState;
+use imgui::{FontAtlasFlags, FontSource, FontConfig};
 
 pub struct ImguiBoi {
     pub imgui_context: imgui::Context,
@@ -14,6 +15,7 @@ pub struct ImguiBoi {
 impl ImguiBoi {
     pub fn new(video_subsystem: &sdl2::VideoSubsystem, host_window: &sdl2::video::Window) -> Self {
         let mut imgui_context = imgui::Context::create();
+        imgui_context.fonts().add_font(&[FontSource::DefaultFontData { config: Some(Self::font()) }]);
         imgui_context.io_mut().font_allow_user_scaling = true;
         let opengl_renderer = imgui_opengl_renderer::Renderer::new(&mut imgui_context, |s| video_subsystem.gl_get_proc_address(s) as _);
         let input_handler = imgui_sdl2::ImguiSdl2::new(&mut imgui_context, host_window);
@@ -22,6 +24,12 @@ impl ImguiBoi {
             opengl_renderer,
             input_handler,
         }
+    }
+
+    fn font() -> FontConfig {
+        let mut conf = FontConfig::default();
+        conf.size_pixels = 20.0;
+        conf
     }
 }
 
