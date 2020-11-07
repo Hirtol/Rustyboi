@@ -32,6 +32,7 @@ use crate::state::AppState;
 use imgui::Context;
 use crate::rendering::Renderer;
 use crate::rendering::imgui::ImguiBoi;
+use rustyboi::actions;
 
 
 mod sdl;
@@ -69,7 +70,7 @@ fn main() {
         //WriteLogger::new(LevelFilter::Trace, ConfigBuilder::new().set_location_level(LevelFilter::Off).set_time_level(LevelFilter::Off).set_target_level(LevelFilter::Off).build(), std::io::BufWriter::new(File::create("rustyboi.log").unwrap())),
     ])
     .unwrap();
-
+    actions::initialise_dirs();
     let sdl_context = sdl2::init().expect("Failed to initialise SDL context!");
     let audio_subsystem = sdl_context.audio().expect("SDL context failed to initialise audio!");
     let video_subsystem = sdl_context.video().expect("SDL context failed to initialise video!");

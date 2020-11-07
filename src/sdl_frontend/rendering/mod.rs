@@ -11,7 +11,6 @@ use sdl2::{VideoSubsystem, EventPump};
 
 pub mod immediate;
 pub mod imgui;
-mod font;
 
 pub struct Renderer<T>
     where T: ImmediateGui {
@@ -98,7 +97,7 @@ impl<T> Renderer<T>
             if self.last_immediate_frame.elapsed().as_secs_f64() >= 1.0 / window.display_mode().unwrap().refresh_rate as f64
             && window_flags & sdl2::sys::SDL_WindowFlags::SDL_WINDOW_HIDDEN as u32 == 0 {
                 let delta = self.last_immediate_frame.elapsed();
-                let delta_s = (delta.as_secs_f32() + delta.subsec_nanos() as f32) / 1_000_000_000.0;
+                let delta_s = delta.as_nanos() as f32 * 1e-9;
                 self.last_immediate_frame = Instant::now();
                 // Check whether the main window has SDL_WINDOW_MOUSE_FOCUS, if so, ignore the mouse event.
                 let mouse_state =

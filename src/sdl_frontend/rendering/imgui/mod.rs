@@ -8,8 +8,11 @@ use sdl2::mouse::MouseState;
 use sdl2::video::{GLContext, GLProfile};
 use sdl2::VideoSubsystem;
 
-use crate::rendering::font::COUSINE_REGULAR_UNCOMPRESSED_DATA;
+use font::COUSINE_REGULAR_UNCOMPRESSED_DATA;
 use crate::rendering::immediate::ImmediateGui;
+use rustyboi::actions::get_config_path;
+
+mod font;
 
 //TODO: Add dynamic hidpi native support, sadly SDL doesn't have a hidpi query
 // function.
@@ -24,10 +27,13 @@ pub struct ImguiBoi {
 impl ImguiBoi {
     pub fn new(video_subsystem: &sdl2::VideoSubsystem, host_window: &sdl2::video::Window) -> Self {
         let mut imgui_context = imgui::Context::create();
+        imgui_context.set_ini_filename(Some(get_config_path().join("imgui.ini")));
+
         let ddpi = video_subsystem.display_dpi(0).unwrap().0;
         let scale = ddpi / 72.0;
         Self::add_fonts(&mut imgui_context, scale);
         imgui_context.style_mut().scale_all_sizes(scale);
+
         let opengl_renderer = imgui_opengl_renderer::Renderer::new(&mut imgui_context, |s| video_subsystem.gl_get_proc_address(s) as _);
         let input_handler = imgui_sdl2::ImguiSdl2::new(&mut imgui_context, host_window);
         Self {

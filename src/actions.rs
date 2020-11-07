@@ -4,8 +4,22 @@ use rustyboi_core::hardware::cartridge::header::CartridgeHeader;
 
 use std::fs::{create_dir_all, read, File};
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use rustyboi_core::{EmulatorOptions, EmulatorOptionsBuilder};
+
+/// Ensures the paths to the relevant directories (data, and config) are created ahead of time.
+pub fn initialise_dirs() {
+    let pr = ProjectDirs::from("", "Hirtol", "Rustyboi").unwrap();
+    create_dir_all(pr.config_dir());
+    create_dir_all(pr.data_dir());
+}
+
+pub fn get_config_path() -> PathBuf {
+    ProjectDirs::from("", "Hirtol", "Rustyboi")
+        .expect("Could not retrieve config directory for saving!")
+        .config_dir()
+        .into()
+}
 
 /// Function to call in order to save external ram (in case it's present)
 /// as well as any additional cleanup as required.
