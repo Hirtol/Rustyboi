@@ -72,7 +72,7 @@ pub struct PaletteDebugInfo {
 impl PaletteDebugInfo {
     pub fn new(ppu: &PPU) -> Self {
         let cgb_to_rgb_array = |cgb: [CgbPalette; 8]| cgb.iter()
-            .map(|p| p.colours.iter().map(|c| c.rgb).collect::<[RGB;4]>())
+            .map(|p| p.colours.iter().map(|c| c.rgb).collect())
             .collect::<Vec<[RGB;4]>>();
         PaletteDebugInfo {
             dmg_bg_palette: ppu.bg_window_palette.colours,
