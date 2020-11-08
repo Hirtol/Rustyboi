@@ -21,9 +21,12 @@ impl GameboyRunner {
         let (frame_sender, frame_receiver) = bounded(1);
         let (request_sender, request_receiver) = unbounded::<EmulatorNotification>();
         let (response_sender, response_receiver) = unbounded::<EmulatorResponse>();
-        let emulator = create_emulator(rom_path, options);
+        let mut emulator = create_emulator(rom_path, options);
         let emulator_thread =
-            std::thread::spawn(move || run_emulator(emulator, frame_sender, response_sender, request_receiver));
+            std::thread::spawn(move || {
+                run_emulator(&mut emulator, frame_sender, response_sender, request_receiver);
+                save_rom(&emulator);
+            });
         GameboyRunner {
             current_thread: Some(emulator_thread),
             frame_receiver,
@@ -50,8 +53,7 @@ impl GameboyRunner {
     /// Commands the emulator thread to save the current saves to disk as well.
     pub fn stop(&mut self) {
         if let Some(thread) = self.current_thread.take() {
-            self.request_sender
-                .send(EmulatorNotification::ExitRequest(Box::new(save_rom)));
+            self.request_sender.send(EmulatorNotification::ExitRequest);
             // Since the emulation thread may be blocking trying to send a frame.
             self.frame_receiver.try_recv();
             thread.join();
@@ -60,7 +62,7 @@ impl GameboyRunner {
 }
 
 fn run_emulator(
-    mut emulator: Emulator,
+    emulator: &mut Emulator,
     frame_sender: Sender<[RGB; FRAMEBUFFER_SIZE]>,
     response_sender: Sender<EmulatorResponse>,
     notification_receiver: Receiver<EmulatorNotification>,
@@ -85,8 +87,7 @@ fn run_emulator(
                     }
                 }
                 EmulatorNotification::DebugRequest(_) => unimplemented!(),
-                EmulatorNotification::ExitRequest(save_function) => {
-                    save_function(&emulator);
+                EmulatorNotification::ExitRequest => {
                     break 'emu_loop;
                 }
             }
