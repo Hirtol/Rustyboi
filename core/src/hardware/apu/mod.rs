@@ -175,7 +175,7 @@ impl APU {
             && address != 0x26
             && (mode.is_cgb() || (mode.is_dmg() && ![0x20, 0x1B].contains(&address)))
         {
-            log::warn!("Tried to write APU while inaccessible to address: 0x{:02X}", address);
+            log::warn!("Tried to write to APU while inaccessible at address: 0x{:02X}", address);
             return;
         }
 

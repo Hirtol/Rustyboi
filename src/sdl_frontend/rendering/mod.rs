@@ -10,11 +10,12 @@ use rustyboi_core::hardware::ppu::palette::RGB;
 use rustyboi_core::hardware::ppu::{FRAMEBUFFER_SIZE, RESOLUTION_WIDTH};
 
 use crate::rendering::immediate::ImmediateGui;
-use crate::sdl::{setup_sdl, transmute_framebuffer};
+use sdl::{setup_sdl, transmute_framebuffer};
 use rustyboi::storage::FileStorage;
 
 pub mod imgui;
 pub mod immediate;
+mod sdl;
 
 pub struct Renderer<T>
 where

@@ -41,7 +41,7 @@ impl ImguiBoi {
         let state: State = storage.get_value(STATE_FILE_NAME).unwrap_or_default();
         let mut imgui_context = imgui::Context::create();
         imgui_context.set_ini_filename(Some(storage.get_dirs().config_dir().join("imgui.ini")));
-
+        //TODO: Update DPI when window moves to different screen.
         let ddpi = video_subsystem.display_dpi(0).unwrap().0;
         let scale = ddpi / 72.0;
         Self::add_fonts(&mut imgui_context, scale);

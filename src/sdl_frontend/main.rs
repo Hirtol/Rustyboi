@@ -29,12 +29,16 @@ use rustyboi::storage::FileStorage;
 use std::sync::Arc;
 
 use crate::gameboy::GameboyRunner;
+use crate::benchmarking::Benchmarking;
+use crate::options::AppOptions;
+use gumdrop::Options;
 
 mod communication;
 mod gameboy;
 mod rendering;
-mod sdl;
 mod state;
+mod benchmarking;
+mod options;
 
 const KIRBY_DISPLAY_COLOURS: DisplayColour = DisplayColour {
     black: RGB(44, 44, 150),
@@ -66,8 +70,10 @@ fn main() {
     CombinedLogger::init(vec![
         TermLogger::new(LevelFilter::Trace, Config::default(), TerminalMode::Mixed),
         //WriteLogger::new(LevelFilter::Trace, ConfigBuilder::new().set_location_level(LevelFilter::Off).set_time_level(LevelFilter::Off).set_target_level(LevelFilter::Off).build(), std::io::BufWriter::new(File::create("rustyboi.log").unwrap())),
-    ])
-    .unwrap();
+    ]).unwrap();
+
+    let options: AppOptions = AppOptions::parse_args_default_or_exit();
+
     let file_storage = Arc::new(FileStorage::new().unwrap());
     let sdl_context = sdl2::init().expect("Failed to initialise SDL context!");
     let audio_subsystem = sdl_context.audio().expect("SDL context failed to initialise audio!");
@@ -84,6 +90,8 @@ fn main() {
         )
         .unwrap();
 
+    crate::benchmarking::run_benchmark(&options);
+
     let mut renderer: Renderer<ImguiBoi> = Renderer::new(video_subsystem, file_storage.clone()).unwrap();
     renderer.setup_immediate_gui("Rustyboi ImGui");
 
@@ -95,13 +103,7 @@ fn main() {
     let _cpu_test = "test roms/auto-run/window_y_trigger.gb";
     let _cpu_test2 = "test roms/auto-run/hdma_timing-C.gbc";
 
-    //let mut emulator = Emulator::new(Option::Some(vec_to_bootrom(&bootrom_file)), &cartridge);
 
-    // let (frame_sender, frame_receiver) = bounded(1);
-    // std::thread::spawn(move || test_fast( &read(cartridge).unwrap(), frame_sender));
-    // render_fast(&mut renderer, frame_receiver);
-    //
-    // return;
 
     //Things to do:
     // 1: APU improvements to use a proper sampler so that we can re-architect the way we do ticking
@@ -310,43 +312,5 @@ fn keycode_to_input(key: Keycode) -> Option<InputKey> {
         Keycode::S => Some(InputKey::SELECT),
         Keycode::T => Some(InputKey::START),
         _ => None,
-    }
-}
-
-fn render_fast(renderer: &mut Renderer<ImguiBoi>, receiver: Receiver<[RGB; FRAMEBUFFER_SIZE]>) {
-    loop {
-        let res = receiver.recv().unwrap();
-        renderer.render_main_window(&res);
-    }
-}
-
-fn test_fast(cpu_test: &Vec<u8>, sender: Sender<[RGB; FRAMEBUFFER_SIZE]>) {
-    let mut emulator = Emulator::new(
-        &cpu_test,
-        EmulatorOptionsBuilder::new()
-            .with_mode(CGB)
-            .with_display_colours(DEFAULT_DISPLAY_COLOURS)
-            .build(),
-    );
-
-    'mainloop: loop {
-        let mut frame_count = 0;
-        let start_time = Instant::now();
-        loop {
-            while frame_count <= 20_000 {
-                if emulator.emulate_cycle() {
-                    frame_count += 1;
-                    sender.send(*emulator.frame_buffer());
-                }
-            }
-
-            if frame_count > 20_000 {
-                println!(
-                    "Rendered: {} frames per second after 20_000 frames!",
-                    frame_count as f64 / start_time.elapsed().as_secs_f64()
-                );
-                return;
-            }
-        }
     }
 }
