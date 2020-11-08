@@ -300,7 +300,7 @@ impl PPU {
         self.cgb_sprite_palette_ind.set_value(value);
     }
 
-    pub fn set_bg_palette_data(&mut self, value: u8) {
+    pub fn set_colour_bg_palette_data(&mut self, value: u8) {
         let addr = self.cgb_bg_palette_ind.selected_address;
 
         if addr % 2 == 0 {
@@ -314,7 +314,7 @@ impl PPU {
         }
     }
 
-    pub fn set_obj_palette_data(&mut self, value: u8) {
+    pub fn set_colour_obj_palette_data(&mut self, value: u8) {
         let addr = self.cgb_sprite_palette_ind.selected_address;
 
         if addr % 2 == 0 {

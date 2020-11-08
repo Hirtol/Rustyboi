@@ -143,6 +143,7 @@ impl PPU {
     /// The PPU will output a framebuffer with RGB24 values based on the `DisplayColour`
     /// if in DMG mode.
     pub fn new(dmg_display_colour: DisplayColour) -> Self {
+        let dmg_d_colour = dmg_display_colour.clone();
         PPU {
             frame_buffer: [RGB(0, 255, 0); FRAMEBUFFER_SIZE],
             scanline_buffer: [RGB::default(); RESOLUTION_WIDTH],
@@ -157,9 +158,9 @@ impl PPU {
             lcd_control: LcdControl::from_bits_truncate(0b1001_0011),
             lcd_status: LcdStatus::from_bits_truncate(0b0000_0001),
             display_colours: dmg_display_colour,
-            bg_window_palette: Palette::default(),
-            oam_palette_0: Palette::default(),
-            oam_palette_1: Palette::default(),
+            bg_window_palette: Palette::new(0b1110_0100,dmg_d_colour),
+            oam_palette_0: Palette::new(0b1110_0100,dmg_d_colour),
+            oam_palette_1: Palette::new(0b1110_0100,dmg_d_colour),
             cgb_bg_palette_ind: CgbPaletteIndex::default(),
             cgb_sprite_palette_ind: CgbPaletteIndex::default(),
             cgb_bg_palette: [CgbPalette::default(); 8],

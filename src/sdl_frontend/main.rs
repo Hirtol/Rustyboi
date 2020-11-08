@@ -17,7 +17,7 @@ use sdl2::event::{Event, WindowEvent};
 use rustyboi_core::emulator::EmulatorMode::CGB;
 use rustyboi_core::hardware::ppu::palette::{DisplayColour, RGB};
 
-use crate::state::AppEmulatorState;
+use crate::state::{AppEmulatorState, AppState};
 use crossbeam::channel::*;
 use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
 
@@ -25,7 +25,7 @@ use crate::rendering::imgui::ImguiBoi;
 use crate::rendering::Renderer;
 
 use crate::communication::{EmulatorNotification, EmulatorResponse};
-use rustyboi::storage::FileStorage;
+use rustyboi::storage::{FileStorage, Storage};
 use std::sync::Arc;
 
 use crate::gameboy::GameboyRunner;
@@ -62,6 +62,7 @@ const DEFAULT_DISPLAY_COLOURS: DisplayColour = DisplayColour {
     black: RGB(8, 41, 85),
 };
 
+const CONFIG_FILENAME: &str = "config.json";
 const FPS: u64 = 60;
 const FRAME_DELAY: Duration = Duration::from_nanos(1_000_000_000u64 / FPS);
 const FAST_FORWARD_MULTIPLIER: u32 = 40;
@@ -76,6 +77,8 @@ fn main() {
     let options: AppOptions = AppOptions::parse_args_default_or_exit();
 
     let file_storage = Arc::new(FileStorage::new().unwrap());
+    let mut app_state: AppState = file_storage.get_value(CONFIG_FILENAME).unwrap_or_default();
+
     let sdl_context = sdl2::init().expect("Failed to initialise SDL context!");
     let audio_subsystem = sdl_context.audio().expect("SDL context failed to initialise audio!");
     let video_subsystem = sdl_context.video().expect("SDL context failed to initialise video!");
@@ -125,43 +128,43 @@ fn main() {
 
     let mut last_update_time: Instant = Instant::now();
 
-    let mut app_state = AppEmulatorState::default();
+    let mut emulation_state = AppEmulatorState::default();
     let mut audio_buffer = Vec::with_capacity(5000);
+    let mut most_recent_frame: [RGB; FRAMEBUFFER_SIZE] = [RGB::default(); FRAMEBUFFER_SIZE];
     audio_queue.resume();
 
     'mainloop: loop {
         let audio_queue_size = audio_queue.size();
-        if !app_state.awaiting_audio && audio_queue_size < MAX_AUDIO_SAMPLES {
+        if !emulation_state.awaiting_audio && audio_queue_size < MAX_AUDIO_SAMPLES {
             gameboy_runner
                 .request_sender
                 .send(EmulatorNotification::AudioRequest(audio_buffer));
             // Needed to satisfy the borrow checker
             audio_buffer = Vec::new();
-            app_state.awaiting_audio = true;
+            emulation_state.awaiting_audio = true;
         }
 
         let ticks = timer.ticks() as i32;
 
         for event in event_pump.poll_iter() {
-            if !handle_events(event, &mut gameboy_runner, &mut app_state, &mut renderer) {
+            if !handle_events(event, &mut gameboy_runner, &mut emulation_state, &mut renderer) {
                 break 'mainloop;
             }
         }
 
-        let frames_to_go = if app_state.fast_forward {
-            FAST_FORWARD_MULTIPLIER
+        let frames_to_go = if emulation_state.fast_forward {
+            app_state.fast_forward_rate
         } else {
             1
         };
 
-        // 50k seems to be a decent spot for audio syncing.
         // I should really figure out proper audio syncing ._.
-        if app_state.unbounded || audio_queue_size < MAX_AUDIO_SAMPLES {
+        if emulation_state.unbounded || audio_queue_size < MAX_AUDIO_SAMPLES {
             for _ in 0..frames_to_go {
-                if !app_state.emulator_paused {
-                    let framebuffer = gameboy_runner.frame_receiver.recv().unwrap();
-                    renderer.render_main_window(&framebuffer);
+                if !emulation_state.emulator_paused {
+                    most_recent_frame = gameboy_runner.frame_receiver.recv().unwrap();
                 }
+                renderer.render_main_window(&most_recent_frame);
             }
             loop_cycles += frames_to_go;
         }
@@ -174,13 +177,13 @@ fn main() {
                     audio_queue.queue(&buffer);
                     buffer.clear();
                     audio_buffer = buffer;
-                    app_state.awaiting_audio = false;
+                    emulation_state.awaiting_audio = false;
                 }
                 EmulatorResponse::DebugResponse(_) => {}
             }
         }
 
-        if last_update_time.elapsed() >= Duration::from_millis(1000) {
+        if last_update_time.elapsed().as_millis() >= 1000 {
             let average_delta = last_update_time.elapsed();
             renderer.main_window.window_mut().set_title(
                 format!(
@@ -196,11 +199,13 @@ fn main() {
         // we sleep more than we should, leaving us at ~58 fps which causes audio stutters.
         let frame_time = timer.ticks() as i32 - ticks;
 
-        if (!app_state.unbounded || app_state.emulator_paused) && FRAME_DELAY.as_millis() as i32 > frame_time {
+        if (!emulation_state.unbounded || emulation_state.emulator_paused) && FRAME_DELAY.as_millis() as i32 > frame_time {
             let sleep_time = (FRAME_DELAY.as_millis() as i32 - frame_time) as u64;
             std::thread::sleep(Duration::from_millis(sleep_time));
         }
     }
+
+    file_storage.save_value(CONFIG_FILENAME, &app_state);
 }
 
 fn handle_events(

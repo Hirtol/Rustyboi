@@ -58,3 +58,7 @@ impl PPU {
         result
     }
 }
+
+pub struct PaletteDebugInfo {
+
+}
