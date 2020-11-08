@@ -32,6 +32,7 @@ use crate::gameboy::GameboyRunner;
 use crate::benchmarking::Benchmarking;
 use crate::options::AppOptions;
 use gumdrop::Options;
+use crate::rendering::immediate::ImmediateGui;
 
 mod communication;
 mod gameboy;
@@ -93,7 +94,8 @@ fn main() {
     crate::benchmarking::run_benchmark(&options);
 
     let mut renderer: Renderer<ImguiBoi> = Renderer::new(video_subsystem, file_storage.clone()).unwrap();
-    renderer.setup_immediate_gui("Rustyboi ImGui");
+    renderer.setup_immediate_gui("Rustyboi Debug");
+    renderer.main_window.window_mut().raise();
 
     let _bootrom_file_dmg = read("roms/DMG_ROM.bin").unwrap();
     let bootrom_file_cgb = read("roms\\cgb_bios.bin").unwrap();
@@ -141,19 +143,6 @@ fn main() {
         let ticks = timer.ticks() as i32;
 
         for event in event_pump.poll_iter() {
-            if let Some(gui) = &mut renderer.immediate_gui {
-                let second_window_id = renderer.debug_window.as_ref().unwrap().id();
-
-                if !event.get_window_id().is_some() || (event.get_window_id().unwrap() == second_window_id) {
-                    gui.input_handler.handle_event(&mut gui.imgui_context, &event);
-                    // Since the event was meant for the second window we'll always ignore it.
-                    // If the GUI was on the main window we should use input_handler.ignore_event().
-                    if !event.is_window() {
-                        continue;
-                    }
-                }
-            }
-
             if !handle_events(event, &mut gameboy_runner, &mut app_state, &mut renderer) {
                 break 'mainloop;
             }
@@ -219,10 +208,14 @@ fn handle_events(
     app_state: &mut AppEmulatorState,
     renderer: &mut Renderer<ImguiBoi>,
 ) -> bool {
+    if handle_debug_window_events(&event, renderer) {
+        return true;
+    }
     match event {
         Event::Quit { .. }
         | Event::KeyDown {
             keycode: Some(Keycode::Escape),
+            window_id: 1,
             ..
         }
         | Event::Window {
@@ -238,8 +231,10 @@ fn handle_events(
             window_id: _,
             win_event: WindowEvent::Close,
             ..
-        } => {
+        }
+        | Event::KeyDown {keycode: Some(Keycode::Escape), ..} => {
             renderer.close_immediate_gui();
+            renderer.main_window.window_mut().raise();
         }
         Event::DropFile { filename, .. } => {
             if filename.ends_with(".gb") || filename.ends_with(".gbc") {
@@ -255,7 +250,7 @@ fn handle_events(
                 warn!("Attempted opening of file: {} which is not a GameBoy rom!", filename);
             }
         }
-        Event::KeyDown { keycode: Some(key), .. } => {
+        Event::KeyDown { keycode: Some(key), window_id: 1, .. } => {
             if let Some(input_key) = keycode_to_input(key) {
                 gameboy_runner.handle_input(input_key, true);
             } else {
@@ -285,7 +280,7 @@ fn handle_events(
                 }
             }
         }
-        Event::KeyUp { keycode: Some(key), .. } => {
+        Event::KeyUp { keycode: Some(key), window_id: 1, .. } => {
             if let Some(input_key) = keycode_to_input(key) {
                 gameboy_runner.handle_input(input_key, false);
             } else {
@@ -299,6 +294,22 @@ fn handle_events(
     }
 
     true
+}
+
+fn handle_debug_window_events(event: &Event, renderer: &mut Renderer<ImguiBoi>) -> bool {
+    if let Some(gui) = &mut renderer.immediate_gui {
+        let second_window_id = renderer.debug_window.as_ref().unwrap().id();
+
+        if !event.get_window_id().is_some() || (event.get_window_id().unwrap() == second_window_id) {
+            gui.handle_event(event);
+            // Since the event was meant for the second window we'll always ignore it.
+            // If the GUI was on the main window we should use input_handler.ignore_event().
+            if gui.input_handler.ignore_event(event) {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 fn keycode_to_input(key: Keycode) -> Option<InputKey> {

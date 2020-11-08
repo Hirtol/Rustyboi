@@ -14,6 +14,7 @@ use rustyboi::storage::{FileStorage, Storage};
 use std::sync::Arc;
 
 use crate::rendering::imgui::interface::*;
+use sdl2::event::Event;
 
 mod font;
 mod interface;
@@ -102,6 +103,10 @@ impl ImmediateGui for ImguiBoi {
 
         self.input_handler.prepare_render(&ui, host_window);
         self.opengl_renderer.render(ui);
+    }
+
+    fn handle_event(&mut self, event: &Event) {
+        self.input_handler.handle_event(&mut self.imgui_context, event);
     }
 }
 
