@@ -4,6 +4,7 @@ use crate::hardware::cpu::tests::{initial_cpu, read_short, set_short};
 
 use crate::hardware::cpu::registers::{Flags, Reg16::*, Reg8::*};
 use crate::hardware::mmu::MemoryMapper;
+use pretty_assertions::{assert_eq, assert_ne};
 
 #[test]
 fn test_load_16bit() {

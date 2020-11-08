@@ -17,6 +17,7 @@ binary-heap-plus = "0.4.0"
 
 [dev-dependencies]
 criterion = "0.3.3"
+pretty_assertions = "0.6.1"
 
 #[profile.release]
 #debug = true
