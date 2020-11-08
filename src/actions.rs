@@ -2,10 +2,10 @@ use directories::ProjectDirs;
 use rustyboi_core::emulator::Emulator;
 use rustyboi_core::hardware::cartridge::header::CartridgeHeader;
 
+use rustyboi_core::{EmulatorOptions, EmulatorOptionsBuilder};
 use std::fs::{create_dir_all, read, File};
 use std::io::Write;
-use std::path::{Path, PathBuf};
-use rustyboi_core::{EmulatorOptions, EmulatorOptionsBuilder};
+use std::path::Path;
 
 /// Function to call in order to save external ram (in case it's present)
 /// as well as any additional cleanup as required.

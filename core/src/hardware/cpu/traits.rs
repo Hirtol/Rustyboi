@@ -1,6 +1,6 @@
-use crate::hardware::cpu::CPU;
 use crate::hardware::cpu::execute::InstructionAddress;
 use crate::hardware::cpu::registers::{Reg16, Reg8};
+use crate::hardware::cpu::CPU;
 use crate::hardware::mmu::MemoryMapper;
 
 /// This trait should be used where we might pass either a direct

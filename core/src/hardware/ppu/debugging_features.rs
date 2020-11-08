@@ -1,9 +1,8 @@
-use crate::hardware::ppu::PPU;
+use crate::hardware::ppu::palette::{DisplayColour, RGB};
 use crate::hardware::ppu::tiledata::Tile;
-use crate::hardware::ppu::palette::{RGB, DisplayColour};
+use crate::hardware::ppu::PPU;
 
 impl PPU {
-
     /// Returns an array of the full 768 tiles rendered next to each other in a
     /// 128 * 384 RGB pixel array. (16 tiles per line)
     pub fn tiles_cgb(&self) -> [RGB; 49152] {
@@ -19,7 +18,7 @@ impl PPU {
                 for (index, j) in rendered_tile.iter().enumerate() {
                     let selected_line = (current_tile_line * 8) + (index / 8);
                     let tile_index_in_row = tile_in_row * 8;
-                    res[(selected_line*128) + tile_index_in_row + (index % 8)] = *j;
+                    res[(selected_line * 128) + tile_index_in_row + (index % 8)] = *j;
                 }
             }
         }
@@ -36,7 +35,7 @@ impl PPU {
             let top_pixel_data = top as usize;
             let bottom_pixel_data = bottom as usize;
 
-            let colour0 = top_pixel_data & 0x1 | ((bottom_pixel_data & 0x1) << 1) ;
+            let colour0 = top_pixel_data & 0x1 | ((bottom_pixel_data & 0x1) << 1);
             let colour1 = (top_pixel_data & 0x2) >> 1 | (bottom_pixel_data & 0x2);
             let colour2 = (top_pixel_data & 4) >> 2 | ((bottom_pixel_data & 4) >> 1);
             let colour3 = (top_pixel_data & 8) >> 3 | ((bottom_pixel_data & 8) >> 2);

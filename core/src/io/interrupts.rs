@@ -7,7 +7,6 @@ pub struct Interrupts {
 }
 
 impl Interrupts {
-
     #[inline(always)]
     pub fn insert_interrupt(&mut self, interrupt: InterruptFlags) {
         self.interrupt_flag.insert(interrupt);

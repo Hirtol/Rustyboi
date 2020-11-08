@@ -2,8 +2,8 @@ use crate::hardware::cpu::execute::InstructionAddress::HLI;
 use crate::hardware::cpu::execute::{InstructionAddress, JumpModifier};
 use crate::hardware::cpu::tests::{initial_cpu, read_short, set_short};
 
-use crate::hardware::mmu::MemoryMapper;
 use crate::hardware::cpu::registers::{Flags, Reg16::*, Reg8::*};
+use crate::hardware::mmu::MemoryMapper;
 
 #[test]
 fn test_load_16bit() {

@@ -1,12 +1,12 @@
 use itertools::Itertools;
 use num_integer::Integer;
 
-use crate::emulator::{CYCLES_PER_FRAME, EmulatorMode};
+use crate::emulator::{EmulatorMode, CYCLES_PER_FRAME};
 use crate::hardware::ppu::cgb_vram::{CgbPalette, CgbPaletteIndex, CgbTileMap};
-use crate::hardware::ppu::Mode::{HBlank, LcdTransfer, OamSearch, VBlank};
 use crate::hardware::ppu::palette::{DisplayColour, Palette, RGB};
 use crate::hardware::ppu::register_flags::*;
 use crate::hardware::ppu::tiledata::*;
+use crate::hardware::ppu::Mode::{HBlank, LcdTransfer, OamSearch, VBlank};
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::scheduler::{Event, EventType, Scheduler};
 
@@ -79,14 +79,14 @@ pub const CGB_BACKGROUND_PALETTE_DATA: u16 = 0xFF69;
 pub const CGB_SPRITE_COLOR_INDEX: u16 = 0xFF6A;
 pub const CGB_OBJECT_PALETTE_DATA: u16 = 0xFF6B;
 
+pub mod cgb_ppu;
+pub mod cgb_vram;
+pub mod debugging_features;
+pub mod dma;
 pub mod memory_binds;
 pub mod palette;
 pub mod register_flags;
 pub mod tiledata;
-pub mod dma;
-pub mod cgb_vram;
-pub mod cgb_ppu;
-pub mod debugging_features;
 
 #[derive(Debug, PartialOrd, PartialEq, Copy, Clone)]
 pub enum Mode {
@@ -318,7 +318,12 @@ impl PPU {
 
             let (top_pixel_data, bottom_pixel_data) = self.tiles[tile_address].get_pixel_line(tile_line_y);
 
-            self.draw_background_window_line(&mut pixel_counter, &mut pixels_to_skip, top_pixel_data, bottom_pixel_data)
+            self.draw_background_window_line(
+                &mut pixel_counter,
+                &mut pixels_to_skip,
+                top_pixel_data,
+                bottom_pixel_data,
+            )
         }
     }
 
@@ -362,7 +367,12 @@ impl PPU {
 
             let (top_pixel_data, bottom_pixel_data) = self.tiles[tile_address].get_pixel_line(tile_pixel_y);
 
-            self.draw_background_window_line(&mut pixel_counter, &mut pixels_to_skip, top_pixel_data, bottom_pixel_data);
+            self.draw_background_window_line(
+                &mut pixel_counter,
+                &mut pixels_to_skip,
+                top_pixel_data,
+                bottom_pixel_data,
+            );
         }
     }
 
@@ -430,8 +440,7 @@ impl PPU {
                 // is color_0, otherwise the background takes precedence.
                 if (pixel < 0)
                     || (pixel > 159)
-                    || (is_background_sprite
-                    && self.scanline_buffer_unpalette[pixel as usize].0 != 0)
+                    || (is_background_sprite && self.scanline_buffer_unpalette[pixel as usize].0 != 0)
                 {
                     continue;
                 }
@@ -449,7 +458,13 @@ impl PPU {
 
     /// Draw a tile in a way appropriate for both the window, as well as the background.
     /// `pixels_to_skip` will skip pixels so long as it's greater than 0
-    fn draw_background_window_line(&mut self, pixel_counter: &mut i16, pixels_to_skip: &mut u8, top_pixel_data: u8, bottom_pixel_data: u8) {
+    fn draw_background_window_line(
+        &mut self,
+        pixel_counter: &mut i16,
+        pixels_to_skip: &mut u8,
+        top_pixel_data: u8,
+        bottom_pixel_data: u8,
+    ) {
         // If we can draw 8 pixels in one go, we should.
         // pixel_counter Should be less than 152 otherwise we'd go over the 160 allowed pixels.
         if *pixels_to_skip == 0 && *pixel_counter < 152 {

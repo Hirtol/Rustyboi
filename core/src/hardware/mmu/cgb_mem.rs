@@ -7,7 +7,7 @@
 ///! ```
 use crate::hardware::mmu::cgb_mem::HdmaMode::{GDMA, HDMA};
 use crate::hardware::mmu::INVALID_READ;
-use crate::scheduler::{Scheduler, EventType};
+use crate::scheduler::{EventType, Scheduler};
 
 #[derive(Default, Debug, Copy, Clone)]
 pub struct CgbSpeedData {
@@ -19,18 +19,17 @@ pub struct CgbSpeedData {
 
 impl CgbSpeedData {
     pub fn new() -> Self {
-        CgbSpeedData { double_speed: false, prepare_speed_switch: 0x7E }
+        CgbSpeedData {
+            double_speed: false,
+            prepare_speed_switch: 0x7E,
+        }
     }
 
     /// Set the speed and update the `prepare_speed_switch` register.
     /// Will always turn off bit 0 which will make `should_prepare()` return `false`
     pub fn toggle_speed(&mut self) {
         self.double_speed = !self.double_speed;
-        self.prepare_speed_switch = if self.double_speed {
-            0xFE
-        } else {
-            0x7E
-        }
+        self.prepare_speed_switch = if self.double_speed { 0xFE } else { 0x7E }
     }
 
     pub fn should_prepare(&self) -> bool {
@@ -71,7 +70,7 @@ impl HdmaRegister {
             source_address: 0,
             destination_address: 0,
             hdma_length: INVALID_READ,
-            transfer_ongoing: false
+            transfer_ongoing: false,
         }
     }
 
@@ -120,8 +119,8 @@ impl HdmaRegister {
                 self.transfer_ongoing = false;
                 return;
             }
-            // Else we restart the current transfer with a new size.
-            // TODO: What happens to src/dest address? Do we need to reload them?
+        // Else we restart the current transfer with a new size.
+        // TODO: What happens to src/dest address? Do we need to reload them?
         } else {
             // Only if we don't restart the current transfer do we want to set a new mode.
             self.current_mode = if value & 0x80 == 0 { GDMA } else { HDMA };
@@ -129,9 +128,13 @@ impl HdmaRegister {
 
         match self.current_mode {
             GDMA => {
-                log::info!("Sending request for GDMA transfer at time: {} for blocks: {}", scheduler.current_time, self.transfer_size / 16);
+                log::info!(
+                    "Sending request for GDMA transfer at time: {} for blocks: {}",
+                    scheduler.current_time,
+                    self.transfer_size / 16
+                );
                 scheduler.push_relative(EventType::GDMARequested, 4)
-            },
+            }
             HDMA => {
                 //After writing a value to HDMA5 that starts the HDMA copy, the upper bit
                 // (that indicates HDMA mode when set to '1') will be cleared

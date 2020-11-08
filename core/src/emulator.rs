@@ -5,13 +5,13 @@ use bitflags::_core::cell::RefCell;
 use crate::hardware::cpu::CPU;
 
 use crate::hardware::mmu::{Memory, MemoryMapper};
-use crate::hardware::ppu::palette::{RGB, DisplayColour};
+use crate::hardware::ppu::palette::{DisplayColour, RGB};
 use crate::hardware::ppu::{FRAMEBUFFER_SIZE, PPU};
 
+use crate::hardware::ppu::tiledata::SpriteAttribute;
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::io::joypad::*;
 use crate::EmulatorOptions;
-use crate::hardware::ppu::tiledata::SpriteAttribute;
 
 /// A DMG runs at `4.194304 MHz` with a Vsync of `59.7275 Hz`, so that would be
 /// `4194304 / 59.7275 = 70224 cycles/frame`
@@ -62,11 +62,11 @@ impl Emulator {
         self.cpu.mmu.ppu.frame_buffer()
     }
 
-    pub fn vram_tiles(&self) -> [RGB; 8*8*768] {
+    pub fn vram_tiles(&self) -> [RGB; 8 * 8 * 768] {
         self.cpu.mmu.ppu.tiles_cgb()
     }
 
-    pub fn oam(&self) -> &[SpriteAttribute; 40]{
+    pub fn oam(&self) -> &[SpriteAttribute; 40] {
         &self.cpu.mmu.ppu.oam
     }
 

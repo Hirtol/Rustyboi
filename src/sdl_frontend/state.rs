@@ -1,4 +1,4 @@
-use nanoserde::{SerJson, DeJson};
+use nanoserde::{DeJson, SerJson};
 
 #[derive(Default, Debug, Copy, Clone)]
 pub struct AppEmulatorState {

@@ -1,8 +1,8 @@
-use crate::hardware::ppu::PPU;
-use crate::scheduler::Scheduler;
-use crate::hardware::ppu::tiledata::SpriteAttribute;
-use crate::scheduler::EventType::DMATransferComplete;
 use crate::hardware::ppu::register_flags::AttributeFlags;
+use crate::hardware::ppu::tiledata::SpriteAttribute;
+use crate::hardware::ppu::PPU;
+use crate::scheduler::EventType::DMATransferComplete;
+use crate::scheduler::Scheduler;
 
 impl PPU {
     /// Called 644 cycles after the start of an OAM DMA transfer.

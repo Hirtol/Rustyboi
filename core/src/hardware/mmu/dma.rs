@@ -1,7 +1,7 @@
+use crate::hardware::mmu::cgb_mem::HdmaMode::HDMA;
 use crate::hardware::mmu::{Memory, MemoryMapper};
 use crate::hardware::ppu::DMA_TRANSFER;
 use crate::scheduler::EventType::{DMARequested, DMATransferComplete};
-use crate::hardware::mmu::cgb_mem::HdmaMode::HDMA;
 
 impl Memory {
     /// Starts the sequence of events for an OAM DMA transfer.
@@ -19,7 +19,12 @@ impl Memory {
 
     /// Required here since the GDMA can write to arbitrary PPU addresses.
     pub fn gdma_transfer(&mut self) {
-        log::info!("Performing GDMA from source: [{:#4X}, {:#4X}] to destination: {:#4X}", self.hdma.source_address, self.hdma.source_address+self.hdma.transfer_size, self.hdma.destination_address);
+        log::info!(
+            "Performing GDMA from source: [{:#4X}, {:#4X}] to destination: {:#4X}",
+            self.hdma.source_address,
+            self.hdma.source_address + self.hdma.transfer_size,
+            self.hdma.destination_address
+        );
         let values_iter = self.gather_gdma_data();
 
         for (i, value) in values_iter.into_iter().enumerate() {
@@ -28,7 +33,9 @@ impl Memory {
     }
 
     fn gather_gdma_data(&self) -> Vec<u8> {
-        (self.hdma.source_address..(self.hdma.source_address + self.hdma.transfer_size)).map(|i| self.read_byte(i)).collect()
+        (self.hdma.source_address..(self.hdma.source_address + self.hdma.transfer_size))
+            .map(|i| self.read_byte(i))
+            .collect()
     }
 
     /// Checks, assuming the current PPU mode is `HBLANK`, whether an `HDMA` transfer should
@@ -52,7 +59,8 @@ impl Memory {
     fn hdma_transfer(&mut self) {
         // We transfer 16 bytes every H-Blank
         let values_iter: Vec<u8> = (self.hdma.source_address..(self.hdma.source_address + 16))
-            .map(|i| self.read_byte(i)).collect();
+            .map(|i| self.read_byte(i))
+            .collect();
 
         for (i, value) in values_iter.into_iter().enumerate() {
             self.write_byte(self.hdma.destination_address + i as u16, value);

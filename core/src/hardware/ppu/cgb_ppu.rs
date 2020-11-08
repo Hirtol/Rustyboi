@@ -1,11 +1,11 @@
-///! This module is purely for CGB specific rendering, look in ppu/mod.rs for DMG mode rendering.
-use crate::hardware::ppu::{PPU, RESOLUTION_WIDTH, is_sprite_on_scanline, RGB_CHANNELS};
-use crate::hardware::ppu::register_flags::{LcdControl, AttributeFlags};
-use crate::hardware::ppu::tiledata::{BACKGROUND_TILE_SIZE, Tile};
-use num_integer::Integer;
-use itertools::Itertools;
 use crate::hardware::ppu::cgb_vram::CgbTileAttribute;
-use crate::hardware::ppu::palette::{RGB, DisplayColour};
+use crate::hardware::ppu::palette::{DisplayColour, RGB};
+use crate::hardware::ppu::register_flags::{AttributeFlags, LcdControl};
+use crate::hardware::ppu::tiledata::{Tile, BACKGROUND_TILE_SIZE};
+///! This module is purely for CGB specific rendering, look in ppu/mod.rs for DMG mode rendering.
+use crate::hardware::ppu::{is_sprite_on_scanline, PPU, RESOLUTION_WIDTH, RGB_CHANNELS};
+use itertools::Itertools;
+use num_integer::Integer;
 
 impl PPU {
     pub fn draw_cgb_scanline(&mut self) {
@@ -71,12 +71,14 @@ impl PPU {
             let mut tile_relative_address = self.get_tile_address_bg(i % BACKGROUND_TILE_SIZE as u16) as usize;
             let tile_attributes = self.get_tile_attributes_cgb_bg(i % BACKGROUND_TILE_SIZE as u16);
             // We always add an offset in case we're supposed to look in VRAM bank 1.
-            let mut tile_address = tile_relative_address + (384 * tile_attributes.contains(CgbTileAttribute::TILE_VRAM_BANK_NUMBER) as usize);
+            let mut tile_address = tile_relative_address
+                + (384 * tile_attributes.contains(CgbTileAttribute::TILE_VRAM_BANK_NUMBER) as usize);
 
             // If we've selected the 8800-97FF mode we need to add a 256 offset, and then
             // add/subtract the relative address. (since we can then reach tiles 128-384)
             if !self.lcd_control.contains(LcdControl::BG_WINDOW_TILE_SELECT) {
-                tile_address = (256_usize).wrapping_add((tile_relative_address as i8) as usize) + (384 * tile_attributes.contains(CgbTileAttribute::TILE_VRAM_BANK_NUMBER) as usize);
+                tile_address = (256_usize).wrapping_add((tile_relative_address as i8) as usize)
+                    + (384 * tile_attributes.contains(CgbTileAttribute::TILE_VRAM_BANK_NUMBER) as usize);
             }
 
             let tile_line = if tile_attributes.contains(CgbTileAttribute::Y_FLIP) {
@@ -85,10 +87,15 @@ impl PPU {
                 tile_line_y
             };
 
-
             let (top_pixel_data, bottom_pixel_data) = self.tiles[tile_address].get_pixel_line(tile_line);
 
-            self.draw_cgb_background_window_line(&mut pixel_counter, &mut pixels_to_skip, top_pixel_data, bottom_pixel_data, tile_attributes)
+            self.draw_cgb_background_window_line(
+                &mut pixel_counter,
+                &mut pixels_to_skip,
+                top_pixel_data,
+                bottom_pixel_data,
+                tile_attributes,
+            )
         }
     }
 
@@ -123,12 +130,14 @@ impl PPU {
         for i in tile_lower_bound..tile_higher_bound {
             let mut tile_relative_address = self.get_tile_address_window(i) as usize;
             let tile_attributes = self.get_tile_attributes_cgb_window(i);
-            let mut tile_address = tile_relative_address + (384 * tile_attributes.contains(CgbTileAttribute::TILE_VRAM_BANK_NUMBER) as usize);
+            let mut tile_address = tile_relative_address
+                + (384 * tile_attributes.contains(CgbTileAttribute::TILE_VRAM_BANK_NUMBER) as usize);
 
             // If we've selected the 8800-97FF mode we need to add a 256 offset, and then
             // add/subtract the relative address.
             if !self.lcd_control.contains(LcdControl::BG_WINDOW_TILE_SELECT) {
-                tile_address = (256_usize).wrapping_add((tile_relative_address as i8) as usize) + (384 * tile_attributes.contains(CgbTileAttribute::TILE_VRAM_BANK_NUMBER) as usize);
+                tile_address = (256_usize).wrapping_add((tile_relative_address as i8) as usize)
+                    + (384 * tile_attributes.contains(CgbTileAttribute::TILE_VRAM_BANK_NUMBER) as usize);
             }
 
             let tile_line = if tile_attributes.contains(CgbTileAttribute::Y_FLIP) {
@@ -139,7 +148,13 @@ impl PPU {
 
             let (top_pixel_data, bottom_pixel_data) = self.tiles[tile_address].get_pixel_line(tile_line);
 
-            self.draw_cgb_background_window_line(&mut pixel_counter, &mut pixels_to_skip, top_pixel_data, bottom_pixel_data, tile_attributes);
+            self.draw_cgb_background_window_line(
+                &mut pixel_counter,
+                &mut pixels_to_skip,
+                top_pixel_data,
+                bottom_pixel_data,
+                tile_attributes,
+            );
         }
     }
 
@@ -174,7 +189,8 @@ impl PPU {
                 line = y_size - (line + 1);
             }
 
-            let tile_index = sprite.tile_number as usize + (384 * sprite.attribute_flags.contains(AttributeFlags::TILE_VRAM_BANK) as usize);
+            let tile_index = sprite.tile_number as usize
+                + (384 * sprite.attribute_flags.contains(AttributeFlags::TILE_VRAM_BANK) as usize);
             let tile = if !tall_sprites {
                 self.tiles[tile_index]
             } else {
@@ -209,7 +225,7 @@ impl PPU {
                     if (pixel < 0)
                         || (pixel > 159)
                         || ((is_background_sprite || self.scanline_buffer_unpalette[pixel as usize].1)
-                        && self.scanline_buffer_unpalette[pixel as usize].0 != 0)
+                            && self.scanline_buffer_unpalette[pixel as usize].0 != 0)
                     {
                         continue;
                     }
@@ -219,7 +235,10 @@ impl PPU {
 
                 // The colour 0 should be transparent for sprites, therefore we don't draw it.
                 if colour != 0x0 {
-                    self.scanline_buffer[pixel as usize] = self.cgb_sprite_palette[sprite.attribute_flags.get_cgb_palette_number()].colours[colour as usize].rgb;
+                    self.scanline_buffer[pixel as usize] = self.cgb_sprite_palette
+                        [sprite.attribute_flags.get_cgb_palette_number()]
+                    .colours[colour as usize]
+                        .rgb;
                     self.scanline_buffer_unpalette[pixel as usize] = (colour, false);
                 }
             }
@@ -228,18 +247,30 @@ impl PPU {
 
     /// Draw a tile in a way appropriate for both the window, as well as the background.
     /// `pixels_to_skip` will skip pixels so long as it's greater than 0
-    fn draw_cgb_background_window_line(&mut self, pixel_counter: &mut i16, pixels_to_skip: &mut u8, top_pixel_data: u8, bottom_pixel_data: u8, tile_attributes: CgbTileAttribute) {
+    fn draw_cgb_background_window_line(
+        &mut self,
+        pixel_counter: &mut i16,
+        pixels_to_skip: &mut u8,
+        top_pixel_data: u8,
+        bottom_pixel_data: u8,
+        tile_attributes: CgbTileAttribute,
+    ) {
         // If we can draw 8 pixels in one go, we should.
         // pixel_counter Should be less than 152 otherwise we'd go over the 160 allowed pixels.
         if *pixels_to_skip == 0 && *pixel_counter < 152 {
-            self.draw_cgb_contiguous_bg_window_block(*pixel_counter as usize, top_pixel_data, bottom_pixel_data, tile_attributes);
+            self.draw_cgb_contiguous_bg_window_block(
+                *pixel_counter as usize,
+                top_pixel_data,
+                bottom_pixel_data,
+                tile_attributes,
+            );
             *pixel_counter += 8;
         } else {
             let x_flip = tile_attributes.contains(CgbTileAttribute::X_FLIP);
             let bg_priority = tile_attributes.contains(CgbTileAttribute::BG_TO_OAM_PRIORITY);
             // Yes this is ugly, yes this means a vtable call, yes I'd like to do it differently.
             // Only other way is to duplicate the for loop since the .rev() is a different iterator.
-            let iterator: Box<dyn Iterator<Item=u8>> = if x_flip {
+            let iterator: Box<dyn Iterator<Item = u8>> = if x_flip {
                 Box::new((0..=7))
             } else {
                 Box::new((0..=7).rev())
@@ -257,7 +288,8 @@ impl PPU {
                 }
 
                 let colour = self.get_pixel_colour(j as u8, top_pixel_data, bottom_pixel_data);
-                self.scanline_buffer[*pixel_counter as usize] = self.cgb_bg_palette[tile_attributes.bg_palette_numb()].colours[colour as usize].rgb;
+                self.scanline_buffer[*pixel_counter as usize] =
+                    self.cgb_bg_palette[tile_attributes.bg_palette_numb()].colours[colour as usize].rgb;
                 self.scanline_buffer_unpalette[*pixel_counter as usize] = (colour, bg_priority);
                 *pixel_counter += 1;
             }
@@ -267,14 +299,20 @@ impl PPU {
     /// This function will immediately draw 8 pixels, skipping several checks and manual
     /// get_pixel_calls().
     #[inline(always)]
-    fn draw_cgb_contiguous_bg_window_block(&mut self, pixel_counter: usize, top_pixel_data: u8, bottom_pixel_data: u8, tile_attributes: CgbTileAttribute) {
+    fn draw_cgb_contiguous_bg_window_block(
+        &mut self,
+        pixel_counter: usize,
+        top_pixel_data: u8,
+        bottom_pixel_data: u8,
+        tile_attributes: CgbTileAttribute,
+    ) {
         let palette = self.cgb_bg_palette[tile_attributes.bg_palette_numb()];
         let bg_priority = tile_attributes.contains(CgbTileAttribute::BG_TO_OAM_PRIORITY);
-        
+
         let top_pixel_data = top_pixel_data as usize;
         let bottom_pixel_data = bottom_pixel_data as usize;
 
-        let colour0 = top_pixel_data & 0x1 | ((bottom_pixel_data & 0x1) << 1) ;
+        let colour0 = top_pixel_data & 0x1 | ((bottom_pixel_data & 0x1) << 1);
         let colour1 = (top_pixel_data & 0x2) >> 1 | (bottom_pixel_data & 0x2);
         let colour2 = (top_pixel_data & 4) >> 2 | ((bottom_pixel_data & 4) >> 1);
         let colour3 = (top_pixel_data & 8) >> 3 | ((bottom_pixel_data & 8) >> 2);
@@ -293,7 +331,7 @@ impl PPU {
             self.scanline_buffer[pixel_counter + 6] = palette.colours[colour6].rgb;
             self.scanline_buffer[pixel_counter + 7] = palette.colours[colour7].rgb;
             // We know the colourX will be a u8, we just preemptively made it a usize for index convenience.
-            self.scanline_buffer_unpalette[pixel_counter] =  (colour0 as u8, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter] = (colour0 as u8, bg_priority);
             self.scanline_buffer_unpalette[pixel_counter + 1] = (colour1 as u8, bg_priority);
             self.scanline_buffer_unpalette[pixel_counter + 2] = (colour2 as u8, bg_priority);
             self.scanline_buffer_unpalette[pixel_counter + 3] = (colour3 as u8, bg_priority);
@@ -318,7 +356,7 @@ impl PPU {
             self.scanline_buffer_unpalette[pixel_counter + 3] = (colour4 as u8, bg_priority);
             self.scanline_buffer_unpalette[pixel_counter + 2] = (colour5 as u8, bg_priority);
             self.scanline_buffer_unpalette[pixel_counter + 1] = (colour6 as u8, bg_priority);
-            self.scanline_buffer_unpalette[pixel_counter]     = (colour7 as u8, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter] = (colour7 as u8, bg_priority);
         }
     }
 

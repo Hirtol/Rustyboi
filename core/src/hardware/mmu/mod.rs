@@ -9,28 +9,28 @@ use hram::Hram;
 
 use crate::emulator::EmulatorMode;
 use crate::emulator::EmulatorMode::DMG;
-use crate::EmulatorOptions;
 use crate::hardware::apu::{
     APU, APU_MEM_END, APU_MEM_START, FRAME_SEQUENCE_CYCLES, SAMPLE_CYCLES, WAVE_SAMPLE_END, WAVE_SAMPLE_START,
 };
 use crate::hardware::cartridge::Cartridge;
-use crate::hardware::mmu::cgb_mem::{CgbSpeedData, HdmaRegister};
 use crate::hardware::mmu::cgb_mem::HdmaMode::HDMA;
+use crate::hardware::mmu::cgb_mem::{CgbSpeedData, HdmaRegister};
 use crate::hardware::mmu::wram::Wram;
-use crate::hardware::ppu::{DMA_TRANSFER, PPU};
 use crate::hardware::ppu::tiledata::*;
+use crate::hardware::ppu::{DMA_TRANSFER, PPU};
 use crate::io::bootrom::BootRom;
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::io::io_registers::*;
 use crate::io::joypad::*;
 use crate::io::timer::*;
-use crate::scheduler::{Event, EventType, Scheduler};
 use crate::scheduler::EventType::{DMARequested, DMATransferComplete};
+use crate::scheduler::{Event, EventType, Scheduler};
+use crate::EmulatorOptions;
 
 pub mod cgb_mem;
+mod dma;
 mod hram;
 mod wram;
-mod dma;
 
 pub const MEMORY_SIZE: usize = 0x10000;
 /// 16 KB ROM bank, usually 00. From Cartridge, read-only
@@ -176,7 +176,9 @@ impl Memory {
     pub fn read_byte(&self, address: u16) -> u8 {
         match address {
             0x0000..=0x00FF if !self.boot_rom.is_finished => self.boot_rom.read_byte(address),
-            0x0200..=0x08FF if !self.boot_rom.is_finished && self.emulation_mode.is_cgb() => self.boot_rom.read_byte(address),
+            0x0200..=0x08FF if !self.boot_rom.is_finished && self.emulation_mode.is_cgb() => {
+                self.boot_rom.read_byte(address)
+            }
             ROM_BANK_00_START..=ROM_BANK_00_END => self.cartridge.read_0000_3fff(address),
             ROM_BANK_NN_START..=ROM_BANK_NN_END => self.cartridge.read_4000_7fff(address),
             TILE_BLOCK_0_START..=TILE_BLOCK_2_END => self.ppu.get_tile_byte(address),
@@ -255,14 +257,22 @@ impl Memory {
             OB_PALETTE_1 => self.ppu.get_oam_palette_1(),
             WY_REGISTER => self.ppu.get_window_y(),
             WX_REGISTER => self.ppu.get_window_x(),
-            CGB_PREPARE_SWITCH => if self.emulation_mode.is_cgb() {
-                self.cgb_data.read_prepare_switch()
-            } else {
-                0xFF
-            },
+            CGB_PREPARE_SWITCH => {
+                if self.emulation_mode.is_cgb() {
+                    self.cgb_data.read_prepare_switch()
+                } else {
+                    0xFF
+                }
+            }
             CGB_VRAM_BANK_REGISTER => self.ppu.get_vram_bank(),
             CGB_HDMA_1 | CGB_HDMA_2 | CGB_HDMA_3 | CGB_HDMA_4 => INVALID_READ,
-            CGB_HDMA_5 => if self.emulation_mode.is_dmg() { INVALID_READ } else { self.hdma.hdma5() }
+            CGB_HDMA_5 => {
+                if self.emulation_mode.is_dmg() {
+                    INVALID_READ
+                } else {
+                    self.hdma.hdma5()
+                }
+            }
             CGB_RP => self.io_registers.read_byte(address),
             CGB_BACKGROUND_COLOR_INDEX => self.ppu.get_bg_color_palette_index(),
             CGB_BACKGROUND_PALETTE_DATA => self.ppu.get_bg_palette_data(),
@@ -289,7 +299,10 @@ impl Memory {
             TIMER_MODULO => self.timers.set_tma(value),
             TIMER_CONTROL => self.timers.set_timer_control(value, &mut self.scheduler),
             INTERRUPTS_FLAG => self.interrupts.overwrite_if(value),
-            APU_MEM_START..=APU_MEM_END => self.apu.write_register(address, value, &mut self.scheduler, self.emulation_mode),
+            APU_MEM_START..=APU_MEM_END => {
+                self.apu
+                    .write_register(address, value, &mut self.scheduler, self.emulation_mode)
+            }
             WAVE_SAMPLE_START..=WAVE_SAMPLE_END => self.apu.write_wave_sample(address, value),
             LCD_CONTROL_REGISTER => self.ppu.set_lcd_control(value, &mut self.scheduler, &mut self.interrupts),
             LCD_STATUS_REGISTER => self.ppu.set_lcd_status(value, &mut self.interrupts),
@@ -315,7 +328,7 @@ impl Memory {
                 if self.ppu.get_current_mode() == Mode::HBlank {
                     self.hdma_check_and_transfer()
                 }
-            },
+            }
             0xFF50 if !self.boot_rom.is_finished => {
                 self.boot_rom.is_finished = true;
                 // If the cartridge doesn't support CGB at all we switch to DMG mode.
@@ -332,7 +345,7 @@ impl Memory {
             CGB_OBJECT_PALETTE_DATA => self.ppu.set_obj_palette_data(value),
             CGB_OBJECT_PRIORITY_MODE => self.ppu.set_object_priority(value),
             CGB_WRAM_BANK => self.wram.write_bank_select(value),
-            _ => self.io_registers.write_byte(address, value)
+            _ => self.io_registers.write_byte(address, value),
         }
     }
 
@@ -405,13 +418,16 @@ impl Memory {
                     // (at least, that's how I used to do it in the APU tick function)
                     // Be careful about reordering.
                     self.apu.tick_frame_sequencer();
-                    self.scheduler
-                        .push_full_event(event.update_self(EventType::APUFrameSequencer, FRAME_SEQUENCE_CYCLES << self.get_speed_shift()));
+                    self.scheduler.push_full_event(event.update_self(
+                        EventType::APUFrameSequencer,
+                        FRAME_SEQUENCE_CYCLES << self.get_speed_shift(),
+                    ));
                 }
                 EventType::APUSample => {
                     self.apu.tick_sampling_handler();
-                    self.scheduler
-                        .push_full_event(event.update_self(EventType::APUSample, SAMPLE_CYCLES << self.get_speed_shift()));
+                    self.scheduler.push_full_event(
+                        event.update_self(EventType::APUSample, SAMPLE_CYCLES << self.get_speed_shift()),
+                    );
                 }
                 EventType::TimerOverflow => {
                     self.timers.timer_overflow(&mut self.scheduler, &mut self.interrupts);
@@ -419,19 +435,19 @@ impl Memory {
                 EventType::TimerPostOverflow => {
                     self.timers.just_overflowed = false;
                 }
-                EventType::TimerTick => {
-                    self.timers.scheduled_timer_tick(&mut self.scheduler)
-                }
+                EventType::TimerTick => self.timers.scheduled_timer_tick(&mut self.scheduler),
                 EventType::DMARequested => {
                     let address = (self.io_registers.read_byte(DMA_TRANSFER) as usize) << 8;
-                    self.ppu.oam_dma_transfer(&self.gather_shadow_oam(address), &mut self.scheduler);
+                    self.ppu
+                        .oam_dma_transfer(&self.gather_shadow_oam(address), &mut self.scheduler);
                 }
                 EventType::DMATransferComplete => {
                     self.ppu.oam_dma_finished();
                 }
                 EventType::GDMARequested => {
                     log::info!("Performing GDMA transfer at cycle: {}", self.scheduler.current_time);
-                    let mut clocks_to_wait = (self.hdma.transfer_size / 16) as u64 * if self.cgb_data.double_speed { 64 } else { 32 };
+                    let mut clocks_to_wait =
+                        (self.hdma.transfer_size / 16) as u64 * if self.cgb_data.double_speed { 64 } else { 32 };
                     self.scheduler.push_relative(EventType::GDMATransferComplete, clocks_to_wait);
                     self.gdma_transfer();
 
@@ -443,7 +459,10 @@ impl Memory {
                 EventType::GDMATransferComplete => {
                     // If a new transfer is started without updating these registers they should
                     // continue where they left off.
-                    log::info!("Completing GDMA transfer at clock cycle: {}", self.scheduler.current_time);
+                    log::info!(
+                        "Completing GDMA transfer at clock cycle: {}",
+                        self.scheduler.current_time
+                    );
                     self.hdma.source_address += self.hdma.transfer_size;
                     self.hdma.destination_address += self.hdma.transfer_size;
 

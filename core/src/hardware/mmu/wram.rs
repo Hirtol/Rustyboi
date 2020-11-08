@@ -1,4 +1,4 @@
-use crate::hardware::mmu::{INVALID_READ, WRAM_BANK_00_START, WRAM_BANK_NN_START, WRAM_BANK_00_END, WRAM_BANK_NN_END};
+use crate::hardware::mmu::{INVALID_READ, WRAM_BANK_00_END, WRAM_BANK_00_START, WRAM_BANK_NN_END, WRAM_BANK_NN_START};
 
 pub const WRAM_BANK_SIZE: usize = 0x1000;
 pub const WRAM_SIZE: usize = WRAM_BANK_SIZE * 8;
@@ -18,7 +18,11 @@ pub struct Wram {
 
 impl Wram {
     pub fn new() -> Self {
-        Wram { memory: [INVALID_READ; WRAM_SIZE], internal_bank_select: 1, bank_select: 1 }
+        Wram {
+            memory: [INVALID_READ; WRAM_SIZE],
+            internal_bank_select: 1,
+            bank_select: 1,
+        }
     }
 
     pub fn read_bank_0(&self, address: u16) -> u8 {

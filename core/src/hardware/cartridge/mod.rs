@@ -16,7 +16,11 @@ pub struct Cartridge {
 impl Cartridge {
     pub fn new(rom: &[u8], saved_ram: Option<Vec<u8>>) -> Self {
         let header = CartridgeHeader::new(rom);
-        log::debug!("Loading ROM with type: {:#X}, CGB-flag: {}", header.cartridge_type, header.cgb_flag);
+        log::debug!(
+            "Loading ROM with type: {:#X}, CGB-flag: {}",
+            header.cartridge_type,
+            header.cgb_flag
+        );
         let mbc = create_mbc(&header, rom, saved_ram);
         Cartridge { header, mbc }
     }

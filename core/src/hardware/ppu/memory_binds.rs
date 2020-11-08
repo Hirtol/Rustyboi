@@ -54,7 +54,8 @@ impl PPU {
                 if self.tile_bank_currently_used == 0 {
                     self.tile_map_9800.data[(address - TILEMAP_9800_START) as usize] = value
                 } else {
-                    self.cgb_9800_tile_map.attributes[(address - TILEMAP_9800_START) as usize] = CgbTileAttribute::from_bits_truncate(value)
+                    self.cgb_9800_tile_map.attributes[(address - TILEMAP_9800_START) as usize] =
+                        CgbTileAttribute::from_bits_truncate(value)
                 }
             }
             // 9C00, assuming no malicious calls
@@ -62,25 +63,37 @@ impl PPU {
                 if self.tile_bank_currently_used == 0 {
                     self.tile_map_9c00.data[(address - TILEMAP_9C00_START) as usize] = value
                 } else {
-                    self.cgb_9c00_tile_map.attributes[(address - TILEMAP_9C00_START) as usize] = CgbTileAttribute::from_bits_truncate(value)
+                    self.cgb_9c00_tile_map.attributes[(address - TILEMAP_9C00_START) as usize] =
+                        CgbTileAttribute::from_bits_truncate(value)
                 }
             }
         }
     }
 
     pub fn get_oam_byte(&self, address: u16) -> u8 {
-        if self.lcd_status.mode_flag() != OamSearch && self.lcd_status.mode_flag() != LcdTransfer && !self.oam_transfer_ongoing {
+        if self.lcd_status.mode_flag() != OamSearch
+            && self.lcd_status.mode_flag() != LcdTransfer
+            && !self.oam_transfer_ongoing
+        {
             let relative_address = (address - OAM_ATTRIBUTE_START) / 4;
 
             self.oam[relative_address as usize].get_byte((address % 4) as u8)
         } else {
-            log::info!("Attempted read of blocked OAM (0x{:4X}), value: (0x{:2X}), transfer ongoing: {}", address, self.oam[((address - OAM_ATTRIBUTE_START) / 4) as usize].get_byte((address % 4) as u8), self.oam_transfer_ongoing);
+            log::info!(
+                "Attempted read of blocked OAM (0x{:4X}), value: (0x{:2X}), transfer ongoing: {}",
+                address,
+                self.oam[((address - OAM_ATTRIBUTE_START) / 4) as usize].get_byte((address % 4) as u8),
+                self.oam_transfer_ongoing
+            );
             INVALID_READ
         }
     }
 
     pub fn set_oam_byte(&mut self, address: u16, value: u8) {
-        if self.lcd_status.mode_flag() != OamSearch && self.lcd_status.mode_flag() != LcdTransfer && !self.oam_transfer_ongoing {
+        if self.lcd_status.mode_flag() != OamSearch
+            && self.lcd_status.mode_flag() != LcdTransfer
+            && !self.oam_transfer_ongoing
+        {
             let relative_address = (address - OAM_ATTRIBUTE_START) / 4;
 
             self.oam[relative_address as usize].set_byte((address % 4) as u8, value);
@@ -136,10 +149,14 @@ impl PPU {
     }
 
     pub fn get_object_priority(&self) -> u8 {
-        if self.cgb_object_priority { 0x1 } else { 0x0 }
+        if self.cgb_object_priority {
+            0x1
+        } else {
+            0x0
+        }
     }
 
-    pub fn get_bg_color_palette_index(&self) -> u8{
+    pub fn get_bg_color_palette_index(&self) -> u8 {
         self.cgb_bg_palette_ind.get_value()
     }
 
@@ -147,7 +164,7 @@ impl PPU {
         self.cgb_sprite_palette_ind.get_value()
     }
 
-    pub fn get_bg_palette_data(&self) -> u8{
+    pub fn get_bg_palette_data(&self) -> u8 {
         let addr = self.cgb_bg_palette_ind.selected_address;
 
         if addr % 2 == 0 {
@@ -318,7 +335,8 @@ impl PPU {
 
         if self.lcd_status.mode_flag() == VBlank && self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT) {
             interrupts.insert_interrupt(InterruptFlags::LCD);
-        } else if self.lcd_status.mode_flag() == OamSearch && self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT) {
+        } else if self.lcd_status.mode_flag() == OamSearch && self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT)
+        {
             interrupts.insert_interrupt(InterruptFlags::LCD);
         } else if self.lcd_status.mode_flag() == HBlank && self.lcd_status.contains(LcdStatus::MODE_0_H_INTERRUPT) {
             interrupts.insert_interrupt(InterruptFlags::LCD);

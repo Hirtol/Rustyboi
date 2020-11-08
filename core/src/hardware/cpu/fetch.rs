@@ -1,11 +1,11 @@
 //! Purely here to provide an extra implementation block so that the main mod.rs doesn't get
 //! too cluttered.
 
+use crate::hardware::cpu::instructions::get_assembly_from_opcode;
 use crate::hardware::cpu::CPU;
-use crate::hardware::mmu::{MemoryMapper, INTERRUPTS_FLAG, INTERRUPTS_ENABLE};
+use crate::hardware::mmu::{MemoryMapper, INTERRUPTS_ENABLE, INTERRUPTS_FLAG};
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::scheduler::{Event, EventType};
-use crate::hardware::cpu::instructions::get_assembly_from_opcode;
 
 impl<M: MemoryMapper> CPU<M> {
     /// Add 4 cycles to the internal counter

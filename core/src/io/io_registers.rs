@@ -1,4 +1,4 @@
-use crate::hardware::mmu::{IO_START, INVALID_READ};
+use crate::hardware::mmu::{INVALID_READ, IO_START};
 
 pub const IO_SIZE: usize = 0x80;
 
@@ -16,7 +16,9 @@ pub struct IORegisters {
 
 impl IORegisters {
     pub fn new() -> Self {
-        IORegisters{ memory: [INVALID_READ; IO_SIZE] }
+        IORegisters {
+            memory: [INVALID_READ; IO_SIZE],
+        }
     }
 
     pub fn read_byte(&self, address: u16) -> u8 {

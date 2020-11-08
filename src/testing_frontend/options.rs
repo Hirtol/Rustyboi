@@ -14,5 +14,4 @@ pub struct AppOptions {
     /// The path to the CGB bootrom
     #[options(default = "roms/cgb_bios.bin")]
     pub cgb_boot_rom: String,
-
 }

@@ -1,13 +1,13 @@
-use rustyboi_core::hardware::ppu::palette::RGB;
-use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
 use crate::communication::{EmulatorNotification, EmulatorResponse};
-use std::path::Path;
-use rustyboi_core::{EmulatorOptions, InputKey};
+use core::option::Option::Some;
 use crossbeam::channel::*;
 use rustyboi::actions::{create_emulator, save_rom};
-use core::option::Option::Some;
-use std::thread::JoinHandle;
 use rustyboi_core::emulator::Emulator;
+use rustyboi_core::hardware::ppu::palette::RGB;
+use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
+use rustyboi_core::{EmulatorOptions, InputKey};
+use std::path::Path;
+use std::thread::JoinHandle;
 
 pub struct GameboyRunner {
     current_thread: Option<JoinHandle<()>>,
@@ -22,12 +22,13 @@ impl GameboyRunner {
         let (request_sender, request_receiver) = unbounded::<EmulatorNotification>();
         let (response_sender, response_receiver) = unbounded::<EmulatorResponse>();
         let emulator = create_emulator(rom_path, options);
-        let emulator_thread = std::thread::spawn(move || run_emulator(emulator, frame_sender, response_sender, request_receiver));
+        let emulator_thread =
+            std::thread::spawn(move || run_emulator(emulator, frame_sender, response_sender, request_receiver));
         GameboyRunner {
             current_thread: Some(emulator_thread),
             frame_receiver,
             request_sender,
-            response_receiver
+            response_receiver,
         }
     }
 
@@ -49,7 +50,8 @@ impl GameboyRunner {
     /// Commands the emulator thread to save the current saves to disk as well.
     pub fn stop(&mut self) {
         if let Some(thread) = self.current_thread.take() {
-            self.request_sender.send(EmulatorNotification::ExitRequest(Box::new(save_rom)));
+            self.request_sender
+                .send(EmulatorNotification::ExitRequest(Box::new(save_rom)));
             // Since the emulation thread may be blocking trying to send a frame.
             self.frame_receiver.try_recv();
             thread.join();
@@ -57,7 +59,12 @@ impl GameboyRunner {
     }
 }
 
-fn run_emulator(mut emulator: Emulator, frame_sender: Sender<[RGB; FRAMEBUFFER_SIZE]>, response_sender: Sender<EmulatorResponse>, notification_receiver: Receiver<EmulatorNotification>) {
+fn run_emulator(
+    mut emulator: Emulator,
+    frame_sender: Sender<[RGB; FRAMEBUFFER_SIZE]>,
+    response_sender: Sender<EmulatorResponse>,
+    notification_receiver: Receiver<EmulatorNotification>,
+) {
     'emu_loop: loop {
         while !emulator.emulate_cycle() {}
 
@@ -77,9 +84,7 @@ fn run_emulator(mut emulator: Emulator, frame_sender: Sender<[RGB; FRAMEBUFFER_S
                         break 'emu_loop;
                     }
                 }
-                EmulatorNotification::Request(_) => {
-                    unimplemented!()
-                }
+                EmulatorNotification::Request(_) => unimplemented!(),
                 EmulatorNotification::ExitRequest(save_function) => {
                     save_function(&emulator);
                     break 'emu_loop;

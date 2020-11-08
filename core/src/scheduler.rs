@@ -4,12 +4,12 @@ use bitflags::_core::cmp::Ordering;
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Eq)]
 #[repr(u8)]
 pub enum EventType {
-    NONE        = 255,
-    VBLANK      = 0,
-    OamSearch   = 1,
+    NONE = 255,
+    VBLANK = 0,
+    OamSearch = 1,
     LcdTransfer = 2,
-    HBLANK      = 3,
-    VblankWait  = 4,
+    HBLANK = 3,
+    VblankWait = 4,
     APUFrameSequencer = 5,
     APUSample = 6,
     TimerOverflow = 7,

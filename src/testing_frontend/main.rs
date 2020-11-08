@@ -10,13 +10,13 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use crate::display::TEST_COLOURS;
-use rustyboi_core::{EmulatorOptionsBuilder};
+use rustyboi_core::EmulatorOptionsBuilder;
 use std::ffi::{OsStr, OsString};
 
 use crate::options::AppOptions;
 use blake2::{Blake2s, Digest};
 use image::ImageBuffer;
-use rustyboi_core::emulator::{Emulator, CYCLES_PER_FRAME};
+use rustyboi_core::emulator::Emulator;
 use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
 use std::thread::spawn;
 use std::time::Instant;
@@ -26,8 +26,8 @@ use std::collections::{HashMap, HashSet};
 
 use gumdrop::Options;
 use image::imageops::FilterType;
-use std::sync::Arc;
 use rustyboi_core::hardware::ppu::palette::RGB;
+use std::sync::Arc;
 
 mod display;
 mod options;

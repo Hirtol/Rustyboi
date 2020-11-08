@@ -1,8 +1,8 @@
 pub mod emulator;
 mod scheduler;
-pub use crate::io::joypad::InputKey;
 use crate::emulator::EmulatorMode;
 use crate::hardware::ppu::palette::DisplayColour;
+pub use crate::io::joypad::InputKey;
 
 pub mod hardware;
 mod io;
@@ -26,11 +26,11 @@ pub struct EmulatorOptionsBuilder {
 
 impl EmulatorOptionsBuilder {
     pub fn new() -> Self {
-        EmulatorOptionsBuilder{
+        EmulatorOptionsBuilder {
             boot_rom: None,
             saved_ram: None,
             emulator_mode: EmulatorMode::DMG,
-            display_colour: DisplayColour::default()
+            display_colour: DisplayColour::default(),
         }
     }
 
@@ -55,11 +55,11 @@ impl EmulatorOptionsBuilder {
     }
 
     pub fn build(self) -> EmulatorOptions {
-        EmulatorOptions{
+        EmulatorOptions {
             boot_rom: self.boot_rom,
             saved_ram: self.saved_ram,
             emulator_mode: self.emulator_mode,
-            display_colour: self.display_colour
+            display_colour: self.display_colour,
         }
     }
 }
@@ -70,7 +70,7 @@ impl From<EmulatorOptions> for EmulatorOptionsBuilder {
             boot_rom: from.boot_rom,
             saved_ram: from.saved_ram,
             emulator_mode: from.emulator_mode,
-            display_colour: from.display_colour
+            display_colour: from.display_colour,
         }
     }
 }

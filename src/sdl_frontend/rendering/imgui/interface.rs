@@ -1,5 +1,5 @@
-use imgui::*;
 use crate::rendering::imgui::state::State;
+use imgui::*;
 use sdl2::keyboard::Scancode;
 
 pub fn create_main_menu_bar(state: &mut State, ui: &Ui) {
@@ -9,7 +9,7 @@ pub fn create_main_menu_bar(state: &mut State, ui: &Ui) {
                 .build_with_ref(ui, &mut state.show_metrics) {
             }
         });
-        ui.menu(im_str!("Views"), true,|| {
+        ui.menu(im_str!("Views"), true, || {
             if MenuItem::new(im_str!("Palette View"))
                 .shortcut(im_str!("Ctrl+P"))
                 .build_with_ref(ui, &mut state.palette_window) {
@@ -21,7 +21,7 @@ pub fn create_main_menu_bar(state: &mut State, ui: &Ui) {
 
 #[inline(always)]
 pub fn main_menu_shortcuts(state: &mut State, ui: &Ui) {
-    if ui.io().key_ctrl && ui.is_key_pressed(Scancode::P as u32){
+    if ui.io().key_ctrl && ui.is_key_pressed(Scancode::P as u32) {
         state.palette_window = !state.palette_window;
     }
 }

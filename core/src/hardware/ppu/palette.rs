@@ -30,13 +30,15 @@ impl DisplayColour {
 impl Palette {
     pub fn new(value: u8, display_colours: DisplayColour) -> Self {
         let value = value as usize;
-        Palette { palette_byte: value as u8, colours:
-        [
-            display_colours.get_colour(value & 0x03),
-            display_colours.get_colour( (value & 0x0C) >> 2),
-            display_colours.get_colour((value & 0x30) >> 4),
-            display_colours.get_colour(value >> 6),
-        ] }
+        Palette {
+            palette_byte: value as u8,
+            colours: [
+                display_colours.get_colour(value & 0x03),
+                display_colours.get_colour((value & 0x0C) >> 2),
+                display_colours.get_colour((value & 0x30) >> 4),
+                display_colours.get_colour(value >> 6),
+            ],
+        }
     }
     /// Return the color designation located at bit 0-1
     /// In Object (Sprite) palettes this particular color should be ignored, as it will always
@@ -77,7 +79,7 @@ impl Default for Palette {
     fn default() -> Self {
         Palette {
             palette_byte: 0b1110_0100,
-            colours: [RGB::default(); 4]
+            colours: [RGB::default(); 4],
         }
     }
 }

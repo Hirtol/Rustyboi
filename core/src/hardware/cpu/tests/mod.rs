@@ -1,9 +1,13 @@
+use crate::emulator::EmulatorMode;
+use crate::emulator::EmulatorMode::DMG;
 use crate::hardware::apu::APU;
 use crate::hardware::cartridge::Cartridge;
-use crate::hardware::cpu::CPU;
-use crate::hardware::mmu::MemoryMapper;
-use crate::hardware::ppu::PPU;
 use crate::hardware::cpu::registers::Registers;
+use crate::hardware::cpu::CPU;
+use crate::hardware::mmu::cgb_mem::CgbSpeedData;
+use crate::hardware::mmu::MemoryMapper;
+use crate::hardware::ppu::palette::DisplayColour;
+use crate::hardware::ppu::PPU;
 use crate::io::interrupts::Interrupts;
 use crate::io::timer::TimerRegisters;
 use crate::scheduler::Scheduler;
@@ -11,10 +15,6 @@ use bitflags::_core::fmt::{Debug, Formatter};
 use std::cell::RefCell;
 use std::fmt;
 use std::rc::Rc;
-use crate::emulator::EmulatorMode;
-use crate::emulator::EmulatorMode::DMG;
-use crate::hardware::mmu::cgb_mem::CgbSpeedData;
-use crate::hardware::ppu::palette::DisplayColour;
 
 mod cycle_tests;
 mod instruction_tests;
@@ -27,7 +27,7 @@ struct TestMemory {
     pub apu: APU,
     pub timers: TimerRegisters,
     pub interrupts: Interrupts,
-    pub cgb_data: CgbSpeedData
+    pub cgb_data: CgbSpeedData,
 }
 
 impl MemoryMapper for TestMemory {
@@ -95,7 +95,7 @@ fn initial_cpu() -> CPU<TestMemory> {
         apu: APU::new(),
         timers: Default::default(),
         interrupts: Default::default(),
-        cgb_data: Default::default()
+        cgb_data: Default::default(),
     });
     cpu.registers = Registers::new();
     cpu

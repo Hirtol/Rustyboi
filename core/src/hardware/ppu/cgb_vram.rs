@@ -1,7 +1,7 @@
-use bitflags::*;
-use crate::hardware::ppu::tiledata::BACKGROUND_TILE_SIZE;
-use std::ops::Index;
 use crate::hardware::ppu::palette::RGB;
+use crate::hardware::ppu::tiledata::BACKGROUND_TILE_SIZE;
+use bitflags::*;
+use std::ops::Index;
 
 #[derive(Debug)]
 pub struct CgbTileMap {
@@ -10,7 +10,9 @@ pub struct CgbTileMap {
 
 impl CgbTileMap {
     pub fn new() -> Self {
-        CgbTileMap { attributes: [CgbTileAttribute::default(); BACKGROUND_TILE_SIZE] }
+        CgbTileMap {
+            attributes: [CgbTileAttribute::default(); BACKGROUND_TILE_SIZE],
+        }
     }
 }
 
@@ -56,7 +58,7 @@ impl CgbPaletteIndex {
     }
 
     pub fn get_value(&self) -> u8 {
-        (self.selected_address as u8) | if self.auto_increment {0x80} else {0x0}
+        (self.selected_address as u8) | if self.auto_increment { 0x80 } else { 0x0 }
     }
 }
 
@@ -67,7 +69,7 @@ pub struct CgbPalette {
 
 /// This struct will naively convert the written 15 bit colour values to 24 bit.
 #[derive(Debug, Copy, Clone, Default)]
-pub struct CgbRGBColour{
+pub struct CgbRGBColour {
     pub rgb: RGB,
     r5: u8,
     g5: u8,
@@ -102,7 +104,7 @@ impl CgbRGBColour {
 
 #[cfg(test)]
 mod tests {
-    use crate::hardware::ppu::cgb_vram::{CgbTileAttribute, CgbRGBColour};
+    use crate::hardware::ppu::cgb_vram::{CgbRGBColour, CgbTileAttribute};
 
     #[test]
     fn test_palette_numb() {
@@ -137,4 +139,3 @@ mod tests {
         assert_eq!(rgb.b5, 0b11001);
     }
 }
-

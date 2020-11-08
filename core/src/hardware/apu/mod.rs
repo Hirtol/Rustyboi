@@ -3,12 +3,12 @@
 //! properly. In addition, sound completely stops in the game Aladdin after the title screen for
 //! some reason.
 
+use crate::emulator::EmulatorMode;
 use crate::hardware::apu::noise_channel::NoiseChannel;
 use crate::hardware::apu::square_channel::SquareWaveChannel;
 use crate::hardware::apu::wave_channel::WaveformChannel;
-use crate::scheduler::{EventType, Scheduler};
 use crate::hardware::mmu::INVALID_READ;
-use crate::emulator::EmulatorMode;
+use crate::scheduler::{EventType, Scheduler};
 
 mod channel_features;
 mod noise_channel;
@@ -171,7 +171,10 @@ impl APU {
         // It's not possible to access any registers beside 0x26 while the sound is disabled.
         // *Caveat*: In DMG mode you CAN write to the Length registers while disabled (f.e 0x20).
         // However in CGB mode this is not possible, and should thus not be allowed.
-        if !self.global_sound_enable && address != 0x26 && (mode.is_cgb() || (mode.is_dmg() && ![0x20, 0x1B].contains(&address))) {
+        if !self.global_sound_enable
+            && address != 0x26
+            && (mode.is_cgb() || (mode.is_dmg() && ![0x20, 0x1B].contains(&address)))
+        {
             log::warn!("Tried to write APU while inaccessible to address: 0x{:02X}", address);
             return;
         }

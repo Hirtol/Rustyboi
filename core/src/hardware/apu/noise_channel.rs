@@ -1,7 +1,7 @@
+use crate::emulator::EmulatorMode;
 use crate::hardware::apu::channel_features::{EnvelopeFeature, LengthFeature};
 use crate::hardware::apu::{no_length_tick_next_step, test_bit};
 use crate::hardware::mmu::INVALID_READ;
-use crate::emulator::EmulatorMode;
 
 /// Relevant for voice 4 for the DMG.
 ///

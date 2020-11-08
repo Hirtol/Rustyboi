@@ -1,9 +1,9 @@
 use crate::hardware::cpu::execute::InstructionAddress::HLI;
-use crate::hardware::cpu::CPU;
-use crate::hardware::mmu::MemoryMapper;
 use crate::hardware::cpu::registers::Reg16::HL;
 use crate::hardware::cpu::registers::Reg8;
 use crate::hardware::cpu::registers::Reg8::{A, B, C, D, E, H, L};
+use crate::hardware::cpu::CPU;
+use crate::hardware::mmu::MemoryMapper;
 
 impl<M: MemoryMapper> CPU<M> {
     pub fn execute(&mut self, opcode: u8) {

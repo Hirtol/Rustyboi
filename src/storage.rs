@@ -1,7 +1,7 @@
-use std::path::Path;
 use directories::ProjectDirs;
-use nanoserde::{SerJson, DeJson};
-use std::fs::{read_to_string, create_dir_all};
+use nanoserde::{DeJson, SerJson};
+use std::fs::{create_dir_all, read_to_string};
+use std::path::Path;
 use std::{fs, io};
 
 pub trait Storage {
@@ -19,9 +19,7 @@ impl FileStorage {
         let project_dirs = ProjectDirs::from("", "Hirtol", "Rustyboi")?;
         create_dir_all(project_dirs.config_dir());
         create_dir_all(project_dirs.data_dir());
-        Some(FileStorage {
-            project_dirs,
-        })
+        Some(FileStorage { project_dirs })
     }
 }
 

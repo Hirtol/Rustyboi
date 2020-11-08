@@ -5,12 +5,12 @@ use std::fmt::*;
 
 use log::*;
 
-use registers::{Flags, Reg16, Registers};
 use registers::Reg8::A;
+use registers::{Flags, Reg16, Registers};
 
 use crate::emulator::*;
-use crate::hardware::cpu::execute::{InstructionAddress, JumpModifier, WrapperEnum};
 use crate::hardware::cpu::execute::JumpModifier::Always;
+use crate::hardware::cpu::execute::{InstructionAddress, JumpModifier, WrapperEnum};
 use crate::hardware::cpu::instructions::get_assembly_from_opcode;
 use crate::hardware::cpu::traits::{SetU16, SetU8, ToU16, ToU8};
 use crate::hardware::mmu::*;
@@ -23,8 +23,8 @@ mod alu;
 mod execute;
 mod fetch;
 mod instructions;
-mod traits;
 pub mod registers;
+mod traits;
 
 #[derive(Debug)]
 pub struct CPU<M: MemoryMapper> {
@@ -128,9 +128,9 @@ impl<M: MemoryMapper> CPU<M> {
     /// OR
     /// `ld   SP,HL       F9         8 ---- SP=HL`
     fn load_16<T: Copy, U: Copy>(&mut self, destination: T, source: U)
-        where
-            Self: SetU16<T>,
-            Self: ToU16<U>,
+    where
+        Self: SetU16<T>,
+        Self: ToU16<U>,
     {
         let source_value = self.read_u16_value(source);
 
@@ -139,10 +139,10 @@ impl<M: MemoryMapper> CPU<M> {
 
     /// `ld` never sets any flags.
     fn load_8<T: Copy, U: Copy>(&mut self, destination: T, source: U)
-        where
-            T: Debug,
-            Self: SetU8<T>,
-            Self: ToU8<U>,
+    where
+        T: Debug,
+        Self: SetU8<T>,
+        Self: ToU8<U>,
     {
         let source_value = self.read_u8_value(source);
 
@@ -156,9 +156,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `z0h-`
     fn increment<T: Copy>(&mut self, target: T)
-        where
-            Self: ToU8<T>,
-            Self: SetU8<T>,
+    where
+        Self: ToU8<T>,
+        Self: SetU8<T>,
     {
         let old_value = self.read_u8_value(target);
         let new_value = old_value.wrapping_add(1);
@@ -210,9 +210,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `z1h-`
     fn decrement<T: Copy>(&mut self, target: T)
-        where
-            Self: ToU8<T>,
-            Self: SetU8<T>,
+    where
+        Self: ToU8<T>,
+        Self: SetU8<T>,
     {
         let old_value = self.read_u8_value(target);
         let new_value = old_value.wrapping_sub(1);
@@ -254,7 +254,14 @@ impl<M: MemoryMapper> CPU<M> {
                 self.mmu.do_m_cycle();
             }
 
-            log::info!("Switching to {} speed mode!", if self.mmu.cgb_data().double_speed { "double" } else { "normal" });
+            log::info!(
+                "Switching to {} speed mode!",
+                if self.mmu.cgb_data().double_speed {
+                    "double"
+                } else {
+                    "normal"
+                }
+            );
         } else {
             unimplemented!("STOP called, implement!");
         }
@@ -372,8 +379,8 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z0HC`
     fn add<T: Copy>(&mut self, target: T)
-        where
-            Self: ToU8<T>,
+    where
+        Self: ToU8<T>,
     {
         let value = self.read_u8_value(target);
         let (new_value, overflowed) = self.registers.a.overflowing_add(value);
@@ -392,8 +399,8 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z0HC`
     fn adc<T: Copy>(&mut self, target: T)
-        where
-            Self: ToU8<T>,
+    where
+        Self: ToU8<T>,
     {
         let value = self.read_u8_value(target);
         let carry_flag = self.registers.cf() as u8;
@@ -413,8 +420,8 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z1HC`
     fn sub<T: Copy>(&mut self, target: T)
-        where
-            Self: ToU8<T>,
+    where
+        Self: ToU8<T>,
     {
         let value = self.read_u8_value(target);
         let new_value = self.registers.a.wrapping_sub(value);
@@ -431,8 +438,8 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z1HC`
     fn sbc<T: Copy>(&mut self, target: T)
-        where
-            Self: ToU8<T>,
+    where
+        Self: ToU8<T>,
     {
         let value = self.read_u8_value(target);
         let carry_flag = self.registers.cf() as u8;
@@ -457,8 +464,8 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z010`
     fn and<T: Copy>(&mut self, target: T)
-        where
-            Self: ToU8<T>,
+    where
+        Self: ToU8<T>,
     {
         self.registers.a &= self.read_u8_value(target);
 
@@ -472,8 +479,8 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z000`
     fn xor<T: Copy>(&mut self, target: T)
-        where
-            Self: ToU8<T>,
+    where
+        Self: ToU8<T>,
     {
         self.registers.a ^= self.read_u8_value(target);
 
@@ -487,8 +494,8 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z000`
     fn or<T: Copy>(&mut self, target: T)
-        where
-            Self: ToU8<T>,
+    where
+        Self: ToU8<T>,
     {
         self.registers.a |= self.read_u8_value(target);
 
@@ -503,8 +510,8 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z1HC`
     fn compare<T: Copy>(&mut self, target: T)
-        where
-            Self: ToU8<T>,
+    where
+        Self: ToU8<T>,
     {
         let value = self.read_u8_value(target);
         let new_value = self.registers.a.wrapping_sub(value);
@@ -706,9 +713,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z00C`
     fn rlc<T: Copy>(&mut self, target: T)
-        where
-            Self: ToU8<T>,
-            Self: SetU8<T>,
+    where
+        Self: ToU8<T>,
+        Self: SetU8<T>,
     {
         self.rotate_left(target);
     }
@@ -720,9 +727,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z00C`
     fn rrc<T: Copy>(&mut self, target: T)
-        where
-            Self: ToU8<T>,
-            Self: SetU8<T>,
+    where
+        Self: ToU8<T>,
+        Self: SetU8<T>,
     {
         self.rotate_right(target);
     }
@@ -734,9 +741,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z00C`
     fn rl<T: Copy>(&mut self, target: T)
-        where
-            Self: ToU8<T>,
-            Self: SetU8<T>,
+    where
+        Self: ToU8<T>,
+        Self: SetU8<T>,
     {
         self.rotate_left_carry(target);
     }
@@ -748,9 +755,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z00C`
     fn rr<T: Copy>(&mut self, target: T)
-        where
-            Self: ToU8<T>,
-            Self: SetU8<T>,
+    where
+        Self: ToU8<T>,
+        Self: SetU8<T>,
     {
         self.rotate_right_carry(target);
     }
@@ -762,9 +769,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z00C`
     fn sla<T: Copy>(&mut self, target: T)
-        where
-            Self: ToU8<T>,
-            Self: SetU8<T>,
+    where
+        Self: ToU8<T>,
+        Self: SetU8<T>,
     {
         self.shift_left(target);
     }
@@ -776,9 +783,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z00C`
     fn sra<T: Copy>(&mut self, target: T)
-        where
-            Self: ToU8<T>,
-            Self: SetU8<T>,
+    where
+        Self: ToU8<T>,
+        Self: SetU8<T>,
     {
         let value = self.read_u8_value(target);
         let new_value = (value & 0x80) | value.wrapping_shr(1);
@@ -796,9 +803,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z000`
     fn swap<T: Copy>(&mut self, target: T)
-        where
-            Self: ToU8<T>,
-            Self: SetU8<T>,
+    where
+        Self: ToU8<T>,
+        Self: SetU8<T>,
     {
         let value = self.read_u8_value(target);
         let new_value = ((value & 0x0F) << 4) | ((value & 0xF0) >> 4);
@@ -818,9 +825,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z00C`
     fn srl<T: Copy>(&mut self, target: T)
-        where
-            Self: ToU8<T>,
-            Self: SetU8<T>,
+    where
+        Self: ToU8<T>,
+        Self: SetU8<T>,
     {
         self.shift_right(target);
     }
@@ -830,8 +837,8 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `Z01-`
     fn bit<T: Copy + Debug>(&mut self, bit: u8, target: T)
-        where
-            Self: ToU8<T>,
+    where
+        Self: ToU8<T>,
     {
         let value = self.read_u8_value(target);
         let bitmask = 1 << bit;
@@ -847,9 +854,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `----`
     fn set<T: Copy>(&mut self, bit: u8, target: T)
-        where
-            Self: ToU8<T>,
-            Self: SetU8<T>,
+    where
+        Self: ToU8<T>,
+        Self: SetU8<T>,
     {
         let value = self.read_u8_value(target);
         let bitmask: u8 = 1 << bit;
@@ -863,9 +870,9 @@ impl<M: MemoryMapper> CPU<M> {
     ///
     /// Flags: `----`
     fn res<T: Copy>(&mut self, bit: u8, target: T)
-        where
-            Self: ToU8<T>,
-            Self: SetU8<T>,
+    where
+        Self: ToU8<T>,
+        Self: SetU8<T>,
     {
         let value = self.read_u8_value(target);
         let bit_mask: u8 = 0x1 << bit;

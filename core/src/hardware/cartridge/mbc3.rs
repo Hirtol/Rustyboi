@@ -87,7 +87,8 @@ impl MBC for MBC3 {
             0x4000..=0x5FFF => self.ram_bank = value & 0xA,
             EXTERNAL_RAM_START..=EXTERNAL_RAM_END => {
                 if self.ram_enabled {
-                    let true_address = (address - EXTERNAL_RAM_START) as usize + EXTERNAL_RAM_SIZE * self.ram_bank as usize;
+                    let true_address =
+                        (address - EXTERNAL_RAM_START) as usize + EXTERNAL_RAM_SIZE * self.ram_bank as usize;
                     self.ram[true_address] = value;
                 }
             }

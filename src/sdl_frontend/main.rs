@@ -1,51 +1,40 @@
 use log::LevelFilter;
 use log::*;
-use rustyboi_core::emulator::{Emulator, CYCLES_PER_FRAME};
+use rustyboi_core::emulator::Emulator;
 
-use rustyboi_core::{InputKey, EmulatorOptionsBuilder, EmulatorOptions};
+use rustyboi_core::{EmulatorOptionsBuilder, InputKey};
 use sdl2::keyboard::Keycode;
-use sdl2::pixels::Color;
-use sdl2::pixels::PixelFormatEnum::RGB24;
-use sdl2::render::{Canvas, Texture, WindowCanvas};
-use sdl2::video::{Window, GLProfile};
-use sdl2::Sdl;
+
 use simplelog::{CombinedLogger, Config, ConfigBuilder, TermLogger, TerminalMode, WriteLogger};
 
-use std::fs::{read, File};
+use std::fs::read;
 
-use std::thread::{sleep, spawn, JoinHandle};
 use std::time::{Duration, Instant};
 
 use sdl2::audio::{AudioQueue, AudioSpecDesired};
 use sdl2::event::{Event, WindowEvent};
-use std::io::Write;
-use std::ops::Div;
-use rustyboi_core::emulator::EmulatorMode::{CGB, DMG};
+
+use rustyboi_core::emulator::EmulatorMode::CGB;
 use rustyboi_core::hardware::ppu::palette::{DisplayColour, RGB};
-use image::ImageBuffer;
-use image::imageops::FilterType;
-use rustyboi::actions::{save_rom, create_emulator};
-use crate::sdl::{setup_sdl, fill_texture_and_copy};
+
+use crate::state::AppEmulatorState;
 use crossbeam::channel::*;
 use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
-use crate::state::AppEmulatorState;
-use imgui::Context;
-use crate::rendering::Renderer;
+
 use crate::rendering::imgui::ImguiBoi;
-use rustyboi::actions;
+use crate::rendering::Renderer;
+
+use crate::communication::{EmulatorNotification, EmulatorResponse};
 use rustyboi::storage::FileStorage;
 use std::sync::Arc;
-use crate::communication::{EmulatorResponse, EmulatorNotification};
-use std::path::Path;
+
 use crate::gameboy::GameboyRunner;
-use rustyboi_core::hardware::cartridge::Cartridge;
 
-
-mod sdl;
-mod state;
-mod rendering;
 mod communication;
 mod gameboy;
+mod rendering;
+mod sdl;
+mod state;
 
 const KIRBY_DISPLAY_COLOURS: DisplayColour = DisplayColour {
     black: RGB(44, 44, 150),
@@ -98,11 +87,11 @@ fn main() {
     let mut renderer: Renderer<ImguiBoi> = Renderer::new(video_subsystem, file_storage.clone()).unwrap();
     renderer.setup_immediate_gui("Rustyboi ImGui");
 
-    let bootrom_file_dmg = read("roms/DMG_ROM.bin").unwrap();
+    let _bootrom_file_dmg = read("roms/DMG_ROM.bin").unwrap();
     let bootrom_file_cgb = read("roms\\cgb_bios.bin").unwrap();
 
     let cartridge = "roms/Zelda.gb";
-    let yellow = "roms/Pokemon - Yellow Version.gbc";
+    let _yellow = "roms/Pokemon - Yellow Version.gbc";
     let _cpu_test = "test roms/auto-run/window_y_trigger.gb";
     let _cpu_test2 = "test roms/auto-run/hdma_timing-C.gbc";
 
@@ -139,7 +128,9 @@ fn main() {
     'mainloop: loop {
         let audio_queue_size = audio_queue.size();
         if !app_state.awaiting_audio && audio_queue_size < MAX_AUDIO_SAMPLES {
-            gameboy_runner.request_sender.send(EmulatorNotification::AudioRequest(audio_buffer));
+            gameboy_runner
+                .request_sender
+                .send(EmulatorNotification::AudioRequest(audio_buffer));
             // Needed to satisfy the borrow checker
             audio_buffer = Vec::new();
             app_state.awaiting_audio = true;
@@ -166,7 +157,11 @@ fn main() {
             }
         }
 
-        let frames_to_go = if app_state.fast_forward { FAST_FORWARD_MULTIPLIER } else { 1 };
+        let frames_to_go = if app_state.fast_forward {
+            FAST_FORWARD_MULTIPLIER
+        } else {
+            1
+        };
 
         // 50k seems to be a decent spot for audio syncing.
         // I should really figure out proper audio syncing ._.
@@ -189,14 +184,19 @@ fn main() {
                     buffer.clear();
                     audio_buffer = buffer;
                     app_state.awaiting_audio = false;
-                },
+                }
             }
         }
 
         if last_update_time.elapsed() >= Duration::from_millis(1000) {
             let average_delta = last_update_time.elapsed();
-            renderer.main_window.window_mut()
-                .set_title(format!("RustyBoi - {:.2} FPS", (loop_cycles as f64 / average_delta.as_secs_f64())).as_str());
+            renderer.main_window.window_mut().set_title(
+                format!(
+                    "RustyBoi - {:.2} FPS",
+                    (loop_cycles as f64 / average_delta.as_secs_f64())
+                )
+                .as_str(),
+            );
             last_update_time = Instant::now();
             loop_cycles = 0;
         }
@@ -211,19 +211,32 @@ fn main() {
     }
 }
 
-fn handle_events(event: Event, gameboy_runner: &mut GameboyRunner, app_state: &mut AppEmulatorState, renderer: &mut Renderer<ImguiBoi>) -> bool {
+fn handle_events(
+    event: Event,
+    gameboy_runner: &mut GameboyRunner,
+    app_state: &mut AppEmulatorState,
+    renderer: &mut Renderer<ImguiBoi>,
+) -> bool {
     match event {
         Event::Quit { .. }
         | Event::KeyDown {
             keycode: Some(Keycode::Escape),
             ..
         }
-        | Event::Window {window_id: 1, win_event: WindowEvent::Close, ..} => {
+        | Event::Window {
+            window_id: 1,
+            win_event: WindowEvent::Close,
+            ..
+        } => {
             gameboy_runner.stop();
             app_state.exit = true;
             return false;
         }
-        Event::Window {window_id, win_event: WindowEvent::Close, ..} => {
+        Event::Window {
+            window_id: _,
+            win_event: WindowEvent::Close,
+            ..
+        } => {
             renderer.close_immediate_gui();
         }
         Event::DropFile { filename, .. } => {
@@ -308,29 +321,32 @@ fn render_fast(renderer: &mut Renderer<ImguiBoi>, receiver: Receiver<[RGB; FRAME
 }
 
 fn test_fast(cpu_test: &Vec<u8>, sender: Sender<[RGB; FRAMEBUFFER_SIZE]>) {
-    let mut emulator = Emulator::new(&cpu_test, EmulatorOptionsBuilder::new()
-        .with_mode(CGB)
-        .with_display_colours(DEFAULT_DISPLAY_COLOURS)
-        .build());
+    let mut emulator = Emulator::new(
+        &cpu_test,
+        EmulatorOptionsBuilder::new()
+            .with_mode(CGB)
+            .with_display_colours(DEFAULT_DISPLAY_COLOURS)
+            .build(),
+    );
 
     'mainloop: loop {
-            let mut frame_count = 0;
-            let start_time = Instant::now();
-            loop {
-                while frame_count <= 20_000 {
-                    if emulator.emulate_cycle() {
-                        frame_count += 1;
-                        sender.send(*emulator.frame_buffer());
-                    }
-                }
-
-                if frame_count > 20_000 {
-                    println!(
-                        "Rendered: {} frames per second after 20_000 frames!",
-                        frame_count as f64 / start_time.elapsed().as_secs_f64()
-                    );
-                    return;
+        let mut frame_count = 0;
+        let start_time = Instant::now();
+        loop {
+            while frame_count <= 20_000 {
+                if emulator.emulate_cycle() {
+                    frame_count += 1;
+                    sender.send(*emulator.frame_buffer());
                 }
             }
+
+            if frame_count > 20_000 {
+                println!(
+                    "Rendered: {} frames per second after 20_000 frames!",
+                    frame_count as f64 / start_time.elapsed().as_secs_f64()
+                );
+                return;
+            }
+        }
     }
 }
