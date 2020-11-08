@@ -4,7 +4,7 @@ use bitflags::_core::str::from_utf8;
 pub const HEADER_START: u16 = 0x0100;
 pub const HEADER_END: u16 = 0x014F;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum RamSizes {
     NONE = 0x0,
     KB2 = 0x1,

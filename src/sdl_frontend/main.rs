@@ -199,7 +199,7 @@ fn main() {
         // we sleep more than we should, leaving us at ~58 fps which causes audio stutters.
         let frame_time = timer.ticks() as i32 - ticks;
 
-        if !app_state.unbounded && FRAME_DELAY.as_millis() as i32 > frame_time {
+        if (!app_state.unbounded || app_state.emulator_paused) && FRAME_DELAY.as_millis() as i32 > frame_time {
             let sleep_time = (FRAME_DELAY.as_millis() as i32 - frame_time) as u64;
             std::thread::sleep(Duration::from_millis(sleep_time));
         }
