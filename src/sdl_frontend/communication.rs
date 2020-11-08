@@ -8,17 +8,23 @@ pub enum EmulatorNotification {
     /// Pass the audio buffer back and forth to avoid constant heap allocation
     AudioRequest(Vec<f32>),
     ExitRequest(Box<dyn Fn(&Emulator) + Send>),
-    Request(DebugRequest),
+    DebugRequest(DebugRequest),
 }
 
 #[derive(Debug, Clone, PartialOrd, PartialEq)]
 pub enum EmulatorResponse {
-    AUDIO(Vec<f32>),
+    Audio(Vec<f32>),
+    DebugResponse(DebugResponse),
 }
 
 /// Represents a special (and possibly expensive) request for debug information to the emulator
 /// thread.
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
 pub enum DebugRequest {
-    PALETTE,
+    Palette,
+}
+
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
+pub enum DebugResponse {
+    Palette
 }

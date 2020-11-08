@@ -79,12 +79,12 @@ fn run_emulator(
                 EmulatorNotification::KeyUp(key) => emulator.handle_input(key, false),
                 EmulatorNotification::AudioRequest(mut audio_buffer) => {
                     audio_buffer.extend(emulator.audio_buffer().iter());
-                    if let Err(e) = response_sender.send(EmulatorResponse::AUDIO(audio_buffer)) {
+                    if let Err(e) = response_sender.send(EmulatorResponse::Audio(audio_buffer)) {
                         log::error!("Failed to transfer audio buffer due to: {:?}", e);
                         break 'emu_loop;
                     }
                 }
-                EmulatorNotification::Request(_) => unimplemented!(),
+                EmulatorNotification::DebugRequest(_) => unimplemented!(),
                 EmulatorNotification::ExitRequest(save_function) => {
                     save_function(&emulator);
                     break 'emu_loop;

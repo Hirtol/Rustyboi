@@ -170,12 +170,13 @@ fn main() {
 
         while let Ok(response) = gameboy_runner.response_receiver.try_recv() {
             match response {
-                EmulatorResponse::AUDIO(mut buffer) => {
+                EmulatorResponse::Audio(mut buffer) => {
                     audio_queue.queue(&buffer);
                     buffer.clear();
                     audio_buffer = buffer;
                     app_state.awaiting_audio = false;
                 }
+                EmulatorResponse::DebugResponse(_) => {}
             }
         }
 

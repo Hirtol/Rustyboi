@@ -14,8 +14,17 @@ pub struct AppEmulatorState {
     pub awaiting_audio: bool,
 }
 
-#[derive(Default, Debug, Copy, Clone, SerJson, DeJson)]
+#[derive(Debug, Copy, Clone, SerJson, DeJson)]
 pub struct AppState {
     /// The speed multiplier to use while fast forwarding.
     pub fast_forward_rate: u64,
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        AppState {
+            fast_forward_rate: 2,
+            .. Default::default()
+        }
+    }
 }
