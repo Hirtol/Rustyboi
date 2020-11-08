@@ -100,10 +100,7 @@ impl Emulator {
     ///
     /// # Returns
     ///
-    /// The delta in clock cycles due to the current emulation, to be used
-    /// for timing purposes by the consumer of the emulator.
-    ///
-    /// Also returns whether VBlank occurred in this emulator cycle.
+    /// Returns whether VBlank occurred in this emulator cycle.
     pub fn emulate_cycle(&mut self) -> bool {
         self.cpu.step_cycle();
 

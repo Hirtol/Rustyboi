@@ -10,7 +10,7 @@ mod mbc3;
 
 pub struct Cartridge {
     header: CartridgeHeader,
-    mbc: Box<dyn MBC>,
+    mbc: Box<dyn MBC + Send>,
 }
 
 impl Cartridge {
@@ -52,7 +52,7 @@ impl Debug for Cartridge {
     }
 }
 
-fn create_mbc(header: &CartridgeHeader, rom: &[u8], saved_ram: Option<Vec<u8>>) -> Box<dyn MBC> {
+fn create_mbc(header: &CartridgeHeader, rom: &[u8], saved_ram: Option<Vec<u8>>) -> Box<dyn MBC + Send> {
     let rom_vec = rom.to_vec();
 
     match header.cartridge_type {

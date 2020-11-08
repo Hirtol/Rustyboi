@@ -4,7 +4,9 @@ use nanoserde::{SerJson, DeJson};
 pub struct AppEmulatorState {
     pub emulator_paused: bool,
     pub fast_forward: bool,
+    pub unbounded: bool,
     pub exit: bool,
+    pub awaiting_audio: bool,
 }
 
 #[derive(Default, Debug, Copy, Clone, SerJson, DeJson)]

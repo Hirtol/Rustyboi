@@ -58,7 +58,8 @@ impl<T> Renderer<T>
 
     /// Create a second window and setup the debug context within
     pub fn setup_immediate_gui(&mut self, title: impl AsRef<str>) -> anyhow::Result<()> {
-        if let (Some(_), Some(_)) = (&self.debug_window, &self.immediate_gui) {
+        if let (Some(window), Some(_)) = (&mut self.debug_window, &self.immediate_gui) {
+            window.raise();
             Ok(())
         } else {
             // Ensure the video subsystem has created the correct OpenGL context.
