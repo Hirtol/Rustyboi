@@ -12,6 +12,7 @@ use rustyboi_core::hardware::ppu::{FRAMEBUFFER_SIZE, RESOLUTION_WIDTH};
 use crate::rendering::immediate::ImmediateGui;
 use sdl::{setup_sdl, transmute_framebuffer};
 use rustyboi::storage::FileStorage;
+use crate::communication::DebugRequest;
 
 pub mod imgui;
 pub mod immediate;
@@ -108,7 +109,7 @@ where
     /// Render, if the immediate GUI has been setup, a new frame in the ImGUI.
     /// Can be called very frequently, will never render more than the current monitor's refresh rate.
     #[inline(always)]
-    pub fn render_immediate_gui(&mut self, event_pump: &EventPump) -> anyhow::Result<()> {
+    pub fn render_immediate_gui(&mut self, event_pump: &EventPump) -> Option<Vec<DebugRequest>> {
         if let (Some(window), Some(gui)) = (&self.debug_window, &mut self.immediate_gui) {
             let window_flags = window.window_flags();
             if self.last_immediate_frame.elapsed().as_secs_f64()
@@ -130,10 +131,12 @@ where
                 gui.render(window);
 
                 window.gl_swap_window();
+
+                return Some(gui.query_emulator())
             }
         }
 
-        Ok(())
+        None
     }
 
     /// Simple helper function for setting up the immediate gui.

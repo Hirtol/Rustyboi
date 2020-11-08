@@ -86,7 +86,7 @@ fn run_emulator(
                         break 'emu_loop;
                     }
                 }
-                EmulatorNotification::DebugRequest(request) => {
+                EmulatorNotification::Debug(request) => {
                     if !handle_debug_request(request, emulator, &response_sender) {
                         break 'emu_loop;
                     }

@@ -3,13 +3,14 @@ use rustyboi_core::InputKey;
 use rustyboi_core::hardware::ppu::debugging_features::PaletteDebugInfo;
 
 /// Represents a notification for the emulator thread to execute when possible.
+#[derive(Debug)]
 pub enum EmulatorNotification {
     KeyDown(InputKey),
     KeyUp(InputKey),
     /// Pass the audio buffer back and forth to avoid constant heap allocation
     AudioRequest(Vec<f32>),
     ExitRequest,
-    DebugRequest(DebugRequest),
+    Debug(DebugRequest),
 }
 
 #[derive(Debug, Clone, PartialOrd, PartialEq)]
@@ -28,6 +29,12 @@ pub enum DebugRequest {
 #[derive(Debug, Clone, PartialOrd, PartialEq)]
 pub enum DebugResponse {
     Palette(PaletteDebugInfo)
+}
+
+impl DebugRequest {
+    pub const fn wrap(self) -> EmulatorNotification {
+        EmulatorNotification::Debug(self)
+    }
 }
 
 impl DebugResponse {

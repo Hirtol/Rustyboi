@@ -6,7 +6,7 @@ use sdl2::mouse::MouseState;
 
 use sdl2::VideoSubsystem;
 
-use crate::rendering::imgui::state::State;
+use crate::rendering::imgui::state::{State, DebugState};
 use crate::rendering::immediate::ImmediateGui;
 use font::COUSINE_REGULAR_UNCOMPRESSED_DATA;
 
@@ -15,6 +15,7 @@ use std::sync::Arc;
 
 use crate::rendering::imgui::interface::*;
 use sdl2::event::Event;
+use crate::communication::{DebugRequest, DebugResponse};
 
 mod font;
 mod interface;
@@ -30,6 +31,7 @@ pub struct ImguiBoi {
     pub opengl_renderer: Renderer,
     pub input_handler: ImguiSdl2,
     state: State,
+    debug_state: DebugState,
     storage: Arc<FileStorage>,
 }
 
@@ -51,11 +53,12 @@ impl ImguiBoi {
         let opengl_renderer =
             imgui_opengl_renderer::Renderer::new(&mut imgui_context, |s| video_subsystem.gl_get_proc_address(s) as _);
         let input_handler = imgui_sdl2::ImguiSdl2::new(&mut imgui_context, host_window);
-        Self {
+        ImguiBoi {
             imgui_context,
             opengl_renderer,
             input_handler,
             state,
+            debug_state: DebugState::default(),
             storage,
         }
     }
@@ -76,8 +79,19 @@ impl ImmediateGui for ImguiBoi {
         Self::new(video_subsystem, host_window, storage)
     }
 
-    fn query_emulator(&mut self) {
-        unimplemented!()
+    fn query_emulator(&mut self) -> Vec<DebugRequest> {
+        use DebugRequest::*;
+        let mut result = Vec::with_capacity(10);
+        if self.state.palette_window {
+            result.push(Palette);
+        }
+        result
+    }
+
+    fn fulfill_query(&mut self, debug_response: DebugResponse) {
+        match debug_response {
+            DebugResponse::Palette(info) => self.debug_state.palette = Some(info),
+        }
     }
 
     fn prepare_render(&mut self, delta_time: f32, host_window: &sdl2::video::Window, mouse_state: &MouseState) {
@@ -92,7 +106,7 @@ impl ImmediateGui for ImguiBoi {
         {
             create_main_menu_bar(&mut self.state, &ui);
             show_metrics(&mut self.state, &ui);
-            show_palette_view(&mut self.state, &ui);
+            show_palette_view(&mut self.state, &ui, &mut self.debug_state);
         }
 
         // Need to clean the canvas before rendering the next set.

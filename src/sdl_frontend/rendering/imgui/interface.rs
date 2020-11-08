@@ -1,6 +1,7 @@
-use crate::rendering::imgui::state::State;
+use crate::rendering::imgui::state::{State, DebugState};
 use imgui::*;
 use sdl2::keyboard::Scancode;
+use rustyboi_core::hardware::ppu::palette::RGB;
 
 pub fn create_main_menu_bar(state: &mut State, ui: &Ui) {
     ui.main_menu_bar(|| {
@@ -32,17 +33,27 @@ pub fn show_metrics(state: &mut State, ui: &Ui) {
     }
 }
 
-pub fn show_palette_view(state: &mut State, ui: &Ui) {
+pub fn show_palette_view(state: &mut State, ui: &Ui, debug_state: &mut DebugState) {
     if state.palette_window {
-        Window::new(im_str!("Palette View"))
-            .size(size_a(ui, [200.0, 100.0]), Condition::Appearing)
-            .opened(&mut state.palette_window)
-            .build(ui, || {
-                ui.text("Hello World!");
-                ColorButton::new(im_str!("color_button"), [1.0, 0.0, 0.0, 1.0])
-                    .build(&ui);
-            })
+        if let Some(palette) = debug_state.palette.as_ref() {
+            Window::new(im_str!("Palette View"))
+                .size(size_a(ui, [200.0, 100.0]), Condition::Appearing)
+                .opened(&mut state.palette_window)
+                .build(ui, || {
+                    ui.text("Hello World!");
+                    ColorButton::new(im_str!("color_button"), rgb_to_imgui(palette.dmg_bg_palette[0]))
+                        .build(&ui);
+                })
+        }
     }
+}
+
+fn rgb_to_imgui(rgb: RGB) -> [f32; 4] {
+    let mut result = [1.0; 4];
+    let to_f32 = |c| c as f32 / 255.0;
+    result = [to_f32(rgb.0), to_f32(rgb.1), to_f32(rgb.2), 1.0];
+
+    result
 }
 
 fn size(ui: &Ui, size: f32) -> f32 {

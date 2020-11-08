@@ -24,7 +24,7 @@ use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
 use crate::rendering::imgui::ImguiBoi;
 use crate::rendering::Renderer;
 
-use crate::communication::{EmulatorNotification, EmulatorResponse};
+use crate::communication::{EmulatorNotification, EmulatorResponse, DebugRequest};
 use rustyboi::storage::{FileStorage, Storage};
 use std::sync::Arc;
 
@@ -33,6 +33,7 @@ use crate::benchmarking::Benchmarking;
 use crate::options::AppOptions;
 use gumdrop::Options;
 use crate::rendering::immediate::ImmediateGui;
+use crate::communication::EmulatorNotification::Debug;
 
 mod communication;
 mod gameboy;
@@ -169,7 +170,13 @@ fn main() {
             loop_cycles += frames_to_go;
         }
 
-        renderer.render_immediate_gui(&event_pump);
+        if let Some(requests) = renderer.render_immediate_gui(&event_pump) {
+            requests.into_iter()
+                .map(DebugRequest::wrap)
+                .for_each(|r| {
+                    gameboy_runner.request_sender.send(r);
+                });
+        }
 
         while let Ok(response) = gameboy_runner.response_receiver.try_recv() {
             match response {
@@ -179,7 +186,11 @@ fn main() {
                     audio_buffer = buffer;
                     emulation_state.awaiting_audio = false;
                 }
-                EmulatorResponse::Debug(_) => {}
+                EmulatorResponse::Debug(response) => {
+                    if let Some(imgui) = renderer.immediate_gui.as_mut() {
+                        imgui.fulfill_query(response);
+                    }
+                }
             }
         }
 
