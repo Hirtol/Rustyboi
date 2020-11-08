@@ -37,7 +37,7 @@ impl EmulatorMode {
 }
 
 pub struct Emulator {
-    cpu: CPU<Memory>,
+    pub(super) cpu: CPU<Memory>,
 }
 
 impl Emulator {

@@ -145,7 +145,7 @@ impl PPU {
     pub fn new(dmg_display_colour: DisplayColour) -> Self {
         let dmg_d_colour = dmg_display_colour.clone();
         PPU {
-            frame_buffer: [RGB(0, 255, 0); FRAMEBUFFER_SIZE],
+            frame_buffer: [RGB::default(); FRAMEBUFFER_SIZE],
             scanline_buffer: [RGB::default(); RESOLUTION_WIDTH],
             scanline_buffer_unpalette: [(0, false); RESOLUTION_WIDTH],
             tiles: [Tile::default(); 768],

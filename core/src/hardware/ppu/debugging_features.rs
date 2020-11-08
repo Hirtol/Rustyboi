@@ -1,6 +1,8 @@
-use crate::hardware::ppu::palette::{DisplayColour, RGB};
-use crate::hardware::ppu::tiledata::Tile;
+use crate::hardware::ppu::cgb_vram::CgbPalette;
+use crate::hardware::ppu::palette::{DisplayColour, Palette, RGB};
 use crate::hardware::ppu::PPU;
+use crate::hardware::ppu::tiledata::Tile;
+use bitflags::_core::iter::FromIterator;
 
 impl PPU {
     /// Returns an array of the full 768 tiles rendered next to each other in a
@@ -59,6 +61,34 @@ impl PPU {
     }
 }
 
+#[derive(Default, Debug, Clone, PartialOrd, PartialEq)]
 pub struct PaletteDebugInfo {
+    pub dmg_bg_palette: [RGB; 4],
+    pub dmg_sprite_palette: [[RGB; 4]; 2],
+    pub cgb_bg_palette: Vec<[RGB; 4]>,
+    pub cgb_sprite_palette: Vec<[RGB; 4]>,
+}
 
+impl PaletteDebugInfo {
+    pub fn new(ppu: &PPU) -> Self {
+        let cgb_to_rgb_array = |cgb: [CgbPalette; 8]| cgb.iter()
+            .map(|p| p.colours.iter().map(|c| c.rgb).collect::<[RGB;4]>())
+            .collect::<Vec<[RGB;4]>>();
+        PaletteDebugInfo {
+            dmg_bg_palette: ppu.bg_window_palette.colours,
+            dmg_sprite_palette: [ppu.oam_palette_0.colours, ppu.oam_palette_1.colours],
+            cgb_bg_palette: cgb_to_rgb_array(ppu.cgb_bg_palette),
+            cgb_sprite_palette: cgb_to_rgb_array(ppu.cgb_sprite_palette),
+        }
+    }
+}
+
+impl FromIterator<RGB> for [RGB;4] {
+    fn from_iter<T: IntoIterator<Item=RGB>>(iter: T) -> Self {
+        let mut result = [RGB::default(); 4];
+        for (i, rgb) in iter.into_iter().enumerate() {
+            result[i] = rgb;
+        }
+        result
+    }
 }

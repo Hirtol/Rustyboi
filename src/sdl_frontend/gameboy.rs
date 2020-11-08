@@ -1,4 +1,4 @@
-use crate::communication::{EmulatorNotification, EmulatorResponse};
+use crate::communication::{EmulatorNotification, EmulatorResponse, DebugRequest, DebugResponse};
 use core::option::Option::Some;
 use crossbeam::channel::*;
 use rustyboi::actions::{create_emulator, save_rom};
@@ -86,7 +86,11 @@ fn run_emulator(
                         break 'emu_loop;
                     }
                 }
-                EmulatorNotification::DebugRequest(_) => unimplemented!(),
+                EmulatorNotification::DebugRequest(request) => {
+                    if !handle_debug_request(request, emulator, &response_sender) {
+                        break 'emu_loop;
+                    }
+                },
                 EmulatorNotification::ExitRequest => {
                     break 'emu_loop;
                 }
@@ -96,5 +100,23 @@ fn run_emulator(
         // with the rendering thread we can safely clear the audio buffer here.
         // When running in fast forward we'll get a cool audio speedup effect.
         emulator.clear_audio_buffer();
+    }
+}
+
+fn handle_debug_request(request: DebugRequest, emulator: &mut Emulator,
+                        response_sender: &Sender<EmulatorResponse>) -> bool {
+    let response;
+    match request {
+        DebugRequest::Palette => {
+            response = response_sender
+                .send(DebugResponse::Palette(emulator.get_palette_info()).wrap());
+        }
+    }
+
+    if let Err(e) = response {
+        log::error!("Failed sending of palette info to debug request due to: {}", e);
+        false
+    } else {
+        true
     }
 }

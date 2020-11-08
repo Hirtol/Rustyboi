@@ -1,5 +1,6 @@
 use rustyboi_core::emulator::Emulator;
 use rustyboi_core::InputKey;
+use rustyboi_core::hardware::ppu::debugging_features::PaletteDebugInfo;
 
 /// Represents a notification for the emulator thread to execute when possible.
 pub enum EmulatorNotification {
@@ -14,7 +15,7 @@ pub enum EmulatorNotification {
 #[derive(Debug, Clone, PartialOrd, PartialEq)]
 pub enum EmulatorResponse {
     Audio(Vec<f32>),
-    DebugResponse(DebugResponse),
+    Debug(DebugResponse),
 }
 
 /// Represents a special (and possibly expensive) request for debug information to the emulator
@@ -24,7 +25,13 @@ pub enum DebugRequest {
     Palette,
 }
 
-#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
+#[derive(Debug, Clone, PartialOrd, PartialEq)]
 pub enum DebugResponse {
-    Palette
+    Palette(PaletteDebugInfo)
+}
+
+impl DebugResponse {
+    pub const fn wrap(self) -> EmulatorResponse {
+        EmulatorResponse::Debug(self)
+    }
 }

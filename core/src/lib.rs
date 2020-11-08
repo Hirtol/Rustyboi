@@ -6,6 +6,7 @@ pub use crate::io::joypad::InputKey;
 
 pub mod hardware;
 mod io;
+mod emulator_debug;
 
 /// Struct for wrapping all the various options for the `Emulator`
 #[derive(Debug)]

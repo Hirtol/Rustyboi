@@ -179,7 +179,7 @@ fn main() {
                     audio_buffer = buffer;
                     emulation_state.awaiting_audio = false;
                 }
-                EmulatorResponse::DebugResponse(_) => {}
+                EmulatorResponse::Debug(_) => {}
             }
         }
 
