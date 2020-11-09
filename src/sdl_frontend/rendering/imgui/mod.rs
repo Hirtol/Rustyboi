@@ -82,6 +82,7 @@ impl ImmediateGui for ImguiBoi {
     fn query_emulator(&mut self) -> Vec<DebugMessage> {
         use DebugMessage::*;
         let mut result = Vec::with_capacity(10);
+        result.push(Mode(None));
         if self.state.palette_window {
             result.push(Palette(None));
         }
@@ -91,6 +92,7 @@ impl ImmediateGui for ImguiBoi {
     fn fulfill_query(&mut self, debug_response: DebugMessage){
         match debug_response {
             DebugMessage::Palette(info) => self.debug_state.palette = info.unwrap_or_default(),
+            DebugMessage::Mode(mode) => self.debug_state.current_emu_mode = mode.unwrap(),
         }
     }
 

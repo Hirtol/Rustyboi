@@ -1,5 +1,6 @@
 use nanoserde::{DeJson, SerJson};
 use rustyboi_core::hardware::ppu::debugging_features::PaletteDebugInfo;
+use rustyboi_core::emulator::EmulatorMode;
 
 #[derive(Default, Debug, Copy, Clone, DeJson, SerJson)]
 pub struct State {
@@ -15,5 +16,6 @@ impl State {
 
 #[derive(Default, Debug, Clone)]
 pub struct DebugState {
+    pub current_emu_mode: EmulatorMode,
     pub palette: PaletteDebugInfo
 }

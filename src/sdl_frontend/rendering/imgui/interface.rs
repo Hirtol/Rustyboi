@@ -42,10 +42,10 @@ pub fn show_palette_view(state: &mut State, ui: &Ui, debug_state: &mut DebugStat
             .build(ui, || {
                 ui.columns(2, im_str!("Palettes"), true);
                 ui.text("Background Palettes:");
-                show_palettes_column(ui, &palette.cgb_bg_palette, "BG Colour ");
+                show_palettes_column(ui, &palette.bg_palette, "BG Colour ");
                 ui.next_column();
                 ui.text("Sprite Palettes:");
-                show_palettes_column(ui, &palette.cgb_sprite_palette, "Sprite Colour ");
+                show_palettes_column(ui, &palette.sprite_palette, "Sprite Colour ");
             })
     }
 }

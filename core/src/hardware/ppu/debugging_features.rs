@@ -3,6 +3,7 @@ use crate::hardware::ppu::palette::{DisplayColour, Palette, RGB};
 use crate::hardware::ppu::PPU;
 use crate::hardware::ppu::tiledata::Tile;
 use bitflags::_core::iter::FromIterator;
+use crate::emulator::EmulatorMode;
 
 impl PPU {
     /// Returns an array of the full 768 tiles rendered next to each other in a
@@ -63,22 +64,31 @@ impl PPU {
 
 #[derive(Default, Debug, Clone, PartialOrd, PartialEq)]
 pub struct PaletteDebugInfo {
-    pub dmg_bg_palette: [RGB; 4],
-    pub dmg_sprite_palette: [[RGB; 4]; 2],
-    pub cgb_bg_palette: Vec<[RGB; 4]>,
-    pub cgb_sprite_palette: Vec<[RGB; 4]>,
+    pub bg_palette: Vec<[RGB; 4]>,
+    pub sprite_palette: Vec<[RGB; 4]>,
 }
 
 impl PaletteDebugInfo {
-    pub fn new(ppu: &PPU) -> Self {
-        let cgb_to_rgb_array = |cgb: [CgbPalette; 8]| cgb.iter()
-            .map(|p| p.colours.iter().map(|c| c.rgb).collect())
-            .collect::<Vec<[RGB;4]>>();
+    pub fn new(ppu: &PPU, current_mode: EmulatorMode) -> Self {
+        let mut bg_palette;
+        let mut sprite_palette;
+        if current_mode.is_dmg() {
+            bg_palette = vec![[RGB::default(); 4]; 8];
+            sprite_palette = vec![[RGB::default(); 4]; 8];
+            bg_palette[0] = ppu.bg_window_palette.colours;
+            sprite_palette[0] = ppu.oam_palette_0.colours;
+            sprite_palette[1] = ppu.oam_palette_1.colours;
+        } else {
+            let cgb_to_rgb_array = |cgb: [CgbPalette; 8]| cgb.iter()
+                .map(|p| p.colours.iter().map(|c| c.rgb).collect())
+                .collect::<Vec<[RGB;4]>>();
+            bg_palette = cgb_to_rgb_array(ppu.cgb_bg_palette);
+            sprite_palette = cgb_to_rgb_array(ppu.cgb_sprite_palette);
+        }
+
         PaletteDebugInfo {
-            dmg_bg_palette: ppu.bg_window_palette.colours,
-            dmg_sprite_palette: [ppu.oam_palette_0.colours, ppu.oam_palette_1.colours],
-            cgb_bg_palette: cgb_to_rgb_array(ppu.cgb_bg_palette),
-            cgb_sprite_palette: cgb_to_rgb_array(ppu.cgb_sprite_palette),
+            bg_palette,
+            sprite_palette,
         }
     }
 }

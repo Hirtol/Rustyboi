@@ -26,6 +26,12 @@ pub enum EmulatorMode {
     CGB,
 }
 
+impl Default for EmulatorMode {
+    fn default() -> Self {
+        EmulatorMode::DMG
+    }
+}
+
 impl EmulatorMode {
     pub fn is_dmg(&self) -> bool {
         *self == EmulatorMode::DMG
@@ -60,14 +66,6 @@ impl Emulator {
     /// otherwise the data will be only partially complete.
     pub fn frame_buffer(&self) -> &[RGB; FRAMEBUFFER_SIZE] {
         self.cpu.mmu.ppu.frame_buffer()
-    }
-
-    pub fn vram_tiles(&self) -> [RGB; 8 * 8 * 768] {
-        self.cpu.mmu.ppu.tiles_cgb()
-    }
-
-    pub fn oam(&self) -> &[SpriteAttribute; 40] {
-        &self.cpu.mmu.ppu.oam
     }
 
     pub fn audio_buffer(&self) -> &[f32] {

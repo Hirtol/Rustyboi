@@ -110,6 +110,9 @@ fn handle_debug_request(request: DebugMessage, emulator: &mut Emulator,
         DebugMessage::Palette(_) => {
             response = response_sender.send(DebugMessage::Palette(emulator.get_palette_info().into()).into());
         }
+        DebugMessage::Mode(_) => {
+            response = response_sender.send(DebugMessage::Mode(emulator.emulator_mode().into()).into());
+        }
     }
 
     if let Err(e) = response {

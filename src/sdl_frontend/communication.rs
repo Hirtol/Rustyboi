@@ -23,6 +23,7 @@ pub enum EmulatorResponse {
 /// thread.
 #[derive(Debug, Clone, PartialOrd, PartialEq)]
 pub enum DebugMessage {
+    Mode(Option<EmulatorMode>),
     Palette(Option<PaletteDebugInfo>),
 }
 
