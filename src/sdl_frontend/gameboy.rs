@@ -70,15 +70,8 @@ fn run_emulator(
     response_sender: Sender<EmulatorResponse>,
     notification_receiver: Receiver<EmulatorNotification>,
 ) {
-    let mut extra_audio = false;
     'emu_loop: loop {
         emulator.run_to_vblank();
-
-        // Catch up mechanism in case we need more audio frames.
-        if extra_audio {
-            response_sender.send(EmulatorResponse::Audio(emulator.audio_buffer().to_vec()));
-            extra_audio = false;
-        }
 
         if let Err(e) = frame_sender.send(emulator.frame_buffer().clone()) {
             log::error!("Failed to transfer framebuffer due to: {:?}", e);
@@ -90,17 +83,19 @@ fn run_emulator(
                 EmulatorNotification::KeyDown(key) => emulator.handle_input(key, true),
                 EmulatorNotification::KeyUp(key) => emulator.handle_input(key, false),
                 EmulatorNotification::AudioRequest(mut audio_buffer) => {
-                    // If we have to handle
-                    if emulator.audio_buffer().len() == 0 {
-                        extra_audio = true;
-                        continue;
-                    }
                     audio_buffer.extend(emulator.audio_buffer().iter());
                     if let Err(e) = response_sender.send(EmulatorResponse::Audio(audio_buffer)) {
                         log::error!("Failed to transfer audio buffer due to: {:?}", e);
                         break 'emu_loop;
                     }
                     emulator.clear_audio_buffer();
+                }
+                EmulatorNotification::ExtraAudioRequest => {
+                    emulator.run_to_vblank();
+                    if let Err(e) = response_sender.send(EmulatorResponse::Audio(emulator.audio_buffer().to_vec())) {
+                        log::error!("Failed to transfer extra audio buffer due to: {:?}", e);
+                        break 'emu_loop;
+                    }
                 }
                 EmulatorNotification::Debug(request) => {
                     if !handle_debug_request(request, emulator, &response_sender) {

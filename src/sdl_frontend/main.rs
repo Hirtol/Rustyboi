@@ -68,9 +68,10 @@ const CONFIG_FILENAME: &str = "config.json";
 const FPS: u64 = 60;
 const FRAME_DELAY: Duration = Duration::from_nanos(1_000_000_000u64 / FPS);
 const FAST_FORWARD_MULTIPLIER: u32 = 40;
-// 200 ms of delay.
-const MAX_AUDIO_SAMPLES: u32 = 35_280;
-const MIN_AUDIO_SAMPLES: u32 = 17_640;
+// 0.25*44100*4 = 250 ms of delay at worst, average ~100 ms
+const MAX_AUDIO_SAMPLES: u32 = 44100;
+const MIN_AUDIO_SAMPLES: u32 = 8820;
+const AUDIO_FREQUENCY: i32 = 44100;
 
 fn main() {
     CombinedLogger::init(vec![
@@ -94,7 +95,7 @@ fn main() {
         .open_queue(
             None,
             &AudioSpecDesired {
-                freq: Some(44150),
+                freq: Some(AUDIO_FREQUENCY),
                 channels: Some(2),
                 samples: None,
             },
@@ -126,6 +127,7 @@ fn main() {
         .with_display_colours(KIRBY_DISPLAY_COLOURS)
         .build();
     let mut gameboy_runner = GameboyRunner::new(cartridge, emu_opts);
+    let mut audio_player = AudioPlayer::new(audio_queue, Duration::from_millis(100));
 
     let mut loop_cycles = 0;
 
@@ -134,29 +136,12 @@ fn main() {
     let mut last_update_time: Instant = Instant::now();
 
     let mut emulation_state = AppEmulatorState::default();
-    let mut audio_buffer = Vec::with_capacity(5000);
+
     let mut most_recent_frame: [RGB; FRAMEBUFFER_SIZE] = [RGB::default(); FRAMEBUFFER_SIZE];
-    //TODO: Allow emulator to run faster to generate more samples to refill buffer.
-    // Queue 4375/44100 ~= 100ms of silence as a buffer (todo: make configurable)
-    audio_queue.queue(&[0.0; 4375]);
-    audio_queue.resume();
+    audio_player.start();
 
     'mainloop: loop {
-        let audio_queue_size = audio_queue.size();
-
-        if !emulation_state.awaiting_audio && audio_queue_size < MAX_AUDIO_SAMPLES {
-            gameboy_runner
-                .request_sender
-                .send(EmulatorNotification::AudioRequest(audio_buffer));
-            if audio_queue_size < MIN_AUDIO_SAMPLES {
-                gameboy_runner
-                    .request_sender
-                    .send(EmulatorNotification::AudioRequest(Vec::new()));
-            }
-            // Needed to satisfy the borrow checker
-            audio_buffer = Vec::new();
-            emulation_state.awaiting_audio = true;
-        }
+        audio_player.send_requests(&gameboy_runner);
 
         if let Some(requests) = renderer.render_immediate_gui(&event_pump) {
             if !emulation_state.awaiting_debug {
@@ -184,11 +169,7 @@ fn main() {
         };
 
         // I should really figure out proper audio syncing ._.
-        if emulation_state.unbounded || emulation_state.fast_forward || audio_queue_size < MAX_AUDIO_SAMPLES {
-            if audio_queue_size < MIN_AUDIO_SAMPLES {
-                frames_to_go += 1;
-            }
-            log::warn!("Frames to queue: {} with queue size: {}", frames_to_go, audio_queue_size);
+        if emulation_state.unbounded || emulation_state.fast_forward || !audio_player.has_too_many_samples() {
             for _ in 0..frames_to_go {
                 if !emulation_state.emulator_paused {
                     most_recent_frame = gameboy_runner.frame_receiver.recv().unwrap();
@@ -196,17 +177,14 @@ fn main() {
                 renderer.render_main_window(&most_recent_frame);
             }
             loop_cycles += frames_to_go;
-        } else {
-            log::error!("Skipping at samples: {}", audio_queue_size);
         }
 
         while let Ok(response) = gameboy_runner.response_receiver.try_recv() {
             match response {
-                EmulatorResponse::Audio(mut buffer) => {
-                    audio_queue.queue(&buffer);
-                    buffer.clear();
-                    audio_buffer = buffer;
-                    emulation_state.awaiting_audio = false;
+                EmulatorResponse::Audio(buffer) => {
+                    if audio_player.receive_audio(buffer) {
+                        loop_cycles += 1;
+                    }
                 }
                 EmulatorResponse::Debug(response) => {
                     if let Some(imgui) = renderer.immediate_gui.as_mut() {
@@ -239,6 +217,82 @@ fn main() {
     }
 
     file_storage.save_value(CONFIG_FILENAME, &app_state);
+}
+
+struct AudioPlayer {
+    pub awaiting_audio: bool,
+    sdl_audio: AudioQueue<f32>,
+    channel_queue: Vec<f32>,
+}
+
+impl AudioPlayer {
+    /// Creates a new audio player for an SDL `AudioQueue`.
+    ///
+    /// Will start the queue by playing `initial_buffer_length` (millisecond accuracy)
+    /// silence as a buffer to avoid initial crackle.
+    pub fn new(sdl_audio: AudioQueue<f32>, initial_buffer_length: Duration) -> Self {
+        let silence_samples = initial_buffer_length.as_secs_f64() * AUDIO_FREQUENCY as f64;
+        sdl_audio.queue(&vec![0.0; silence_samples as usize]);
+        AudioPlayer{
+            awaiting_audio: false,
+            sdl_audio,
+            channel_queue: Vec::with_capacity(5000),
+        }
+    }
+
+    pub fn start(&self) {
+        self.sdl_audio.resume();
+    }
+
+    pub fn pause(&self) {
+        self.sdl_audio.pause()
+    }
+
+    #[inline]
+    pub fn has_enough_samples(&self) -> bool {
+        self.sdl_audio.size() >= MIN_AUDIO_SAMPLES
+    }
+
+    #[inline]
+    pub fn has_too_many_samples(&self) -> bool {
+        self.sdl_audio.size() >= MAX_AUDIO_SAMPLES
+    }
+
+    pub fn send_requests(&mut self, gameboy_runner: &GameboyRunner) {
+        if !self.awaiting_audio && !self.has_too_many_samples() {
+            let buffer_to_send = std::mem::replace(&mut self.channel_queue, Vec::new());
+            gameboy_runner
+                .request_sender
+                .send(EmulatorNotification::AudioRequest(buffer_to_send));
+            if !self.has_enough_samples() {
+                gameboy_runner
+                    .request_sender
+                    .send(EmulatorNotification::ExtraAudioRequest);
+            }
+
+            self.awaiting_audio = true;
+        }
+    }
+
+    /// Receive and play a audio buffer from the emulator
+    ///
+    /// # Returns
+    /// Will return `true` if we asked for an additional catch-up frame to be run
+    /// so that we won't starve the audio buffer.
+    pub fn receive_audio(&mut self, mut received_buffer: Vec<f32>) -> bool {
+        self.sdl_audio.queue(&received_buffer);
+        received_buffer.clear();
+        if received_buffer.capacity() > self.channel_queue.capacity() {
+            self.channel_queue = received_buffer;
+        }
+        if self.awaiting_audio {
+            self.awaiting_audio = false;
+            false
+        } else {
+            // We executed an extra frame to catch up with the audio.
+            true
+        }
+    }
 }
 
 fn handle_events(
