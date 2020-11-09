@@ -24,7 +24,7 @@ use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
 use crate::rendering::imgui::ImguiBoi;
 use crate::rendering::Renderer;
 
-use crate::communication::{EmulatorNotification, EmulatorResponse, DebugRequest};
+use crate::communication::{EmulatorNotification, EmulatorResponse, DebugMessage};
 use rustyboi::storage::{FileStorage, Storage};
 use std::sync::Arc;
 
@@ -172,7 +172,7 @@ fn main() {
 
         if let Some(requests) = renderer.render_immediate_gui(&event_pump) {
             requests.into_iter()
-                .map(DebugRequest::wrap)
+                .map(DebugMessage::into)
                 .for_each(|r| {
                     gameboy_runner.request_sender.send(r);
                 });

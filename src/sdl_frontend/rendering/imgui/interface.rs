@@ -49,9 +49,10 @@ pub fn show_palette_view(state: &mut State, ui: &Ui, debug_state: &mut DebugStat
             })
     }
 }
-//TODO: Figure out why we get a stack overflow if we don't inline this?!
+
 #[inline(always)]
 fn show_palettes_column(ui: &Ui, palettes: &Vec<[RGB; 4]>, name_prefix: &str) {
+    //TODO: Figure out why we get a stack overflow if we don't inline this?!
     for (index, c_palette) in palettes.iter().enumerate() {
         move_hori_cursor(ui, 2.0);
         for i in 0..4 {

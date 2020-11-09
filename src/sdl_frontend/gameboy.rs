@@ -1,4 +1,4 @@
-use crate::communication::{EmulatorNotification, EmulatorResponse, DebugRequest, DebugResponse};
+use crate::communication::{EmulatorNotification, EmulatorResponse, DebugMessage};
 use core::option::Option::Some;
 use crossbeam::channel::*;
 use rustyboi::actions::{create_emulator, save_rom};
@@ -103,13 +103,12 @@ fn run_emulator(
     }
 }
 
-fn handle_debug_request(request: DebugRequest, emulator: &mut Emulator,
+fn handle_debug_request(request: DebugMessage, emulator: &mut Emulator,
                         response_sender: &Sender<EmulatorResponse>) -> bool {
     let response;
     match request {
-        DebugRequest::Palette => {
-            response = response_sender
-                .send(DebugResponse::Palette(emulator.get_palette_info()).wrap());
+        DebugMessage::Palette(_) => {
+            response = response_sender.send(DebugMessage::Palette(emulator.get_palette_info().into()).into());
         }
     }
 

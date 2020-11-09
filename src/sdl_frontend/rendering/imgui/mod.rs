@@ -15,7 +15,7 @@ use std::sync::Arc;
 
 use crate::rendering::imgui::interface::*;
 use sdl2::event::Event;
-use crate::communication::{DebugRequest, DebugResponse};
+use crate::communication::{DebugMessage};
 
 mod font;
 mod interface;
@@ -79,18 +79,18 @@ impl ImmediateGui for ImguiBoi {
         Self::new(video_subsystem, host_window, storage)
     }
 
-    fn query_emulator(&mut self) -> Vec<DebugRequest> {
-        use DebugRequest::*;
+    fn query_emulator(&mut self) -> Vec<DebugMessage> {
+        use DebugMessage::*;
         let mut result = Vec::with_capacity(10);
         if self.state.palette_window {
-            result.push(Palette);
+            result.push(Palette(None));
         }
         result
     }
 
-    fn fulfill_query(&mut self, debug_response: DebugResponse) {
+    fn fulfill_query(&mut self, debug_response: DebugMessage){
         match debug_response {
-            DebugResponse::Palette(info) => self.debug_state.palette = info,
+            DebugMessage::Palette(info) => self.debug_state.palette = info.unwrap_or_default(),
         }
     }
 

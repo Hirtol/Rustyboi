@@ -1,4 +1,4 @@
-use rustyboi_core::emulator::Emulator;
+use rustyboi_core::emulator::{Emulator, EmulatorMode};
 use rustyboi_core::InputKey;
 use rustyboi_core::hardware::ppu::debugging_features::PaletteDebugInfo;
 
@@ -10,35 +10,30 @@ pub enum EmulatorNotification {
     /// Pass the audio buffer back and forth to avoid constant heap allocation
     AudioRequest(Vec<f32>),
     ExitRequest,
-    Debug(DebugRequest),
+    Debug(DebugMessage),
 }
 
 #[derive(Debug, Clone, PartialOrd, PartialEq)]
 pub enum EmulatorResponse {
     Audio(Vec<f32>),
-    Debug(DebugResponse),
+    Debug(DebugMessage),
 }
 
 /// Represents a special (and possibly expensive) request for debug information to the emulator
 /// thread.
-#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
-pub enum DebugRequest {
-    Palette,
-}
-
 #[derive(Debug, Clone, PartialOrd, PartialEq)]
-pub enum DebugResponse {
-    Palette(PaletteDebugInfo)
+pub enum DebugMessage {
+    Palette(Option<PaletteDebugInfo>),
 }
 
-impl DebugRequest {
-    pub const fn wrap(self) -> EmulatorNotification {
+impl Into<EmulatorNotification> for DebugMessage {
+    fn into(self) -> EmulatorNotification {
         EmulatorNotification::Debug(self)
     }
 }
 
-impl DebugResponse {
-    pub const fn wrap(self) -> EmulatorResponse {
+impl Into<EmulatorResponse> for DebugMessage {
+    fn into(self) -> EmulatorResponse {
         EmulatorResponse::Debug(self)
     }
 }

@@ -3,7 +3,7 @@ use sdl2::mouse::MouseState;
 use rustyboi::storage::FileStorage;
 use std::sync::Arc;
 use sdl2::event::Event;
-use crate::communication::{DebugResponse, DebugRequest};
+use crate::communication::{DebugMessage};
 
 pub trait ImmediateGui {
     /// Create a new instance of the type implementing `ImmediateGui`.
@@ -16,10 +16,10 @@ pub trait ImmediateGui {
     /// Returns a list of `DebugRequests` the GUI wishes to have fulfilled.
     /// Requests can be dropped, in which case the GUI shouldn't display anything and will send the
     /// request again at the next opportunity.
-    fn query_emulator(&mut self) -> Vec<DebugRequest> ;
+    fn query_emulator(&mut self) -> Vec<DebugMessage> ;
 
     /// Fulfills the GUI's request presented at `query_emulator`.
-    fn fulfill_query(&mut self, debug_response: DebugResponse);
+    fn fulfill_query(&mut self, debug_response: DebugMessage);
 
     fn prepare_render(&mut self, delta_time: f32, host_window: &sdl2::video::Window, mouse_state: &MouseState);
 
