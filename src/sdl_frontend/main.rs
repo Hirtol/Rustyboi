@@ -136,6 +136,7 @@ fn main() {
 
     'mainloop: loop {
         let audio_queue_size = audio_queue.size();
+
         if !emulation_state.awaiting_audio && audio_queue_size < MAX_AUDIO_SAMPLES {
             gameboy_runner
                 .request_sender
@@ -143,6 +144,17 @@ fn main() {
             // Needed to satisfy the borrow checker
             audio_buffer = Vec::new();
             emulation_state.awaiting_audio = true;
+        }
+
+        if let Some(requests) = renderer.render_immediate_gui(&event_pump) {
+            if !emulation_state.awaiting_debug {
+                requests.into_iter()
+                    .map(DebugMessage::into)
+                    .for_each(|r| {
+                        gameboy_runner.request_sender.send(r);
+                    });
+                emulation_state.awaiting_debug = true;
+            }
         }
 
         let ticks = timer.ticks() as i32;
@@ -170,14 +182,6 @@ fn main() {
             loop_cycles += frames_to_go;
         }
 
-        if let Some(requests) = renderer.render_immediate_gui(&event_pump) {
-            requests.into_iter()
-                .map(DebugMessage::into)
-                .for_each(|r| {
-                    gameboy_runner.request_sender.send(r);
-                });
-        }
-
         while let Ok(response) = gameboy_runner.response_receiver.try_recv() {
             match response {
                 EmulatorResponse::Audio(mut buffer) => {
@@ -190,6 +194,7 @@ fn main() {
                     if let Some(imgui) = renderer.immediate_gui.as_mut() {
                         imgui.fulfill_query(response);
                     }
+                    emulation_state.awaiting_debug = false;
                 }
             }
         }
@@ -256,8 +261,10 @@ fn handle_events(
         Event::DropFile { filename, .. } => {
             if filename.ends_with(".gb") || filename.ends_with(".gbc") {
                 debug!("Opening file: {}", filename);
-                app_state.awaiting_audio = false;
+
+                app_state.reset();
                 gameboy_runner.stop();
+
                 let emu_opts = EmulatorOptionsBuilder::new()
                     .with_mode(CGB)
                     .with_display_colours(KIRBY_DISPLAY_COLOURS)

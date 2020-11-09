@@ -12,6 +12,16 @@ pub struct AppEmulatorState {
     pub exit: bool,
     /// Whether we're currently awaiting audio from the emulation thread.
     pub awaiting_audio: bool,
+    /// Whether we're currently awaiting debug info from the emulation thread.
+    pub awaiting_debug: bool,
+}
+
+impl AppEmulatorState {
+    pub fn reset(&mut self) {
+        self.awaiting_debug = false;
+        self.awaiting_audio = false;
+        self.emulator_paused = false;
+    }
 }
 
 #[derive(Debug, Copy, Clone, SerJson, DeJson)]
