@@ -4,7 +4,6 @@ use sdl2::keyboard::Scancode;
 use rustyboi_core::hardware::ppu::palette::RGB;
 
 use crate::rendering::imgui::state::{DebugState, State, Notification};
-use std::cmp::min;
 
 pub fn create_main_menu_bar(state: &mut State, ui: &Ui) {
     ui.main_menu_bar(|| {
@@ -35,7 +34,8 @@ pub fn show_notification(debug: &mut DebugState, ui: &Ui) {
     if debug.notification.animation_duration <= 0.0 {
         return;
     }
-    const ALERT_COLOUR: [f32; 4] = [51./255., 51./255., 153./255., 1.0];
+    //TODO: Change to const if f32 in const functions ever gets stabilised.
+    let alert_colour: [f32; 4] = rgb_to_f32(51, 51, 153);
     let display_size = ui.io().display_size;
     let window_width = size(ui, 6.7f32.max(display_size[0] / 180.));
     let window_height =  size(ui, 5.5f32.max(display_size[0] / 270.));
@@ -51,7 +51,7 @@ pub fn show_notification(debug: &mut DebugState, ui: &Ui) {
         .save_settings(false)
         .build(ui, || {
             ui.set_window_font_scale(1.5);
-            ui.text_colored(ALERT_COLOUR, "Alert");
+            ui.text_colored(alert_colour, "Alert");
             ui.set_window_font_scale(1.0);
             ui.separator();
             ui.text_wrapped(&im_str!("{}", debug.notification.message));
@@ -125,11 +125,7 @@ fn show_palettes_column(ui: &Ui, notification: &mut Notification, palettes: &Vec
 }
 
 fn rgb_to_imgui(rgb: &RGB) -> [f32; 4] {
-    let mut result = [1.0; 4];
-    let to_f32 = |c| c as f32 / 255.0;
-    result = [to_f32(rgb.0), to_f32(rgb.1), to_f32(rgb.2), 1.0];
-
-    result
+    rgb_to_f32(rgb.0, rgb.1, rgb.2)
 }
 
 #[inline]
@@ -160,4 +156,8 @@ fn size_a(ui: &Ui, mut sizes: [f32; 2]) -> [f32; 2] {
         *siz = size(ui, *siz);
     }
     sizes
+}
+
+fn rgb_to_f32(red: u8, green: u8, blue: u8) -> [f32; 4] {
+    [red as f32 /255., green as f32 /255., blue as f32 /255., 1.0]
 }
