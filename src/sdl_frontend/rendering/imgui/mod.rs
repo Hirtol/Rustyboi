@@ -107,6 +107,7 @@ impl ImmediateGui for ImguiBoi {
 
         {
             create_main_menu_bar(&mut self.state, &ui);
+            show_notification(&mut self.debug_state, &ui);
             show_metrics(&mut self.state, &ui);
             show_palette_view(&mut self.state, &ui, &mut self.debug_state);
         }

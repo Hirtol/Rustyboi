@@ -74,6 +74,8 @@ fn main() {
         TermLogger::new(LevelFilter::Trace, Config::default(), TerminalMode::Mixed),
         //WriteLogger::new(LevelFilter::Trace, ConfigBuilder::new().set_location_level(LevelFilter::Off).set_time_level(LevelFilter::Off).set_target_level(LevelFilter::Off).build(), std::io::BufWriter::new(File::create("rustyboi.log").unwrap())),
     ]).unwrap();
+    // We want the first click on a gui element to actually register
+    sdl2::hint::set("SDL_MOUSE_FOCUS_CLICKTHROUGH", "1");
 
     let options: AppOptions = AppOptions::parse_args_default_or_exit();
 
@@ -108,8 +110,6 @@ fn main() {
     let _yellow = "roms/Pokemon - Yellow Version.gbc";
     let _cpu_test = "test roms/auto-run/window_y_trigger.gb";
     let _cpu_test2 = "test roms/auto-run/hdma_timing-C.gbc";
-
-
 
     //Things to do:
     // 1: APU improvements to use a proper sampler so that we can re-architect the way we do ticking

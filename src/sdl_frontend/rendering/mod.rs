@@ -114,7 +114,7 @@ where
             let window_flags = window.window_flags();
             if self.last_immediate_frame.elapsed().as_secs_f64()
                 >= 1.0 / window.display_mode().unwrap().refresh_rate as f64
-                && window_flags & sdl2::sys::SDL_WindowFlags::SDL_WINDOW_HIDDEN as u32 == 0
+                && window_flags & sdl2::sys::SDL_WindowFlags::SDL_WINDOW_HIDDEN as u32 != 1
             {
                 let delta = self.last_immediate_frame.elapsed();
                 let delta_s = delta.as_nanos() as f32 * 1e-9;
