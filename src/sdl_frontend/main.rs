@@ -76,6 +76,7 @@ fn main() {
     ]).unwrap();
     // We want the first click on a gui element to actually register
     sdl2::hint::set("SDL_MOUSE_FOCUS_CLICKTHROUGH", "1");
+    sdl2::hint::set_video_minimize_on_focus_loss(false);
 
     let options: AppOptions = AppOptions::parse_args_default_or_exit();
 
@@ -283,6 +284,7 @@ fn handle_events(
                     Keycode::U => app_state.unbounded = !app_state.unbounded,
                     Keycode::P => app_state.emulator_paused = !app_state.emulator_paused,
                     Keycode::K => renderer.setup_immediate_gui("Rustyboi Debugging").unwrap(),
+                    Keycode::F11 => renderer.toggle_main_window_fullscreen(),
                     // Keycode::O => println!("{:#?}", notifier.oam()),
                     // Keycode::L => {
                     //     let mut true_image_buffer = vec![0u8; 768*8*8*3];

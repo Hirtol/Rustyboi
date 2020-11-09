@@ -3,7 +3,7 @@ use std::time::Instant;
 
 use sdl2::mouse::MouseState;
 use sdl2::render::{Canvas, Texture};
-use sdl2::video::{GLContext, GLProfile, Window, WindowPos};
+use sdl2::video::{GLContext, GLProfile, Window, WindowPos, FullscreenType};
 use sdl2::{EventPump, VideoSubsystem};
 
 use rustyboi_core::hardware::ppu::palette::RGB;
@@ -62,32 +62,6 @@ where
         })
     }
 
-    /// Create a second window and setup the debug context within
-    pub fn setup_immediate_gui(&mut self, title: impl AsRef<str>) -> anyhow::Result<()> {
-        if let (Some(window), Some(_)) = (&mut self.debug_window, &self.immediate_gui) {
-            window.raise();
-            Ok(())
-        } else {
-            // Ensure the video subsystem has created the correct OpenGL context.
-            let gl_attr = self.sdl_video_system.gl_attr();
-            gl_attr.set_context_profile(GLProfile::Core);
-            gl_attr.set_context_version(4, 5);
-
-            self.setup_second_window(title)?;
-
-            // We need the gl_context to not be dropped for the remainder of the program.
-            self.gl_context = Some(self.debug_window.as_ref().unwrap().gl_create_context().unwrap());
-            gl::load_with(|s| self.sdl_video_system.gl_get_proc_address(s) as _);
-
-            self.immediate_gui = Some(T::new(
-                &self.sdl_video_system,
-                self.debug_window.as_ref().unwrap(),
-                self.storage.clone(),
-            ));
-            Ok(())
-        }
-    }
-
     /// Closes the debug window, and drops any contexts that were present.
     pub fn close_immediate_gui(&mut self) {
         self.debug_window = None;
@@ -137,6 +111,43 @@ where
         }
 
         None
+    }
+
+    /// Toggle the fullscreen mode of the current main window.
+    pub fn toggle_main_window_fullscreen(&mut self) {
+        let window = self.main_window.window_mut();
+        let current = window.fullscreen_state();
+        if current == FullscreenType::Off {
+            window.set_fullscreen(FullscreenType::Desktop);
+        } else {
+            window.set_fullscreen(FullscreenType::Off);
+        }
+    }
+
+    /// Create a second window and setup the debug context within
+    pub fn setup_immediate_gui(&mut self, title: impl AsRef<str>) -> anyhow::Result<()> {
+        if let (Some(window), Some(_)) = (&mut self.debug_window, &self.immediate_gui) {
+            window.raise();
+            Ok(())
+        } else {
+            // Ensure the video subsystem has created the correct OpenGL context.
+            let gl_attr = self.sdl_video_system.gl_attr();
+            gl_attr.set_context_profile(GLProfile::Core);
+            gl_attr.set_context_version(4, 5);
+
+            self.setup_second_window(title)?;
+
+            // We need the gl_context to not be dropped for the remainder of the program.
+            self.gl_context = Some(self.debug_window.as_ref().unwrap().gl_create_context().unwrap());
+            gl::load_with(|s| self.sdl_video_system.gl_get_proc_address(s) as _);
+
+            self.immediate_gui = Some(T::new(
+                &self.sdl_video_system,
+                self.debug_window.as_ref().unwrap(),
+                self.storage.clone(),
+            ));
+            Ok(())
+        }
     }
 
     /// Simple helper function for setting up the immediate gui.
