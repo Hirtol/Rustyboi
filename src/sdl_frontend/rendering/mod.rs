@@ -3,7 +3,7 @@ use std::time::Instant;
 
 use sdl2::mouse::MouseState;
 use sdl2::render::{Canvas, Texture};
-use sdl2::video::{GLContext, GLProfile, Window, WindowPos, FullscreenType};
+use sdl2::video::{GLContext, GLProfile, Window, WindowPos, FullscreenType, SwapInterval};
 use sdl2::{EventPump, VideoSubsystem};
 
 use rustyboi_core::hardware::ppu::palette::RGB;
@@ -86,8 +86,11 @@ where
     pub fn render_immediate_gui(&mut self, event_pump: &EventPump) -> Option<Vec<DebugMessage>> {
         if let (Some(window), Some(gui)) = (&self.debug_window, &mut self.immediate_gui) {
             let window_flags = window.window_flags();
+            // We add 10 to the refresh rate due to this, rather janky, time check since we'd otherwise
+            // only render at ~3/4ths of whatever refresh rate the monitor has due to our inconsistent
+            // main loop time.
             if self.last_immediate_frame.elapsed().as_secs_f64()
-                >= 1.0 / window.display_mode().unwrap().refresh_rate as f64
+                >= 1.0 / (window.display_mode().unwrap().refresh_rate+10) as f64
                 && window_flags & sdl2::sys::SDL_WindowFlags::SDL_WINDOW_HIDDEN as u32 != 1
             {
                 let delta = self.last_immediate_frame.elapsed();
@@ -140,6 +143,7 @@ where
             // We need the gl_context to not be dropped for the remainder of the program.
             self.gl_context = Some(self.debug_window.as_ref().unwrap().gl_create_context().unwrap());
             gl::load_with(|s| self.sdl_video_system.gl_get_proc_address(s) as _);
+            self.sdl_video_system.gl_set_swap_interval(SwapInterval::Immediate);
 
             self.immediate_gui = Some(T::new(
                 &self.sdl_video_system,

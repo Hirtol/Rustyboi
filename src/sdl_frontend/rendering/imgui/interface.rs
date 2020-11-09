@@ -115,7 +115,7 @@ fn show_palettes_column(ui: &Ui, notification: &mut Notification, palettes: &Vec
                 .alpha(false)
                 .build(&ui) {
                 ui.set_clipboard_text(&im_str!("{:?}", rgb));
-                *notification = Notification::new("Copied to clipboard!");
+                *notification = Notification::new("Copied colour to clipboard!");
             }
             if i != 3 {
                 ui.same_line(0.0);
