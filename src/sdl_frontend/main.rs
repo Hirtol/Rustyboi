@@ -1,6 +1,6 @@
 use log::LevelFilter;
 use log::*;
-use rustyboi_core::emulator::Emulator;
+use rustyboi_core::emulator::{Emulator, CYCLES_PER_FRAME};
 
 use rustyboi_core::{EmulatorOptionsBuilder, InputKey};
 use sdl2::keyboard::Keycode;
@@ -34,6 +34,7 @@ use crate::options::AppOptions;
 use gumdrop::Options;
 use crate::rendering::immediate::ImmediateGui;
 use crate::communication::EmulatorNotification::Debug;
+use rustyboi_core::hardware::apu::SAMPLE_CYCLES;
 
 mod communication;
 mod gameboy;
@@ -67,7 +68,9 @@ const CONFIG_FILENAME: &str = "config.json";
 const FPS: u64 = 60;
 const FRAME_DELAY: Duration = Duration::from_nanos(1_000_000_000u64 / FPS);
 const FAST_FORWARD_MULTIPLIER: u32 = 40;
-const MAX_AUDIO_SAMPLES: u32 = 70_000;
+// 200 ms of delay.
+const MAX_AUDIO_SAMPLES: u32 = 35_280;
+const MIN_AUDIO_SAMPLES: u32 = 17_640;
 
 fn main() {
     CombinedLogger::init(vec![
@@ -91,7 +94,7 @@ fn main() {
         .open_queue(
             None,
             &AudioSpecDesired {
-                freq: Some(44100),
+                freq: Some(44150),
                 channels: Some(2),
                 samples: None,
             },
@@ -133,6 +136,9 @@ fn main() {
     let mut emulation_state = AppEmulatorState::default();
     let mut audio_buffer = Vec::with_capacity(5000);
     let mut most_recent_frame: [RGB; FRAMEBUFFER_SIZE] = [RGB::default(); FRAMEBUFFER_SIZE];
+    //TODO: Allow emulator to run faster to generate more samples to refill buffer.
+    // Queue 4375/44100 ~= 100ms of silence as a buffer (todo: make configurable)
+    audio_queue.queue(&[0.0; 4375]);
     audio_queue.resume();
 
     'mainloop: loop {
@@ -142,6 +148,11 @@ fn main() {
             gameboy_runner
                 .request_sender
                 .send(EmulatorNotification::AudioRequest(audio_buffer));
+            if audio_queue_size < MIN_AUDIO_SAMPLES {
+                gameboy_runner
+                    .request_sender
+                    .send(EmulatorNotification::AudioRequest(Vec::new()));
+            }
             // Needed to satisfy the borrow checker
             audio_buffer = Vec::new();
             emulation_state.awaiting_audio = true;
@@ -166,14 +177,18 @@ fn main() {
             }
         }
 
-        let frames_to_go = if emulation_state.fast_forward {
+        let mut frames_to_go = if emulation_state.fast_forward {
             app_state.fast_forward_rate
         } else {
             1
         };
 
         // I should really figure out proper audio syncing ._.
-        if emulation_state.unbounded || audio_queue_size < MAX_AUDIO_SAMPLES {
+        if emulation_state.unbounded || emulation_state.fast_forward || audio_queue_size < MAX_AUDIO_SAMPLES {
+            if audio_queue_size < MIN_AUDIO_SAMPLES {
+                frames_to_go += 1;
+            }
+            log::warn!("Frames to queue: {} with queue size: {}", frames_to_go, audio_queue_size);
             for _ in 0..frames_to_go {
                 if !emulation_state.emulator_paused {
                     most_recent_frame = gameboy_runner.frame_receiver.recv().unwrap();
@@ -181,6 +196,8 @@ fn main() {
                 renderer.render_main_window(&most_recent_frame);
             }
             loop_cycles += frames_to_go;
+        } else {
+            log::error!("Skipping at samples: {}", audio_queue_size);
         }
 
         while let Ok(response) = gameboy_runner.response_receiver.try_recv() {
@@ -201,11 +218,10 @@ fn main() {
         }
 
         if last_update_time.elapsed().as_millis() >= 1000 {
-            let average_delta = last_update_time.elapsed();
             renderer.main_window.window_mut().set_title(
                 format!(
                     "RustyBoi - {:.2} FPS",
-                    (loop_cycles as f64 / average_delta.as_secs_f64())
+                    (loop_cycles as f64 /  last_update_time.elapsed().as_secs_f64())
                 )
                 .as_str(),
             );

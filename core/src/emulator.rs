@@ -94,11 +94,17 @@ impl Emulator {
         self.cpu.mmu.ppu.update_display_colours(display_colours);
     }
 
+    /// Run the emulator until it has reached Vblank (every 70224 t-cycles)
+    pub fn run_to_vblank(&mut self) {
+        while !self.emulate_cycle() {}
+    }
+
     /// Emulate one CPU cycle, and any other things that need to happen.
     ///
     /// # Returns
     ///
     /// Returns whether VBlank occurred in this emulator cycle.
+    #[inline(always)]
     pub fn emulate_cycle(&mut self) -> bool {
         self.cpu.step_cycle();
 

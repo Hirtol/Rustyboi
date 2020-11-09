@@ -1,13 +1,16 @@
-use crate::communication::{EmulatorNotification, EmulatorResponse, DebugMessage};
 use core::option::Option::Some;
-use crossbeam::channel::*;
-use rustyboi::actions::{create_emulator, save_rom};
-use rustyboi_core::emulator::Emulator;
-use rustyboi_core::hardware::ppu::palette::RGB;
-use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
-use rustyboi_core::{EmulatorOptions, InputKey};
 use std::path::Path;
 use std::thread::JoinHandle;
+
+use crossbeam::channel::*;
+
+use rustyboi::actions::{create_emulator, save_rom};
+use rustyboi_core::{EmulatorOptions, InputKey};
+use rustyboi_core::emulator::Emulator;
+use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
+use rustyboi_core::hardware::ppu::palette::RGB;
+
+use crate::communication::{DebugMessage, EmulatorNotification, EmulatorResponse};
 
 pub struct GameboyRunner {
     current_thread: Option<JoinHandle<()>>,
@@ -67,8 +70,15 @@ fn run_emulator(
     response_sender: Sender<EmulatorResponse>,
     notification_receiver: Receiver<EmulatorNotification>,
 ) {
+    let mut extra_audio = false;
     'emu_loop: loop {
-        while !emulator.emulate_cycle() {}
+        emulator.run_to_vblank();
+
+        // Catch up mechanism in case we need more audio frames.
+        if extra_audio {
+            response_sender.send(EmulatorResponse::Audio(emulator.audio_buffer().to_vec()));
+            extra_audio = false;
+        }
 
         if let Err(e) = frame_sender.send(emulator.frame_buffer().clone()) {
             log::error!("Failed to transfer framebuffer due to: {:?}", e);
@@ -80,11 +90,17 @@ fn run_emulator(
                 EmulatorNotification::KeyDown(key) => emulator.handle_input(key, true),
                 EmulatorNotification::KeyUp(key) => emulator.handle_input(key, false),
                 EmulatorNotification::AudioRequest(mut audio_buffer) => {
+                    // If we have to handle
+                    if emulator.audio_buffer().len() == 0 {
+                        extra_audio = true;
+                        continue;
+                    }
                     audio_buffer.extend(emulator.audio_buffer().iter());
                     if let Err(e) = response_sender.send(EmulatorResponse::Audio(audio_buffer)) {
                         log::error!("Failed to transfer audio buffer due to: {:?}", e);
                         break 'emu_loop;
                     }
+                    emulator.clear_audio_buffer();
                 }
                 EmulatorNotification::Debug(request) => {
                     if !handle_debug_request(request, emulator, &response_sender) {
