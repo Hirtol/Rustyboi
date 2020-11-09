@@ -70,7 +70,7 @@ const FRAME_DELAY: Duration = Duration::from_nanos(1_000_000_000u64 / FPS);
 const FAST_FORWARD_MULTIPLIER: u32 = 40;
 // 0.25*44100*4 = 250 ms of delay at worst, average ~100 ms
 const MAX_AUDIO_SAMPLES: u32 = 44100;
-const MIN_AUDIO_SAMPLES: u32 = 8820;
+const MIN_AUDIO_SAMPLES: u32 = 12000;
 const AUDIO_FREQUENCY: i32 = 44100;
 
 fn main() {
@@ -157,7 +157,7 @@ fn main() {
         let ticks = timer.ticks() as i32;
 
         for event in event_pump.poll_iter() {
-            if !handle_events(event, &mut gameboy_runner, &mut emulation_state, &mut renderer) {
+            if !handle_events(event, &mut gameboy_runner, &mut audio_player, &mut emulation_state, &mut renderer) {
                 break 'mainloop;
             }
         }
@@ -220,7 +220,7 @@ fn main() {
 }
 
 struct AudioPlayer {
-    pub awaiting_audio: bool,
+    awaiting_audio: bool,
     sdl_audio: AudioQueue<f32>,
     channel_queue: Vec<f32>,
 }
@@ -246,6 +246,11 @@ impl AudioPlayer {
 
     pub fn pause(&self) {
         self.sdl_audio.pause()
+    }
+
+    pub fn reset(&mut self) {
+        self.awaiting_audio = false;
+        self.channel_queue = Vec::with_capacity(5000);
     }
 
     #[inline]
@@ -298,6 +303,7 @@ impl AudioPlayer {
 fn handle_events(
     event: Event,
     gameboy_runner: &mut GameboyRunner,
+    audio_player: &mut AudioPlayer,
     app_state: &mut AppEmulatorState,
     renderer: &mut Renderer<ImguiBoi>,
 ) -> bool {
@@ -334,6 +340,7 @@ fn handle_events(
                 debug!("Opening file: {}", filename);
 
                 app_state.reset();
+                audio_player.reset();
                 gameboy_runner.stop();
 
                 let emu_opts = EmulatorOptionsBuilder::new()

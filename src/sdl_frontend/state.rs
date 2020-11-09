@@ -10,8 +10,6 @@ pub struct AppEmulatorState {
     pub unbounded: bool,
     /// Whether the app should exit asap
     pub exit: bool,
-    /// Whether we're currently awaiting audio from the emulation thread.
-    pub awaiting_audio: bool,
     /// Whether we're currently awaiting debug info from the emulation thread.
     pub awaiting_debug: bool,
 }
@@ -19,7 +17,6 @@ pub struct AppEmulatorState {
 impl AppEmulatorState {
     pub fn reset(&mut self) {
         self.awaiting_debug = false;
-        self.awaiting_audio = false;
         self.emulator_paused = false;
     }
 }
