@@ -90,7 +90,7 @@ impl ImmediateGui for ImguiBoi {
 
     fn fulfill_query(&mut self, debug_response: DebugResponse) {
         match debug_response {
-            DebugResponse::Palette(info) => self.debug_state.palette = Some(info),
+            DebugResponse::Palette(info) => self.debug_state.palette = info,
         }
     }
 

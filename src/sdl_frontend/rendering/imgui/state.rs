@@ -15,5 +15,5 @@ impl State {
 
 #[derive(Default, Debug, Clone)]
 pub struct DebugState {
-    pub palette: Option<PaletteDebugInfo>
+    pub palette: PaletteDebugInfo
 }
