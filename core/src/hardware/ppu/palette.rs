@@ -100,3 +100,9 @@ impl Into<u8> for Palette {
         self.palette_byte
     }
 }
+
+impl From<(u8,u8,u8)> for RGB {
+    fn from(rgb_tuple: (u8, u8, u8)) -> Self {
+        RGB(rgb_tuple.0, rgb_tuple.1, rgb_tuple.2)
+    }
+}

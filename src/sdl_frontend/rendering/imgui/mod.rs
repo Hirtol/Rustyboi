@@ -21,6 +21,7 @@ mod font;
 mod interface;
 mod state;
 mod animate;
+mod settings;
 
 const STATE_FILE_NAME: &str = "debug_config.json";
 
