@@ -32,16 +32,16 @@ pub fn create_main_menu_bar(state: &mut State, ui: &Ui) {
 }
 
 pub fn show_notification(debug: &mut DebugState, ui: &Ui) {
-    if debug.notification.remaining_animation_duration <= 0.0 {
+    if debug.notification.animation.finished() {
         return;
     }
     //TODO: Change to const if f32 in const functions ever gets stabilised.
     let alert_colour: [f32; 4] = rgb_to_f32(51, 51, 153);
     let display_size = ui.io().display_size;
-    let window_width = size(ui, 8f32.max(display_size[0] / 180.));
+    let window_width = size(ui, 10f32.max(display_size[0] / 180.));
     let window_height =  size(ui, 7f32.max(display_size[0] / 270.));
     let window_pos = [display_size[0] - window_width - size(ui, 3.), display_size[1] - window_height - size(ui, 3.)];
-    let style = ui.push_style_var(StyleVar::Alpha(debug.notification.remaining_animation_duration));
+    let style = ui.push_style_var(StyleVar::Alpha(debug.notification.animation.progress()));
     Window::new(im_str!("Example: Fixed Overlay"))
         .position(window_pos, Condition::Always)
         .size([window_width, window_height], Condition::Always)
@@ -57,9 +57,9 @@ pub fn show_notification(debug: &mut DebugState, ui: &Ui) {
             ui.separator();
             ui.text_wrapped(&im_str!("{}", debug.notification.message));
             if !ui.is_window_hovered() {
-                debug.notification.remaining_animation_duration -= debug.notification.animation_per_second * ui.io().delta_time;
+                debug.notification.animation.progress_animation(ui);
             } else {
-                debug.notification.remaining_animation_duration = 1.0;
+                debug.notification.animation.partial_reset(ui);
             }
         });
     style.pop(ui);
@@ -116,7 +116,7 @@ fn show_palettes_column(ui: &Ui, notification: &mut Notification, palettes: &Vec
                 .alpha(false)
                 .build(&ui) {
                 ui.set_clipboard_text(&im_str!("{:?}", rgb));
-                *notification = Notification::with_duration("Copied colour to clipboard!", Duration::from_millis(2000));
+                *notification = Notification::with_duration("Copied colour to clipboard!", Duration::from_millis(2000), ui);
             }
             if i != 3 {
                 ui.same_line(0.0);

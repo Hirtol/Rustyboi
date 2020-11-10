@@ -20,6 +20,7 @@ use crate::communication::{DebugMessage};
 mod font;
 mod interface;
 mod state;
+mod animate;
 
 const STATE_FILE_NAME: &str = "debug_config.json";
 

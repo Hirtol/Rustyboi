@@ -1,7 +1,10 @@
 use nanoserde::{DeJson, SerJson};
 use rustyboi_core::hardware::ppu::debugging_features::PaletteDebugInfo;
 use rustyboi_core::emulator::EmulatorMode;
-use std::time::Duration;
+use std::time::{Duration, Instant};
+use crate::rendering::imgui::animate::{FadeAnimation, formulas::Quadratic};
+use imgui::Ui;
+use crate::rendering::imgui::animate::formulas::ParametricBlend;
 
 #[derive(Default, Debug, Copy, Clone, DeJson, SerJson)]
 pub struct State {
@@ -27,24 +30,21 @@ pub struct DebugState {
 
 #[derive(Default, Debug, Clone)]
 pub struct Notification {
-    pub remaining_animation_duration: f32,
-    pub animation_per_second: f32,
+    pub animation: FadeAnimation<Quadratic>,
     pub message: &'static str,
 }
 
 impl Notification {
-    pub fn new(message: &'static str) -> Notification {
+    pub fn new(message: &'static str, ui: &Ui) -> Notification {
         Notification {
-            remaining_animation_duration: 1.0,
-            animation_per_second: 0.6,
+            animation: FadeAnimation::new(ui, Duration::from_millis(2000)),
             message
         }
     }
 
-    pub fn with_duration(message: &'static str, duration: Duration) -> Notification {
+    pub fn with_duration(message: &'static str, duration: Duration, ui: &Ui) -> Notification {
         Notification {
-            remaining_animation_duration: 1.0,
-            animation_per_second: 1.0 / duration.as_secs_f32(),
+            animation: FadeAnimation::new(ui, duration),
             message
         }
     }
