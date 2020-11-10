@@ -2,7 +2,8 @@ use std::time::Duration;
 use crate::{AUDIO_FREQUENCY, MIN_AUDIO_SAMPLES, MAX_AUDIO_SAMPLES};
 use crate::gameboy::GameboyRunner;
 use crate::communication::EmulatorNotification;
-use sdl2::audio::AudioQueue;
+use sdl2::audio::{AudioQueue, AudioSpecDesired};
+use sdl2::AudioSubsystem;
 
 pub struct AudioPlayer {
     awaiting_audio: bool,
@@ -15,12 +16,22 @@ impl AudioPlayer {
     ///
     /// Will start the queue by playing `initial_buffer_length` (millisecond accuracy)
     /// silence as a buffer to avoid initial crackle.
-    pub fn new(sdl_audio: AudioQueue<f32>, initial_buffer_length: Duration) -> Self {
+    pub fn new(audio_subsystem: &AudioSubsystem, initial_buffer_length: Duration) -> Self {
+        let audio_queue: AudioQueue<f32> = audio_subsystem
+            .open_queue(
+                None,
+                &AudioSpecDesired {
+                    freq: Some(AUDIO_FREQUENCY),
+                    channels: Some(2),
+                    samples: None,
+                },
+            )
+            .unwrap();
         let silence_samples = initial_buffer_length.as_secs_f64() * AUDIO_FREQUENCY as f64;
-        sdl_audio.queue(&vec![0.0; silence_samples as usize]);
+        audio_queue.queue(&vec![0.0; silence_samples as usize]);
         AudioPlayer{
             awaiting_audio: false,
-            sdl_audio,
+            sdl_audio: audio_queue,
             channel_queue: Vec::with_capacity(5000),
         }
     }

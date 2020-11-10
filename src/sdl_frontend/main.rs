@@ -93,17 +93,6 @@ fn main() {
     let audio_subsystem = sdl_context.audio().expect("SDL context failed to initialise audio!");
     let video_subsystem = sdl_context.video().expect("SDL context failed to initialise video!");
 
-    let audio_queue: AudioQueue<f32> = audio_subsystem
-        .open_queue(
-            None,
-            &AudioSpecDesired {
-                freq: Some(AUDIO_FREQUENCY),
-                channels: Some(2),
-                samples: None,
-            },
-        )
-        .unwrap();
-
     crate::benchmarking::run_benchmark(&options);
 
     let mut renderer: Renderer<ImguiBoi> = Renderer::new(video_subsystem, file_storage.clone()).unwrap();
@@ -128,8 +117,9 @@ fn main() {
         .with_mode(CGB)
         .with_display_colours(KIRBY_DISPLAY_COLOURS)
         .build();
+    
     let mut gameboy_runner = GameboyRunner::new(cartridge, emu_opts);
-    let mut audio_player = AudioPlayer::new(audio_queue, Duration::from_millis(100));
+    let mut audio_player = AudioPlayer::new(&audio_subsystem, Duration::from_millis(100));
 
     let mut loop_cycles = 0;
 
