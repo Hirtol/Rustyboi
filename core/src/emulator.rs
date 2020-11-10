@@ -91,7 +91,7 @@ impl Emulator {
     /// This can be changed while the emulator is running (though if done mid-frame will produce
     /// artifacts for that one frame)
     pub fn set_dmg_display_colour(&mut self, display_colours: DisplayColour) {
-        self.cpu.mmu.ppu.update_display_colours(display_colours);
+        self.cpu.mmu.ppu.update_display_colours(display_colours, self.emulator_mode());
     }
 
     /// Run the emulator until it has reached Vblank (every 70224 t-cycles)

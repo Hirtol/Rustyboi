@@ -261,23 +261,28 @@ impl PPU {
         // }
     }
 
-    pub fn update_display_colours(&mut self, new_colours: DisplayColour) {
-        self.display_colours = new_colours;
-        self.set_bg_palette(self.bg_window_palette.into());
-        self.set_oam_palette_0(self.oam_palette_0.into());
-        self.set_oam_palette_1(self.oam_palette_1.into());
+    pub fn update_display_colours(&mut self, new_colours: DisplayColour, emu_mode: EmulatorMode) {
+        // We don't want to overwrite CGB registers if we're actually running a CGB game.
+        if emu_mode.is_dmg() {
+            let (cgb_bg_palette, cgb_sprite_palette) = initialise_cgb_palette(new_colours);
+            self.cgb_bg_palette = cgb_bg_palette;
+            self.cgb_sprite_palette = cgb_sprite_palette;
+            self.set_bg_palette(self.bg_window_palette.into());
+            self.set_oam_palette_0(self.oam_palette_0.into());
+            self.set_oam_palette_1(self.oam_palette_1.into());
+        }
     }
 
     pub fn set_bg_palette(&mut self, value: u8) {
-        self.bg_window_palette = Palette::new(value, self.display_colours)
+        self.bg_window_palette = Palette::new(value, DisplayColour::from(self.cgb_bg_palette[0].rgb()))
     }
 
     pub fn set_oam_palette_0(&mut self, value: u8) {
-        self.oam_palette_0 = Palette::new(value, self.display_colours)
+        self.oam_palette_0 = Palette::new(value, DisplayColour::from(self.cgb_sprite_palette[0].rgb()))
     }
 
     pub fn set_oam_palette_1(&mut self, value: u8) {
-        self.oam_palette_1 = Palette::new(value, self.display_colours)
+        self.oam_palette_1 = Palette::new(value, DisplayColour::from(self.cgb_sprite_palette[1].rgb()))
     }
 
     pub fn set_window_y(&mut self, value: u8) {

@@ -75,6 +75,17 @@ impl Palette {
     }
 }
 
+impl From<[RGB; 4]> for DisplayColour {
+    fn from(colours: [RGB; 4]) -> Self {
+        DisplayColour {
+            white: colours[0],
+            light_grey: colours[1],
+            dark_grey: colours[2],
+            black: colours[3]
+        }
+    }
+}
+
 impl Default for Palette {
     fn default() -> Self {
         Palette {

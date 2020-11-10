@@ -113,7 +113,6 @@ pub struct PPU {
     lcd_control: LcdControl,
     lcd_status: LcdStatus,
 
-    display_colours: DisplayColour,
     bg_window_palette: Palette,
     oam_palette_0: Palette,
     oam_palette_1: Palette,
@@ -141,9 +140,13 @@ pub struct PPU {
 impl PPU {
     /// Instantiates a PPU with the provided `DisplayColour`.
     /// The PPU will output a framebuffer with RGB24 values based on the `DisplayColour`
-    /// if in DMG mode.
+    /// if the emulator is running in `DMG` mode.
+    ///
+    /// Otherwise, the PPU will use CGB registers. In addition we proceed to load
+    /// `DisplayColour` into the CGB palette registries (BG0, OBJ0, OBJ1) and we'll
+    /// *always* use those three registries as our source of `RGB` colour (Both in `DMG` and `CGB`).
     pub fn new(dmg_display_colour: DisplayColour) -> Self {
-        let dmg_d_colour = dmg_display_colour.clone();
+        let (cgb_bg_palette, cgb_sprite_palette) = initialise_cgb_palette(dmg_display_colour);
         PPU {
             frame_buffer: [RGB::default(); FRAMEBUFFER_SIZE],
             scanline_buffer: [RGB::default(); RESOLUTION_WIDTH],
@@ -157,14 +160,13 @@ impl PPU {
             oam: [SpriteAttribute::default(); 40],
             lcd_control: LcdControl::from_bits_truncate(0b1001_0011),
             lcd_status: LcdStatus::from_bits_truncate(0b0000_0001),
-            display_colours: dmg_display_colour,
-            bg_window_palette: Palette::new(0b1110_0100,dmg_d_colour),
-            oam_palette_0: Palette::new(0b1110_0100,dmg_d_colour),
-            oam_palette_1: Palette::new(0b1110_0100,dmg_d_colour),
+            bg_window_palette: Palette::new(0b1110_0100, DisplayColour::from(cgb_bg_palette[0].rgb())),
+            oam_palette_0: Palette::new(0b1110_0100, DisplayColour::from(cgb_sprite_palette[0].rgb())),
+            oam_palette_1: Palette::new(0b1110_0100, DisplayColour::from(cgb_sprite_palette[1].rgb())),
             cgb_bg_palette_ind: CgbPaletteIndex::default(),
             cgb_sprite_palette_ind: CgbPaletteIndex::default(),
-            cgb_bg_palette: [CgbPalette::default(); 8],
-            cgb_sprite_palette: [CgbPalette::default(); 8],
+            cgb_bg_palette,
+            cgb_sprite_palette,
             compare_line: 0,
             current_y: 0,
             scroll_x: 0,
@@ -569,6 +571,23 @@ impl PPU {
     pub fn frame_buffer(&self) -> &[RGB; FRAMEBUFFER_SIZE] {
         &self.frame_buffer
     }
+}
+
+/// Initialises BG0, OBJ0, OBJ1 in the CGB palettes to `dmg_display_colour` while leaving
+/// the remaining palettes default. See PPU `new()` for an explanation as to why.
+fn initialise_cgb_palette(dmg_display_colour: DisplayColour) -> ([CgbPalette; 8], [CgbPalette; 8]) {
+    let set_cgb_palette = |p: &mut CgbPalette| {
+        for (i, colour) in p.colours.iter_mut().enumerate() {
+            colour.rgb = dmg_display_colour.get_colour(i);
+        }
+    };
+    let mut bg_palette = [CgbPalette::default(); 8];
+    let mut sprite_palette = [CgbPalette::default(); 8];
+    set_cgb_palette(&mut bg_palette[0]);
+    set_cgb_palette(&mut sprite_palette[0]);
+    set_cgb_palette(&mut sprite_palette[1]);
+
+    (bg_palette, sprite_palette)
 }
 
 fn is_sprite_on_scanline(scanline_y: i16, y_pos: i16, y_size: i16) -> bool {

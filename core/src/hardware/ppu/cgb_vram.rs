@@ -67,6 +67,17 @@ pub struct CgbPalette {
     pub colours: [CgbRGBColour; 4],
 }
 
+impl CgbPalette {
+    pub fn rgb(&self) -> [RGB; 4] {
+        [
+            self.colours[0].rgb,
+            self.colours[1].rgb,
+            self.colours[2].rgb,
+            self.colours[3].rgb,
+        ]
+    }
+}
+
 /// This struct will naively convert the written 15 bit colour values to 24 bit.
 #[derive(Debug, Copy, Clone, Default)]
 pub struct CgbRGBColour {
