@@ -42,7 +42,7 @@ pub fn show_notification(debug: &mut DebugState, ui: &Ui) {
     let window_height =  size(ui, 7f32.max(display_size[0] / 270.));
     let window_pos = [display_size[0] - window_width - size(ui, 3.), display_size[1] - window_height - size(ui, 3.)];
     let style = ui.push_style_var(StyleVar::Alpha(debug.notification.animation.progress()));
-    Window::new(im_str!("Example: Fixed Overlay"))
+    Window::new(im_str!("Notification"))
         .position(window_pos, Condition::Always)
         .size([window_width, window_height], Condition::Always)
         .title_bar(false)
