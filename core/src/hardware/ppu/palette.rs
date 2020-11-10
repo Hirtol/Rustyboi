@@ -1,10 +1,3 @@
-#[derive(Debug, Copy, Clone)]
-pub struct Palette {
-    palette_byte: u8,
-    // Index into the PPUs display colour array.
-    pub colours: [RGB; 4],
-}
-
 #[derive(Copy, Clone, Debug, Default, PartialOrd, PartialEq)]
 pub struct RGB(pub u8, pub u8, pub u8);
 
@@ -25,6 +18,13 @@ impl DisplayColour {
             _ => self.black,
         }
     }
+}
+
+#[derive(Debug, Copy, Clone)]
+pub struct Palette {
+    palette_byte: u8,
+    // Index into the PPUs display colour array.
+    pub colours: [RGB; 4],
 }
 
 impl Palette {
