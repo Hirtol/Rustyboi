@@ -31,7 +31,23 @@ pub fn create_main_menu_bar(state: &mut State, ui: &Ui) {
     })
 }
 
-pub fn show_notification(debug: &mut DebugState, ui: &Ui) {
+#[inline(always)]
+pub fn main_menu_shortcuts(state: &mut State, ui: &Ui) {
+    if ui.io().key_ctrl && ui.is_key_pressed(Scancode::S as u32) {
+        state.show_settings = !state.show_settings;
+    }
+    if ui.io().key_ctrl && ui.is_key_pressed(Scancode::E as u32) {
+        state.execution_log = !state.execution_log;
+    }
+    if ui.io().key_ctrl && ui.is_key_pressed(Scancode::P as u32) {
+        state.palette_window = !state.palette_window;
+    }
+    if ui.io().key_ctrl && ui.is_key_pressed(Scancode::Q as u32) {
+        state.tile_display = !state.tile_display;
+    }
+}
+
+pub fn render_notification(debug: &mut DebugState, ui: &Ui) {
     if debug.notification.animation.finished() {
         return;
     }
@@ -65,29 +81,13 @@ pub fn show_notification(debug: &mut DebugState, ui: &Ui) {
     style.pop(ui);
 }
 
-#[inline(always)]
-pub fn main_menu_shortcuts(state: &mut State, ui: &Ui) {
-    if ui.io().key_ctrl && ui.is_key_pressed(Scancode::S as u32) {
-        state.show_settings = !state.show_settings;
-    }
-    if ui.io().key_ctrl && ui.is_key_pressed(Scancode::E as u32) {
-        state.execution_log = !state.execution_log;
-    }
-    if ui.io().key_ctrl && ui.is_key_pressed(Scancode::P as u32) {
-        state.palette_window = !state.palette_window;
-    }
-    if ui.io().key_ctrl && ui.is_key_pressed(Scancode::Q as u32) {
-        state.tile_display = !state.tile_display;
-    }
-}
-
-pub fn show_metrics(state: &mut State, ui: &Ui) {
+pub fn render_metrics(state: &mut State, ui: &Ui) {
     if state.show_metrics {
         ui.show_metrics_window(&mut state.show_metrics);
     }
 }
 
-pub fn show_palette_view(state: &mut State, ui: &Ui, debug_state: &mut DebugState) {
+pub fn render_palette_view(state: &mut State, ui: &Ui, debug_state: &mut DebugState) {
     if state.palette_window {
         Window::new(im_str!("Palette View"))
             .size(size_a(ui, [25.0, 17.5]), Condition::Appearing)
@@ -112,7 +112,7 @@ fn show_palettes_column(ui: &Ui, notification: &mut Notification, palettes: &Vec
     for (index, c_palette) in palettes.iter().enumerate() {
         move_hori_cursor(ui, 2.0);
         for (i, rgb) in c_palette.iter().enumerate() {
-            if ColorButton::new(&im_str!("{} {}", name_prefix, index*4 + i), rgb_to_imgui(rgb))
+            if ColorButton::new(&im_str!("{} {}", name_prefix, index*4 + i), rgb.into_f())
                 .alpha(false)
                 .build(&ui) {
                 ui.set_clipboard_text(&im_str!("{:?}", rgb));
@@ -123,10 +123,6 @@ fn show_palettes_column(ui: &Ui, notification: &mut Notification, palettes: &Vec
             }
         }
     }
-}
-
-fn rgb_to_imgui(rgb: &RGB) -> [f32; 4] {
-    rgb_to_f32(rgb.0, rgb.1, rgb.2)
 }
 
 #[inline]
@@ -159,6 +155,29 @@ fn size_a(ui: &Ui, mut sizes: [f32; 2]) -> [f32; 2] {
     sizes
 }
 
+
+pub(super) trait ImguiColour {
+    fn into_f(self) -> [f32; 4];
+}
+
+impl ImguiColour for RGB {
+    fn into_f(self) -> [f32; 4] {
+        rgb_to_f32(self.0, self.1, self.2)
+    }
+}
+
+impl ImguiColour for (u8, u8, u8) {
+    fn into_f(self) -> [f32; 4] {
+        rgb_to_f32(self.0, self.1, self.2)
+    }
+}
+
+#[inline]
+fn rgb_to_imgui(rgb: &RGB) -> [f32; 4] {
+    rgb_to_f32(rgb.0, rgb.1, rgb.2)
+}
+
+#[inline(always)]
 fn rgb_to_f32(red: u8, green: u8, blue: u8) -> [f32; 4] {
-    [red as f32 /255., green as f32 /255., blue as f32 /255., 1.0]
+    [red as f32 / 255.0, green as f32 / 255.0, blue as f32 / 255.0, 1.0]
 }
