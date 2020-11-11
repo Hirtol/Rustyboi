@@ -25,7 +25,7 @@ impl PPU {
         let (tile_address, byte_address) = get_tile_address(address);
         let offset = 384 * self.tile_bank_currently_used as usize;
 
-        self.tiles[offset + tile_address].data[byte_address] = value;
+        self.tiles[offset + tile_address].update_pixel_data(byte_address, value);
     }
 
     pub fn get_tilemap_byte(&self, address: u16) -> u8 {

@@ -288,7 +288,8 @@ impl PPU {
         let mut tile_higher_bound = (tile_lower_bound + 20);
 
         // Which particular y coordinate to use from an 8x8 tile.
-        let tile_line_y = scanline_to_be_rendered % 8;
+        let tile_pixel_y = (scanline_to_be_rendered as usize % 8) * 8;
+        let tile_pixel_y_offset = (tile_pixel_y +7);
         // How many pixels we've drawn so far on this scanline.
         let mut pixel_counter: i16 = 0;
         // The amount of pixels to skip from the first tile in the sequence, and partially render
@@ -319,14 +320,10 @@ impl PPU {
                 tile_address = (256_usize).wrapping_add((tile_relative_address as i8) as usize);
             }
 
-            let (top_pixel_data, bottom_pixel_data) = self.tiles[tile_address].get_pixel_line(tile_line_y);
-
             self.draw_background_window_line(
                 &mut pixel_counter,
                 &mut pixels_to_skip,
-                top_pixel_data,
-                bottom_pixel_data,
-            )
+                tile_address, tile_pixel_y, tile_pixel_y_offset)
         }
     }
 
@@ -346,7 +343,8 @@ impl PPU {
         // partial, therefore we need a ceiling divide.
         let tile_higher_bound = (tile_lower_bound as u16 + ((160 - window_x) as u16).div_ceil(&8)) as u16;
 
-        let tile_pixel_y = self.window_counter % 8;
+        let tile_pixel_y = (self.window_counter as usize % 8) * 8;
+        let tile_pixel_y_offset = (tile_pixel_y+7);
 
         // If window is less than 0 we want to skip those amount of pixels, otherwise we render as normal.
         // This means that we must take the absolute value of window_x for the pixels_skip, therefore the -
@@ -368,14 +366,11 @@ impl PPU {
                 tile_address = (256_usize).wrapping_add((tile_relative_address as i8) as usize);
             }
 
-            let (top_pixel_data, bottom_pixel_data) = self.tiles[tile_address].get_pixel_line(tile_pixel_y);
-
             self.draw_background_window_line(
                 &mut pixel_counter,
                 &mut pixels_to_skip,
-                top_pixel_data,
-                bottom_pixel_data,
-            );
+                tile_address,
+              tile_pixel_y, tile_pixel_y_offset);
         }
     }
 
@@ -470,20 +465,14 @@ impl PPU {
 
     /// Draw a tile in a way appropriate for both the window, as well as the background.
     /// `pixels_to_skip` will skip pixels so long as it's greater than 0
-    fn draw_background_window_line(
-        &mut self,
-        pixel_counter: &mut i16,
-        pixels_to_skip: &mut u8,
-        top_pixel_data: u8,
-        bottom_pixel_data: u8,
-    ) {
+    fn draw_background_window_line(&mut self, pixel_counter: &mut i16, pixels_to_skip: &mut u8, tile_address: usize, tile_line_y: usize, tile_pixel_y_offset: usize) {
         // If we can draw 8 pixels in one go, we should.
         // pixel_counter Should be less than 152 otherwise we'd go over the 160 allowed pixels.
         if *pixels_to_skip == 0 && *pixel_counter < 152 {
-            self.draw_contiguous_bg_window_block(*pixel_counter as usize, top_pixel_data, bottom_pixel_data);
+            self.draw_contiguous_bg_window_block(*pixel_counter as usize, tile_address, tile_line_y);
             *pixel_counter += 8;
         } else {
-            for j in (0..=7).rev() {
+            for j in (tile_line_y..=tile_pixel_y_offset).rev() {
                 // We have to render a partial tile, so skip the first pixels_to_skip and render the rest.
                 if *pixels_to_skip > 0 {
                     *pixels_to_skip -= 1;
@@ -493,7 +482,7 @@ impl PPU {
                 if *pixel_counter > 159 {
                     break;
                 }
-                let colour = self.get_pixel_colour(j, top_pixel_data, bottom_pixel_data);
+                let colour = self.tiles[tile_address].get_pixel(j);
                 self.scanline_buffer[*pixel_counter as usize] = self.bg_window_palette.colour(colour);
                 self.scanline_buffer_unpalette[*pixel_counter as usize] = (colour, false);
                 *pixel_counter += 1;
@@ -504,15 +493,16 @@ impl PPU {
     /// This function will immediately draw 8 pixels, skipping several checks and manual
     /// get_pixel_calls().
     #[inline(always)]
-    fn draw_contiguous_bg_window_block(&mut self, pixel_counter: usize, top_pixel_data: u8, bottom_pixel_data: u8) {
-        let colour0 = top_pixel_data & 0x1 | ((bottom_pixel_data & 0x1) << 1);
-        let colour1 = (top_pixel_data & 0x2) >> 1 | (bottom_pixel_data & 0x2);
-        let colour2 = (top_pixel_data & 4) >> 2 | ((bottom_pixel_data & 4) >> 1);
-        let colour3 = (top_pixel_data & 8) >> 3 | ((bottom_pixel_data & 8) >> 2);
-        let colour4 = (top_pixel_data & 16) >> 4 | ((bottom_pixel_data & 16) >> 3);
-        let colour5 = (top_pixel_data & 32) >> 5 | ((bottom_pixel_data & 32) >> 4);
-        let colour6 = (top_pixel_data & 64) >> 6 | ((bottom_pixel_data & 64) >> 5);
-        let colour7 = (top_pixel_data & 128) >> 7 | ((bottom_pixel_data & 128) >> 6);
+    fn draw_contiguous_bg_window_block(&mut self, pixel_counter: usize, tile_address: usize, tile_line_y: usize) {
+        let mut tile = self.tiles[tile_address];
+        let colour0 = tile.get_pixel(tile_line_y);
+        let colour1 = tile.get_pixel(tile_line_y + 1);
+        let colour2 = tile.get_pixel(tile_line_y + 2);
+        let colour3 = tile.get_pixel(tile_line_y + 3);
+        let colour4 = tile.get_pixel(tile_line_y + 4);
+        let colour5 = tile.get_pixel(tile_line_y + 5);
+        let colour6 = tile.get_pixel(tile_line_y + 6);
+        let colour7 = tile.get_pixel(tile_line_y + 7);
         self.scanline_buffer[pixel_counter + 7] = self.bg_window_palette.colour(colour0);
         self.scanline_buffer[pixel_counter + 6] = self.bg_window_palette.colour(colour1);
         self.scanline_buffer[pixel_counter + 5] = self.bg_window_palette.colour(colour2);

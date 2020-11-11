@@ -22,9 +22,11 @@ pub const TILEMAP_9C00_END: u16 = 0x9FFF;
 
 /// 8x8 pixels of 2 bits p.p => 16 bytes
 /// Each Tile occupies 16 bytes, where each 2 bytes represent a line.
-#[derive(Default, Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct Tile {
     pub data: [u8; 16],
+    /// Contains the pixel colours taken from `data`
+    pub unpaletted_pixels: [u8; 64]
 }
 
 /// Background Tile Map contains the numbers of tiles to be displayed.
@@ -93,10 +95,46 @@ impl Debug for SpriteAttribute {
     }
 }
 
+impl Default for Tile {
+    fn default() -> Self {
+        Tile { data: [0; 16], unpaletted_pixels: [0; 64] }
+    }
+}
+
 impl Tile {
+    #[inline(always)]
+    pub fn get_pixel(&mut self, index: usize) -> u8 {
+        self.unpaletted_pixels[index]
+    }
+
     pub fn get_pixel_line(&self, line_y: u8) -> (u8, u8) {
         let address = (line_y * 2) as usize;
         (self.data[address], self.data[address + 1])
+    }
+
+    pub fn update_pixel_data(&mut self, byte_address: usize, value: u8) {
+        let pixel_array_address = (byte_address - (byte_address % 2)) * 4;
+
+        self.data[byte_address] = value;
+        // If we're the even byte we need +1 for the pixel line, otherwise -1
+        if (byte_address % 2) == 0 {
+            let bottom_pixel_data = self.data[byte_address + 1];
+            self.bulk_set_pixels(value, bottom_pixel_data, pixel_array_address);
+        } else {
+            let top_pixel_data = self.data[byte_address - 1];
+            self.bulk_set_pixels(top_pixel_data, value, pixel_array_address);
+        };
+    }
+
+    fn bulk_set_pixels(&mut self, top_pixel_data: u8, bottom_pixel_data: u8, pixel_array_address: usize) {
+        self.unpaletted_pixels[pixel_array_address] = top_pixel_data & 0x1 | ((bottom_pixel_data & 0x1) << 1);
+        self.unpaletted_pixels[pixel_array_address + 1] = (top_pixel_data & 0x2) >> 1 | (bottom_pixel_data & 0x2);
+        self.unpaletted_pixels[pixel_array_address + 2] = (top_pixel_data & 4) >> 2 | ((bottom_pixel_data & 4) >> 1);
+        self.unpaletted_pixels[pixel_array_address + 3] = (top_pixel_data & 8) >> 3 | ((bottom_pixel_data & 8) >> 2);
+        self.unpaletted_pixels[pixel_array_address + 4] = (top_pixel_data & 16) >> 4 | ((bottom_pixel_data & 16) >> 3);
+        self.unpaletted_pixels[pixel_array_address + 5] = (top_pixel_data & 32) >> 5 | ((bottom_pixel_data & 32) >> 4);
+        self.unpaletted_pixels[pixel_array_address + 6] = (top_pixel_data & 64) >> 6 | ((bottom_pixel_data & 64) >> 5);
+        self.unpaletted_pixels[pixel_array_address + 7] = (top_pixel_data & 128) >> 7 | ((bottom_pixel_data & 128) >> 6);
     }
 }
 
