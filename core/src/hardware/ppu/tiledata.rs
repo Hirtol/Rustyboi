@@ -2,6 +2,7 @@ use crate::hardware::ppu::register_flags::AttributeFlags;
 use bitflags::_core::fmt::Formatter;
 use std::fmt;
 use std::fmt::Debug;
+use crate::hardware::ppu::palette::RGB;
 
 // 128 tiles each of 16 bytes each.
 pub const TILE_BLOCK_0_START: u16 = 0x8000;
@@ -26,7 +27,7 @@ pub const TILEMAP_9C00_END: u16 = 0x9FFF;
 pub struct Tile {
     pub data: [u8; 16],
     /// Contains the pixel colours taken from `data`
-    pub unpaletted_pixels: [u8; 64]
+    pub unpaletted_pixels: [u8; 64],
 }
 
 /// Background Tile Map contains the numbers of tiles to be displayed.
@@ -102,9 +103,17 @@ impl Default for Tile {
 }
 
 impl Tile {
+    /// Get a single pre-calculated pixel from this tile.
     #[inline(always)]
-    pub fn get_pixel(&mut self, index: usize) -> u8 {
+    pub fn get_pixel(&self, index: usize) -> u8 {
         self.unpaletted_pixels[index]
+    }
+
+    /// Return an entire pre-computed pixel line, for most instances `get_pixel` is more
+    /// efficient however.
+    #[inline(always)]
+    pub fn get_true_pixel_line(&self, start_index: usize) -> &[u8] {
+        &self.unpaletted_pixels[start_index..start_index+8]
     }
 
     pub fn get_pixel_line(&self, line_y: u8) -> (u8, u8) {

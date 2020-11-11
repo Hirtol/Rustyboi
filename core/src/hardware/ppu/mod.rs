@@ -289,7 +289,7 @@ impl PPU {
 
         // Which particular y coordinate to use from an 8x8 tile.
         let tile_pixel_y = (scanline_to_be_rendered as usize % 8) * 8;
-        let tile_pixel_y_offset = (tile_pixel_y +7);
+        let tile_pixel_y_offset = (tile_pixel_y + 7);
         // How many pixels we've drawn so far on this scanline.
         let mut pixel_counter: i16 = 0;
         // The amount of pixels to skip from the first tile in the sequence, and partially render
@@ -344,7 +344,7 @@ impl PPU {
         let tile_higher_bound = (tile_lower_bound as u16 + ((160 - window_x) as u16).div_ceil(&8)) as u16;
 
         let tile_pixel_y = (self.window_counter as usize % 8) * 8;
-        let tile_pixel_y_offset = (tile_pixel_y+7);
+        let tile_pixel_y_offset = (tile_pixel_y + 7);
 
         // If window is less than 0 we want to skip those amount of pixels, otherwise we render as normal.
         // This means that we must take the absolute value of window_x for the pixels_skip, therefore the -
@@ -421,9 +421,10 @@ impl PPU {
                 }
             };
 
-            let (top_pixel_data, bottom_pixel_data) = tile.get_pixel_line(line % 8);
+            let tile_pixel_y = (line as usize % 8) * 8;
+            let pixels = tile.get_true_pixel_line(tile_pixel_y);
 
-            for j in 0..=7 {
+            for j in 0..7 {
                 // If x is flipped then we want the pixels to go in order to the screen buffer,
                 // otherwise it's the reverse.
                 let pixel = if x_flip {
@@ -443,7 +444,7 @@ impl PPU {
                     continue;
                 }
 
-                let colour = self.get_pixel_colour(j as u8, top_pixel_data, bottom_pixel_data);
+                let colour = pixels[j as usize];
 
                 // The colour 0 should be transparent for sprites, therefore we don't draw it.
                 if colour != 0x0 {
@@ -453,15 +454,6 @@ impl PPU {
             }
         }
     }
-
-    //TODO:
-    //Precalculate the colour (0..4) and use that in the palette. (Consider further trying out
-    // of iterator instead of direct array access in bulk drawing to eliminate bounds checking)
-    // Cache full rendered (coloured pixels) by checking if the given Palette colours equal
-    // the currently cached ones. If not, empty cache and recalculate.
-    // cache is only calculated from first access for RGB (palette) cache. (Also for colour cache?)
-    // Colour cache first access will indeed calculate it. When we write to a tile we'll
-    // invalidate the colour cache.
 
     /// Draw a tile in a way appropriate for both the window, as well as the background.
     /// `pixels_to_skip` will skip pixels so long as it's greater than 0
@@ -494,7 +486,7 @@ impl PPU {
     /// get_pixel_calls().
     #[inline(always)]
     fn draw_contiguous_bg_window_block(&mut self, pixel_counter: usize, tile_address: usize, tile_line_y: usize) {
-        let mut tile = self.tiles[tile_address];
+        let mut tile = &self.tiles[tile_address];
         let colour0 = tile.get_pixel(tile_line_y);
         let colour1 = tile.get_pixel(tile_line_y + 1);
         let colour2 = tile.get_pixel(tile_line_y + 2);

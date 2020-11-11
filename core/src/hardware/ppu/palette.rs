@@ -63,8 +63,6 @@ impl Palette {
     ///
     /// Due to the aforementioned the `colour_value` should have at most 2 bits in use.
     pub fn colour(&self, color_value: u8) -> RGB {
-        //TODO: Check if the performance benefit of omitting a panic stays, or is simply cache realignment
-        // (at time of writing increases fps ~200)
         match color_value {
             0 => self.colours[0],
             1 => self.colours[1],
