@@ -459,6 +459,15 @@ impl PPU {
         }
     }
 
+    //TODO:
+    //Precalculate the colour (0..4) and use that in the palette. (Consider further trying out
+    // of iterator instead of direct array access in bulk drawing to eliminate bounds checking)
+    // Cache full rendered (coloured pixels) by checking if the given Palette colours equal
+    // the currently cached ones. If not, empty cache and recalculate.
+    // cache is only calculated from first access for RGB (palette) cache. (Also for colour cache?)
+    // Colour cache first access will indeed calculate it. When we write to a tile we'll
+    // invalidate the colour cache.
+
     /// Draw a tile in a way appropriate for both the window, as well as the background.
     /// `pixels_to_skip` will skip pixels so long as it's greater than 0
     fn draw_background_window_line(
