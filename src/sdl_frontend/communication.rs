@@ -13,7 +13,7 @@ pub enum EmulatorNotification {
     ExtraAudioRequest,
     ExitRequest,
     Debug(DebugMessage),
-    ChangePalette(DisplayColourConfigurable)
+    ChangeDisplayColour(DisplayColourConfigurable)
 }
 
 #[derive(Debug, Clone, PartialOrd, PartialEq)]

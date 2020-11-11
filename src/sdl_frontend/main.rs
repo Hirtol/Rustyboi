@@ -278,7 +278,7 @@ fn handle_events(
                     Keycode::F11 => renderer.toggle_main_window_fullscreen(),
                     Keycode::R => {
                         //TODO: Remove once we have UI interaction.
-                        gameboy_runner.request_sender.send(EmulatorNotification::ChangePalette(GLOBAL_APP_STATE.lock().unwrap().custom_display_colour));
+                        gameboy_runner.request_sender.send(EmulatorNotification::ChangeDisplayColour(GLOBAL_APP_STATE.lock().unwrap().custom_display_colour));
                     },
                     // Keycode::O => println!("{:#?}", notifier.oam()),
                     // Keycode::L => {
