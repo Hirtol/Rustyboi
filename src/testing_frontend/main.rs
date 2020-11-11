@@ -110,7 +110,7 @@ fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>) {
             let mut emu_frames_drawn = 0;
             let emu_opts = EmulatorOptionsBuilder::new()
                 .boot_rom(boot_rom)
-                .with_display_colours(TEST_COLOURS)
+                .with_display_colour(TEST_COLOURS)
                 .build();
             let mut emu = Emulator::new(&read(path).unwrap(), emu_opts);
 

@@ -117,7 +117,7 @@ fn main() {
     let emu_opts = EmulatorOptionsBuilder::new()
         .boot_rom(Some(bootrom_file_cgb))
         .with_mode(CGB)
-        .with_display_colours(KIRBY_DISPLAY_COLOURS)
+        .with_display_colour(KIRBY_DISPLAY_COLOURS)
         .build();
 
     let mut gameboy_runner = GameboyRunner::new(cartridge, emu_opts);
@@ -254,10 +254,12 @@ fn handle_events(
                 app_state.reset();
                 audio_player.reset();
                 gameboy_runner.stop();
-
+                let options = GLOBAL_APP_STATE.lock().unwrap();
                 let emu_opts = EmulatorOptionsBuilder::new()
                     .with_mode(CGB)
-                    .with_display_colours(KIRBY_DISPLAY_COLOURS)
+                    .with_bg_display_colour(options.custom_display_colour.dmg_bg_colour.into())
+                    .with_sp0_display_colour(options.custom_display_colour.dmg_sprite_colour_0.into())
+                    .with_sp1_display_colour(options.custom_display_colour.dmg_sprite_colour_1.into())
                     .build();
                 *gameboy_runner = GameboyRunner::new(&filename, emu_opts);
             } else {
@@ -274,6 +276,10 @@ fn handle_events(
                     Keycode::P => app_state.emulator_paused = !app_state.emulator_paused,
                     Keycode::K => renderer.setup_immediate_gui("Rustyboi Debugging").unwrap(),
                     Keycode::F11 => renderer.toggle_main_window_fullscreen(),
+                    Keycode::R => {
+                        //TODO: Remove once we have UI interaction.
+                        gameboy_runner.request_sender.send(EmulatorNotification::ChangePalette(GLOBAL_APP_STATE.lock().unwrap().custom_display_colour));
+                    },
                     // Keycode::O => println!("{:#?}", notifier.oam()),
                     // Keycode::L => {
                     //     let mut true_image_buffer = vec![0u8; 768*8*8*3];

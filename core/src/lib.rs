@@ -14,7 +14,9 @@ pub struct EmulatorOptions {
     pub boot_rom: Option<Vec<u8>>,
     pub saved_ram: Option<Vec<u8>>,
     pub emulator_mode: EmulatorMode,
-    pub display_colour: DisplayColour,
+    pub bg_display_colour: DisplayColour,
+    pub sp0_display_colour: DisplayColour,
+    pub sp1_display_colour: DisplayColour,
 }
 
 #[derive(Debug)]
@@ -22,7 +24,9 @@ pub struct EmulatorOptionsBuilder {
     boot_rom: Option<Vec<u8>>,
     saved_ram: Option<Vec<u8>>,
     emulator_mode: EmulatorMode,
-    display_colour: DisplayColour,
+    bg_display_colour: DisplayColour,
+    sp0_display_colour: DisplayColour,
+    sp1_display_colour: DisplayColour,
 }
 
 impl EmulatorOptionsBuilder {
@@ -31,7 +35,9 @@ impl EmulatorOptionsBuilder {
             boot_rom: None,
             saved_ram: None,
             emulator_mode: EmulatorMode::DMG,
-            display_colour: DisplayColour::default(),
+            bg_display_colour: Default::default(),
+            sp0_display_colour: Default::default(),
+            sp1_display_colour: Default::default()
         }
     }
 
@@ -50,8 +56,25 @@ impl EmulatorOptionsBuilder {
         self
     }
 
-    pub fn with_display_colours(mut self, colours: DisplayColour) -> Self {
-        self.display_colour = colours;
+    pub fn with_display_colour(mut self, colours: DisplayColour) -> Self {
+        self.bg_display_colour = colours;
+        self.sp0_display_colour = colours;
+        self.sp1_display_colour = colours;
+        self
+    }
+
+    pub fn with_bg_display_colour(mut self, colours: DisplayColour) -> Self {
+        self.bg_display_colour   = colours;
+        self
+    }
+
+    pub fn with_sp0_display_colour(mut self, colours: DisplayColour) -> Self {
+        self.sp0_display_colour = colours;
+        self
+    }
+
+    pub fn with_sp1_display_colour(mut self, colours: DisplayColour) -> Self {
+        self.sp1_display_colour = colours;
         self
     }
 
@@ -60,7 +83,9 @@ impl EmulatorOptionsBuilder {
             boot_rom: self.boot_rom,
             saved_ram: self.saved_ram,
             emulator_mode: self.emulator_mode,
-            display_colour: self.display_colour,
+            bg_display_colour: self.bg_display_colour,
+            sp0_display_colour: self.sp0_display_colour,
+            sp1_display_colour: self.sp1_display_colour
         }
     }
 }
@@ -71,7 +96,9 @@ impl From<EmulatorOptions> for EmulatorOptionsBuilder {
             boot_rom: from.boot_rom,
             saved_ram: from.saved_ram,
             emulator_mode: from.emulator_mode,
-            display_colour: from.display_colour,
+            bg_display_colour: from.bg_display_colour,
+            sp0_display_colour: from.sp0_display_colour,
+            sp1_display_colour: from.sp1_display_colour
         }
     }
 }

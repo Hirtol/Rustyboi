@@ -18,7 +18,7 @@ pub fn run_benchmark(options: &AppOptions) {
     if options.benchmark {
         let benchmarking_opts = EmulatorOptionsBuilder::new()
             .with_mode(CGB)
-            .with_display_colours(DEFAULT_DISPLAY_COLOURS)
+            .with_display_colour(DEFAULT_DISPLAY_COLOURS)
             .build();
         Benchmarking::benchmark_without_render(&options.rom_path, benchmarking_opts);
         exit(0);

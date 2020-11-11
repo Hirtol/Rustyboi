@@ -105,6 +105,9 @@ fn run_emulator(
                 EmulatorNotification::ExitRequest => {
                     break 'emu_loop;
                 }
+                EmulatorNotification::ChangePalette(new_palette) => {
+                    emulator.set_dmg_display_colour(new_palette.dmg_bg_colour.into(), new_palette.dmg_sprite_colour_0.into(), new_palette.dmg_sprite_colour_1.into());
+                }
             }
         }
         // Since we know that in the common runtime the emulator thread will run in lockstep

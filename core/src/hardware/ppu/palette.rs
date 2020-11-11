@@ -106,3 +106,9 @@ impl From<(u8,u8,u8)> for RGB {
         RGB(rgb_tuple.0, rgb_tuple.1, rgb_tuple.2)
     }
 }
+
+impl Into<(u8,u8,u8)> for RGB {
+    fn into(self) -> (u8, u8, u8) {
+        (self.0, self.1, self.2)
+    }
+}

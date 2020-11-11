@@ -261,10 +261,10 @@ impl PPU {
         // }
     }
 
-    pub fn update_display_colours(&mut self, new_colours: DisplayColour, emu_mode: EmulatorMode) {
+    pub fn update_display_colours(&mut self, bg_palette: DisplayColour, sp0_palette: DisplayColour, sp1_palette: DisplayColour, emu_mode: EmulatorMode) {
         // We don't want to overwrite CGB registers if we're actually running a CGB game.
         if emu_mode.is_dmg() {
-            let (cgb_bg_palette, cgb_sprite_palette) = initialise_cgb_palette(new_colours);
+            let (cgb_bg_palette, cgb_sprite_palette) = initialise_cgb_palette(bg_palette, sp0_palette, sp1_palette);
             self.cgb_bg_palette = cgb_bg_palette;
             self.cgb_sprite_palette = cgb_sprite_palette;
             self.set_bg_palette(self.bg_window_palette.into());

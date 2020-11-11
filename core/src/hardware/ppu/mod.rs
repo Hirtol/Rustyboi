@@ -145,8 +145,8 @@ impl PPU {
     /// Otherwise, the PPU will use CGB registers. In addition we proceed to load
     /// `DisplayColour` into the CGB palette registries (BG0, OBJ0, OBJ1) and we'll
     /// *always* use those three registries as our source of `RGB` colour (Both in `DMG` and `CGB`).
-    pub fn new(dmg_display_colour: DisplayColour) -> Self {
-        let (cgb_bg_palette, cgb_sprite_palette) = initialise_cgb_palette(dmg_display_colour);
+    pub fn new(bg_display_colour: DisplayColour, sp0_display: DisplayColour, sp1_display: DisplayColour) -> Self {
+        let (cgb_bg_palette, cgb_sprite_palette) = initialise_cgb_palette(bg_display_colour, sp0_display, sp1_display);
         PPU {
             frame_buffer: [RGB::default(); FRAMEBUFFER_SIZE],
             scanline_buffer: [RGB::default(); RESOLUTION_WIDTH],
@@ -575,17 +575,17 @@ impl PPU {
 
 /// Initialises BG0, OBJ0, OBJ1 in the CGB palettes to `dmg_display_colour` while leaving
 /// the remaining palettes default. See PPU `new()` for an explanation as to why.
-fn initialise_cgb_palette(dmg_display_colour: DisplayColour) -> ([CgbPalette; 8], [CgbPalette; 8]) {
-    let set_cgb_palette = |p: &mut CgbPalette| {
+fn initialise_cgb_palette(bg_display: DisplayColour, sp0_display: DisplayColour, sp1_display: DisplayColour) -> ([CgbPalette; 8], [CgbPalette; 8]) {
+    fn set_cgb_palette(p: &mut CgbPalette, dmg_display_colour: DisplayColour) {
         for (i, colour) in p.colours.iter_mut().enumerate() {
             colour.rgb = dmg_display_colour.get_colour(i);
         }
-    };
+    }
     let mut bg_palette = [CgbPalette::default(); 8];
     let mut sprite_palette = [CgbPalette::default(); 8];
-    set_cgb_palette(&mut bg_palette[0]);
-    set_cgb_palette(&mut sprite_palette[0]);
-    set_cgb_palette(&mut sprite_palette[1]);
+    set_cgb_palette(&mut bg_palette[0], bg_display);
+    set_cgb_palette(&mut sprite_palette[0], sp0_display);
+    set_cgb_palette(&mut sprite_palette[1], sp1_display);
 
     (bg_palette, sprite_palette)
 }

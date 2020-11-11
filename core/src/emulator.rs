@@ -90,8 +90,8 @@ impl Emulator {
     /// Set the `DisplayColour` used by the PPU to render to the framebuffer.
     /// This can be changed while the emulator is running (though if done mid-frame will produce
     /// artifacts for that one frame)
-    pub fn set_dmg_display_colour(&mut self, display_colours: DisplayColour) {
-        self.cpu.mmu.ppu.update_display_colours(display_colours, self.emulator_mode());
+    pub fn set_dmg_display_colour(&mut self, bg_palette: DisplayColour, sp0_palette: DisplayColour, sp1_palette: DisplayColour) {
+        self.cpu.mmu.ppu.update_display_colours(bg_palette, sp0_palette, sp1_palette, self.emulator_mode());
     }
 
     /// Run the emulator until it has reached Vblank (every 70224 t-cycles)
