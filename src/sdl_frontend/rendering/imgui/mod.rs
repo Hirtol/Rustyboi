@@ -6,7 +6,7 @@ use sdl2::mouse::MouseState;
 
 use sdl2::VideoSubsystem;
 
-use crate::rendering::imgui::state::{State, DebugState};
+use crate::rendering::imgui::state::{GuiState, DebugState};
 use crate::rendering::immediate::ImmediateGui;
 use font::COUSINE_REGULAR_UNCOMPRESSED_DATA;
 
@@ -16,6 +16,7 @@ use std::sync::Arc;
 use crate::rendering::imgui::interface::*;
 use sdl2::event::Event;
 use crate::communication::{DebugMessage};
+use crate::rendering::imgui::settings::render_settings;
 
 mod font;
 mod interface;
@@ -32,7 +33,7 @@ pub struct ImguiBoi {
     pub imgui_context: imgui::Context,
     pub opengl_renderer: Renderer,
     pub input_handler: ImguiSdl2,
-    state: State,
+    gui_state: GuiState,
     debug_state: DebugState,
     storage: Arc<FileStorage>,
 }
@@ -43,7 +44,7 @@ impl ImguiBoi {
         host_window: &sdl2::video::Window,
         storage: Arc<FileStorage>,
     ) -> Self {
-        let state: State = storage.get_value(STATE_FILE_NAME).unwrap_or_default();
+        let state: GuiState = storage.get_value(STATE_FILE_NAME).unwrap_or_default();
         let mut imgui_context = imgui::Context::create();
         imgui_context.set_ini_filename(Some(storage.get_dirs().config_dir().join("imgui.ini")));
         //TODO: Update DPI when window moves to different screen.
@@ -59,7 +60,7 @@ impl ImguiBoi {
             imgui_context,
             opengl_renderer,
             input_handler,
-            state,
+            gui_state: state,
             debug_state: DebugState::default(),
             storage,
         }
@@ -85,7 +86,7 @@ impl ImmediateGui for ImguiBoi {
         use DebugMessage::*;
         let mut result = Vec::with_capacity(10);
         result.push(Mode(None));
-        if self.state.palette_window {
+        if self.gui_state.palette_window {
             result.push(Palette(None));
         }
         result
@@ -108,10 +109,11 @@ impl ImmediateGui for ImguiBoi {
         ui.show_demo_window(&mut true);
 
         {
-            create_main_menu_bar(&mut self.state, &ui);
+            create_main_menu_bar(&mut self.gui_state, &ui);
             render_notification(&mut self.debug_state, &ui);
-            render_metrics(&mut self.state, &ui);
-            render_palette_view(&mut self.state, &ui, &mut self.debug_state);
+            render_metrics(&mut self.gui_state, &ui);
+            render_palette_view(&mut self.gui_state, &ui, &mut self.debug_state);
+            render_settings(&mut self.gui_state, &ui, &mut self.debug_state);
         }
 
         // Need to clean the canvas before rendering the next set.
@@ -131,6 +133,6 @@ impl ImmediateGui for ImguiBoi {
 
 impl Drop for ImguiBoi {
     fn drop(&mut self) {
-        self.storage.save_value(STATE_FILE_NAME, &self.state);
+        self.storage.save_value(STATE_FILE_NAME, &self.gui_state);
     }
 }

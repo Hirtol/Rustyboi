@@ -3,10 +3,10 @@ use sdl2::keyboard::Scancode;
 
 use rustyboi_core::hardware::ppu::palette::RGB;
 
-use crate::rendering::imgui::state::{DebugState, State, Notification};
+use crate::rendering::imgui::state::{DebugState, GuiState, Notification};
 use std::time::Duration;
 
-pub fn create_main_menu_bar(state: &mut State, ui: &Ui) {
+pub fn create_main_menu_bar(state: &mut GuiState, ui: &Ui) {
     ui.main_menu_bar(|| {
         ui.menu(im_str!("Debug"), true, || {
             if MenuItem::new(im_str!("ImGui Metrics"))
@@ -32,7 +32,7 @@ pub fn create_main_menu_bar(state: &mut State, ui: &Ui) {
 }
 
 #[inline(always)]
-pub fn main_menu_shortcuts(state: &mut State, ui: &Ui) {
+pub fn main_menu_shortcuts(state: &mut GuiState, ui: &Ui) {
     if ui.io().key_ctrl && ui.is_key_pressed(Scancode::S as u32) {
         state.show_settings = !state.show_settings;
     }
@@ -81,13 +81,13 @@ pub fn render_notification(debug: &mut DebugState, ui: &Ui) {
     style.pop(ui);
 }
 
-pub fn render_metrics(state: &mut State, ui: &Ui) {
+pub fn render_metrics(state: &mut GuiState, ui: &Ui) {
     if state.show_metrics {
         ui.show_metrics_window(&mut state.show_metrics);
     }
 }
 
-pub fn render_palette_view(state: &mut State, ui: &Ui, debug_state: &mut DebugState) {
+pub fn render_palette_view(state: &mut GuiState, ui: &Ui, debug_state: &mut DebugState) {
     if state.palette_window {
         Window::new(im_str!("Palette View"))
             .size(size_a(ui, [25.0, 17.5]), Condition::Appearing)
@@ -127,7 +127,7 @@ fn show_palettes_column(ui: &Ui, notification: &mut Notification, palettes: &Vec
 
 #[inline]
 /// Taken from the demo example, as it's rather helpful.
-fn show_help_marker(ui: &Ui, desc: &str) {
+pub(super) fn show_help_marker(ui: &Ui, desc: &str) {
     ui.text_disabled(im_str!("(?)"));
     if ui.is_item_hovered() {
         ui.tooltip(|| {
@@ -137,18 +137,18 @@ fn show_help_marker(ui: &Ui, desc: &str) {
 }
 
 #[inline(always)]
-fn move_hori_cursor(ui: &Ui, to_move: f32) {
+pub(super) fn move_hori_cursor(ui: &Ui, to_move: f32) {
     let current_cursor = ui.cursor_pos();
     ui.set_cursor_pos([current_cursor[0] + size(ui, to_move), current_cursor[1]]);
 }
 
 #[inline(always)]
-fn size(ui: &Ui, size: f32) -> f32 {
+pub(super) fn size(ui: &Ui, size: f32) -> f32 {
     size * ui.current_font_size()
 }
 
 #[inline(always)]
-fn size_a(ui: &Ui, mut sizes: [f32; 2]) -> [f32; 2] {
+pub(super) fn size_a(ui: &Ui, mut sizes: [f32; 2]) -> [f32; 2] {
     for siz in &mut sizes {
         *siz = size(ui, *siz);
     }

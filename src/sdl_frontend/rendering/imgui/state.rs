@@ -5,17 +5,19 @@ use std::time::{Duration, Instant};
 use crate::rendering::imgui::animate::{FadeAnimation, formulas::Quadratic};
 use imgui::Ui;
 use crate::rendering::imgui::animate::formulas::ParametricBlend;
+use crate::rendering::imgui::settings::SettingScreenState;
 
-#[derive(Default, Debug, Copy, Clone, DeJson, SerJson)]
-pub struct State {
+#[derive(Default, Debug, Clone, DeJson, SerJson)]
+pub struct GuiState {
     pub show_metrics: bool,
     pub show_settings: bool,
     pub palette_window: bool,
     pub tile_display: bool,
     pub execution_log: bool,
+    pub setting_state: SettingScreenState,
 }
 
-impl State {
+impl GuiState {
     fn reset(&mut self) {
         *self = Self::default()
     }

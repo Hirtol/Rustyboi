@@ -62,7 +62,7 @@ impl PPU {
     }
 }
 
-#[derive(Default, Debug, Clone, PartialOrd, PartialEq)]
+#[derive(Debug, Clone, PartialOrd, PartialEq)]
 pub struct PaletteDebugInfo {
     pub bg_palette: Vec<[RGB; 4]>,
     pub sprite_palette: Vec<[RGB; 4]>,
@@ -89,6 +89,17 @@ impl PaletteDebugInfo {
         PaletteDebugInfo {
             bg_palette,
             sprite_palette,
+        }
+    }
+}
+
+impl Default for PaletteDebugInfo {
+    fn default() -> Self {
+        let bg_palette = vec![[RGB::default(); 4]; 8];
+        let sprite_palette = vec![[RGB::default(); 4]; 8];
+        PaletteDebugInfo {
+            bg_palette,
+            sprite_palette
         }
     }
 }

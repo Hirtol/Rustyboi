@@ -1,41 +1,38 @@
-use log::LevelFilter;
-use log::*;
-use rustyboi_core::emulator::{Emulator, CYCLES_PER_FRAME};
-
-use rustyboi_core::{EmulatorOptionsBuilder, InputKey};
-use sdl2::keyboard::Keycode;
-
-use simplelog::{CombinedLogger, Config, ConfigBuilder, TermLogger, TerminalMode, WriteLogger};
-
+use std::cell::RefCell;
 use std::fs::read;
-
+use std::ops::Deref;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
+use crossbeam::channel::*;
+use gumdrop::Options;
+use log::*;
+use log::LevelFilter;
+use once_cell::sync::Lazy;
 use sdl2::audio::{AudioQueue, AudioSpecDesired};
 use sdl2::event::{Event, WindowEvent};
+use sdl2::keyboard::Keycode;
+use simplelog::{CombinedLogger, Config, ConfigBuilder, TerminalMode, TermLogger, WriteLogger};
 
+use audio::AudioPlayer;
+use rustyboi::storage::{FileStorage, Storage};
+use rustyboi_core::{EmulatorOptionsBuilder, InputKey};
+use rustyboi_core::emulator::{CYCLES_PER_FRAME, Emulator};
 use rustyboi_core::emulator::EmulatorMode::CGB;
+use rustyboi_core::hardware::apu::SAMPLE_CYCLES;
+use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
 use rustyboi_core::hardware::ppu::palette::{DisplayColour, RGB};
 
-use crate::state::{AppEmulatorState, AppState};
-use crossbeam::channel::*;
-use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
-
-use crate::rendering::imgui::ImguiBoi;
-use crate::rendering::Renderer;
-
-use crate::communication::{EmulatorNotification, EmulatorResponse, DebugMessage};
-use rustyboi::storage::{FileStorage, Storage};
-use std::sync::Arc;
-
-use crate::gameboy::GameboyRunner;
 use crate::benchmarking::Benchmarking;
-use crate::options::AppOptions;
-use gumdrop::Options;
-use crate::rendering::immediate::ImmediateGui;
+use crate::communication::{DebugMessage, EmulatorNotification, EmulatorResponse};
 use crate::communication::EmulatorNotification::Debug;
-use rustyboi_core::hardware::apu::SAMPLE_CYCLES;
-use audio::AudioPlayer;
+use crate::gameboy::GameboyRunner;
+use crate::options::AppOptions;
+use crate::rendering::imgui::ImguiBoi;
+use crate::rendering::immediate::ImmediateGui;
+use crate::rendering::Renderer;
+use crate::state::{AppEmulatorState, AppState};
+use std::borrow::Borrow;
 
 mod communication;
 mod gameboy;
@@ -75,6 +72,12 @@ const MAX_AUDIO_SAMPLES: u32 = 44100;
 const MIN_AUDIO_SAMPLES: u32 = 12000;
 const AUDIO_FREQUENCY: i32 = 44100;
 
+static GLOBAL_APP_STATE: Lazy<Mutex<AppState>> = Lazy::new(|| {
+    let file_storage = FileStorage::new().unwrap();
+    Mutex::new(file_storage.get_value(CONFIG_FILENAME).unwrap_or_default())
+});
+
+
 fn main() {
     CombinedLogger::init(vec![
         TermLogger::new(LevelFilter::Trace, Config::default(), TerminalMode::Mixed),
@@ -87,7 +90,6 @@ fn main() {
     let options: AppOptions = AppOptions::parse_args_default_or_exit();
 
     let file_storage = Arc::new(FileStorage::new().unwrap());
-    let mut app_state: AppState = file_storage.get_value(CONFIG_FILENAME).unwrap_or_default();
 
     let sdl_context = sdl2::init().expect("Failed to initialise SDL context!");
     let audio_subsystem = sdl_context.audio().expect("SDL context failed to initialise audio!");
@@ -155,7 +157,7 @@ fn main() {
         }
 
         let mut frames_to_go = if emulation_state.fast_forward {
-            app_state.fast_forward_rate
+            GLOBAL_APP_STATE.lock().expect("Failed to lock in fast forward").fast_forward_rate
         } else {
             1
         };
@@ -191,9 +193,8 @@ fn main() {
             renderer.main_window.window_mut().set_title(
                 format!(
                     "RustyBoi - {:.2} FPS",
-                    (loop_cycles as f64 /  last_update_time.elapsed().as_secs_f64())
-                )
-                .as_str(),
+                    (loop_cycles as f64 / last_update_time.elapsed().as_secs_f64())
+                ).as_str(),
             );
             last_update_time = Instant::now();
             loop_cycles = 0;
@@ -208,7 +209,7 @@ fn main() {
         }
     }
 
-    file_storage.save_value(CONFIG_FILENAME, &app_state);
+    file_storage.save_value(CONFIG_FILENAME, GLOBAL_APP_STATE.lock().unwrap().deref());
 }
 
 fn handle_events(
@@ -242,7 +243,7 @@ fn handle_events(
             win_event: WindowEvent::Close,
             ..
         }
-        | Event::KeyDown {keycode: Some(Keycode::Escape), ..} => {
+        | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
             renderer.close_immediate_gui();
             renderer.main_window.window_mut().raise();
         }
