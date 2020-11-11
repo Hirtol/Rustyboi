@@ -118,6 +118,10 @@ impl Emulator {
         self.cpu.mmu.add_new_interrupts(result);
     }
 
+    pub fn ppu(&mut self) -> &mut PPU {
+        &mut self.cpu.mmu.ppu
+    }
+
     fn handle_external_input(&mut self, input: InputKey, pressed: bool) -> Option<InterruptFlags> {
         let inputs = &mut self.cpu.mmu.joypad_register;
 

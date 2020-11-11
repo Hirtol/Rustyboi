@@ -243,7 +243,7 @@ impl PPU {
         self.ly_lyc_compare(interrupts);
     }
 
-    fn draw_scanline(&mut self) {
+    pub fn draw_scanline(&mut self) {
         // As soon as wy == ly ANYWHERE in the frame, the window will be considered
         // triggered for the remainder of the frame, and thus can only be disabled
         // if LCD Control WINDOW_DISPlAY is reset.
