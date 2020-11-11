@@ -91,7 +91,7 @@ fn create_display_colour_picker(ui: &Ui, title: impl AsRef<str>, linked_display:
     ui.set_cursor_pos([ui.window_size()[0] - size(ui, 8.0), ui.cursor_pos()[1]]);
     create_picker(ui, format!("White {}", suffix.as_ref()), &mut linked_display.white);
     ui.same_line(0.0);
-    create_picker(ui, format!("Light Grey{}", suffix.as_ref()), &mut linked_display.light_grey);
+    create_picker(ui, format!("Light Grey {}", suffix.as_ref()), &mut linked_display.light_grey);
     ui.same_line(0.0);
     create_picker(ui, format!("Dark Grey {}", suffix.as_ref()), &mut linked_display.dark_grey);
     ui.same_line(0.0);
