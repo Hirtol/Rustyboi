@@ -62,13 +62,15 @@ impl Palette {
     /// Retrieve the appropriate colour for the provided pixel value.
     ///
     /// Due to the aforementioned the `colour_value` should have at most 2 bits in use.
+    #[inline]
     pub fn colour(&self, color_value: u8) -> RGB {
+        // We elide a panic!/unreachable! here since this will only ever be called internally,
+        // and it gives a good speed boost.
         match color_value {
             0 => self.colours[0],
             1 => self.colours[1],
             2 => self.colours[2],
             _ => self.colours[3],
-            //_ => panic!("This should not be reached, colour value: {}", color_value),
         }
     }
 }

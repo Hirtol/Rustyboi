@@ -46,7 +46,7 @@ impl PPU {
         let mut tile_higher_bound = (tile_lower_bound + 20);
 
         // Which particular y coordinate to use from an 8x8 tile.
-        let tile_line_y = scanline_to_be_rendered % 8;
+        let tile_line_y = scanline_to_be_rendered as usize % 8;
         // How many pixels we've drawn so far on this scanline.
         let mut pixel_counter: i16 = 0;
         // The amount of pixels to skip from the first tile in the sequence, and partially render
@@ -74,26 +74,12 @@ impl PPU {
             let mut tile_address = tile_relative_address
                 + (384 * tile_attributes.contains(CgbTileAttribute::TILE_VRAM_BANK_NUMBER) as usize);
 
-            // If we've selected the 8800-97FF mode we need to add a 256 offset, and then
-            // add/subtract the relative address. (since we can then reach tiles 128-384)
-            if !self.lcd_control.contains(LcdControl::BG_WINDOW_TILE_SELECT) {
-                tile_address = (256_usize).wrapping_add((tile_relative_address as i8) as usize)
-                    + (384 * tile_attributes.contains(CgbTileAttribute::TILE_VRAM_BANK_NUMBER) as usize);
-            }
-
-            let tile_line = if tile_attributes.contains(CgbTileAttribute::Y_FLIP) {
-                7 - tile_line_y
-            } else {
-                tile_line_y
-            };
-
-            let (top_pixel_data, bottom_pixel_data) = self.tiles[tile_address].get_pixel_line(tile_line);
-
             self.draw_cgb_background_window_line(
                 &mut pixel_counter,
                 &mut pixels_to_skip,
-                top_pixel_data,
-                bottom_pixel_data,
+                tile_address,
+                tile_relative_address,
+                tile_line_y,
                 tile_attributes,
             )
         }
@@ -115,7 +101,7 @@ impl PPU {
         // partial, therefore we need a ceiling divide.
         let tile_higher_bound = (tile_lower_bound as u16 + ((160 - window_x) as u16).div_ceil(&8)) as u16;
 
-        let tile_line_y = self.window_counter % 8;
+        let tile_line_y = self.window_counter as usize % 8;
 
         // If window is less than 0 we want to skip those amount of pixels, otherwise we render as normal.
         // This means that we must take the absolute value of window_x for the pixels_skip, therefore the -
@@ -133,26 +119,12 @@ impl PPU {
             let mut tile_address = tile_relative_address
                 + (384 * tile_attributes.contains(CgbTileAttribute::TILE_VRAM_BANK_NUMBER) as usize);
 
-            // If we've selected the 8800-97FF mode we need to add a 256 offset, and then
-            // add/subtract the relative address.
-            if !self.lcd_control.contains(LcdControl::BG_WINDOW_TILE_SELECT) {
-                tile_address = (256_usize).wrapping_add((tile_relative_address as i8) as usize)
-                    + (384 * tile_attributes.contains(CgbTileAttribute::TILE_VRAM_BANK_NUMBER) as usize);
-            }
-
-            let tile_line = if tile_attributes.contains(CgbTileAttribute::Y_FLIP) {
-                7 - tile_line_y
-            } else {
-                tile_line_y
-            };
-
-            let (top_pixel_data, bottom_pixel_data) = self.tiles[tile_address].get_pixel_line(tile_line);
-
             self.draw_cgb_background_window_line(
                 &mut pixel_counter,
                 &mut pixels_to_skip,
-                top_pixel_data,
-                bottom_pixel_data,
+                tile_address,
+                tile_relative_address,
+                tile_line_y,
                 tile_attributes,
             );
         }
@@ -247,33 +219,39 @@ impl PPU {
 
     /// Draw a tile in a way appropriate for both the window, as well as the background.
     /// `pixels_to_skip` will skip pixels so long as it's greater than 0
-    fn draw_cgb_background_window_line(
-        &mut self,
-        pixel_counter: &mut i16,
-        pixels_to_skip: &mut u8,
-        top_pixel_data: u8,
-        bottom_pixel_data: u8,
-        tile_attributes: CgbTileAttribute,
-    ) {
+    fn draw_cgb_background_window_line(&mut self, pixel_counter: &mut i16, pixels_to_skip: &mut u8, mut tile_address: usize, tile_relative_address: usize, tile_line_y: usize, tile_attributes: CgbTileAttribute) {
+        // If we've selected the 8800-97FF mode we need to add a 256 offset, and then
+        // add/subtract the relative address. (since we can then reach tiles 128-384)
+        if !self.lcd_control.contains(LcdControl::BG_WINDOW_TILE_SELECT) {
+            tile_address = (256_usize).wrapping_add((tile_relative_address as i8) as usize)
+                + (384 * tile_attributes.contains(CgbTileAttribute::TILE_VRAM_BANK_NUMBER) as usize);
+        }
+
+        let tile_pixel_y = if tile_attributes.contains(CgbTileAttribute::Y_FLIP) {
+            (7 - tile_line_y) * 8
+        } else {
+            tile_line_y * 8
+        };
         // If we can draw 8 pixels in one go, we should.
         // pixel_counter Should be less than 152 otherwise we'd go over the 160 allowed pixels.
         if *pixels_to_skip == 0 && *pixel_counter < 152 {
             self.draw_cgb_contiguous_bg_window_block(
                 *pixel_counter as usize,
-                top_pixel_data,
-                bottom_pixel_data,
+                tile_address,
+                tile_pixel_y,
                 tile_attributes,
             );
             *pixel_counter += 8;
         } else {
             let x_flip = tile_attributes.contains(CgbTileAttribute::X_FLIP);
             let bg_priority = tile_attributes.contains(CgbTileAttribute::BG_TO_OAM_PRIORITY);
+            let tile_pixel_y_offset = tile_pixel_y + 7;
             // Yes this is ugly, yes this means a vtable call, yes I'd like to do it differently.
             // Only other way is to duplicate the for loop since the .rev() is a different iterator.
-            let iterator: Box<dyn Iterator<Item = u8>> = if x_flip {
-                Box::new((0..=7))
+            let iterator: Box<dyn Iterator<Item = usize>> = if x_flip {
+                Box::new((tile_pixel_y..=tile_pixel_y_offset))
             } else {
-                Box::new((0..=7).rev())
+                Box::new((tile_pixel_y..=tile_pixel_y_offset).rev())
             };
 
             for j in iterator {
@@ -287,9 +265,8 @@ impl PPU {
                     break;
                 }
 
-                let colour = self.get_pixel_colour(j as u8, top_pixel_data, bottom_pixel_data);
-                self.scanline_buffer[*pixel_counter as usize] =
-                    self.cgb_bg_palette[tile_attributes.bg_palette_numb()].colours[colour as usize].rgb;
+                let colour = self.tiles[tile_address].get_pixel(j);
+                self.scanline_buffer[*pixel_counter as usize] = self.cgb_bg_palette[tile_attributes.bg_palette_numb()].colour(colour);
                 self.scanline_buffer_unpalette[*pixel_counter as usize] = (colour, bg_priority);
                 *pixel_counter += 1;
             }
@@ -302,61 +279,58 @@ impl PPU {
     fn draw_cgb_contiguous_bg_window_block(
         &mut self,
         pixel_counter: usize,
-        top_pixel_data: u8,
-        bottom_pixel_data: u8,
+        tile_address: usize, tile_line_y: usize,
         tile_attributes: CgbTileAttribute,
     ) {
+        let tile = &self.tiles[tile_address];
         let palette = self.cgb_bg_palette[tile_attributes.bg_palette_numb()];
         let bg_priority = tile_attributes.contains(CgbTileAttribute::BG_TO_OAM_PRIORITY);
 
-        let top_pixel_data = top_pixel_data as usize;
-        let bottom_pixel_data = bottom_pixel_data as usize;
-
-        let colour0 = top_pixel_data & 0x1 | ((bottom_pixel_data & 0x1) << 1);
-        let colour1 = (top_pixel_data & 0x2) >> 1 | (bottom_pixel_data & 0x2);
-        let colour2 = (top_pixel_data & 4) >> 2 | ((bottom_pixel_data & 4) >> 1);
-        let colour3 = (top_pixel_data & 8) >> 3 | ((bottom_pixel_data & 8) >> 2);
-        let colour4 = (top_pixel_data & 16) >> 4 | ((bottom_pixel_data & 16) >> 3);
-        let colour5 = (top_pixel_data & 32) >> 5 | ((bottom_pixel_data & 32) >> 4);
-        let colour6 = (top_pixel_data & 64) >> 6 | ((bottom_pixel_data & 64) >> 5);
-        let colour7 = (top_pixel_data & 128) >> 7 | ((bottom_pixel_data & 128) >> 6);
+        let colour0 = tile.get_pixel(tile_line_y);
+        let colour1 = tile.get_pixel(tile_line_y + 1);
+        let colour2 = tile.get_pixel(tile_line_y + 2);
+        let colour3 = tile.get_pixel(tile_line_y + 3);
+        let colour4 = tile.get_pixel(tile_line_y + 4);
+        let colour5 = tile.get_pixel(tile_line_y + 5);
+        let colour6 = tile.get_pixel(tile_line_y + 6);
+        let colour7 = tile.get_pixel(tile_line_y + 7);
 
         if tile_attributes.contains(CgbTileAttribute::X_FLIP) {
-            self.scanline_buffer[pixel_counter] = palette.colours[colour0].rgb;
-            self.scanline_buffer[pixel_counter + 1] = palette.colours[colour1].rgb;
-            self.scanline_buffer[pixel_counter + 2] = palette.colours[colour2].rgb;
-            self.scanline_buffer[pixel_counter + 3] = palette.colours[colour3].rgb;
-            self.scanline_buffer[pixel_counter + 4] = palette.colours[colour4].rgb;
-            self.scanline_buffer[pixel_counter + 5] = palette.colours[colour5].rgb;
-            self.scanline_buffer[pixel_counter + 6] = palette.colours[colour6].rgb;
-            self.scanline_buffer[pixel_counter + 7] = palette.colours[colour7].rgb;
+            self.scanline_buffer[pixel_counter] = palette.colour(colour0);
+            self.scanline_buffer[pixel_counter + 1] = palette.colour(colour1);
+            self.scanline_buffer[pixel_counter + 2] = palette.colour(colour2);
+            self.scanline_buffer[pixel_counter + 3] = palette.colour(colour3);
+            self.scanline_buffer[pixel_counter + 4] = palette.colour(colour4);
+            self.scanline_buffer[pixel_counter + 5] = palette.colour(colour5);
+            self.scanline_buffer[pixel_counter + 6] = palette.colour(colour6);
+            self.scanline_buffer[pixel_counter + 7] = palette.colour(colour7);
             // We know the colourX will be a u8, we just preemptively made it a usize for index convenience.
-            self.scanline_buffer_unpalette[pixel_counter] = (colour0 as u8, bg_priority);
-            self.scanline_buffer_unpalette[pixel_counter + 1] = (colour1 as u8, bg_priority);
-            self.scanline_buffer_unpalette[pixel_counter + 2] = (colour2 as u8, bg_priority);
-            self.scanline_buffer_unpalette[pixel_counter + 3] = (colour3 as u8, bg_priority);
-            self.scanline_buffer_unpalette[pixel_counter + 4] = (colour4 as u8, bg_priority);
-            self.scanline_buffer_unpalette[pixel_counter + 5] = (colour5 as u8, bg_priority);
-            self.scanline_buffer_unpalette[pixel_counter + 6] = (colour6 as u8, bg_priority);
-            self.scanline_buffer_unpalette[pixel_counter + 7] = (colour7 as u8, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter] = (colour0, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 1] = (colour1, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 2] = (colour2, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 3] = (colour3, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 4] = (colour4, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 5] = (colour5, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 6] = (colour6, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 7] = (colour7, bg_priority);
         } else {
-            self.scanline_buffer[pixel_counter + 7] = palette.colours[colour0].rgb;
-            self.scanline_buffer[pixel_counter + 6] = palette.colours[colour1].rgb;
-            self.scanline_buffer[pixel_counter + 5] = palette.colours[colour2].rgb;
-            self.scanline_buffer[pixel_counter + 4] = palette.colours[colour3].rgb;
-            self.scanline_buffer[pixel_counter + 3] = palette.colours[colour4].rgb;
-            self.scanline_buffer[pixel_counter + 2] = palette.colours[colour5].rgb;
-            self.scanline_buffer[pixel_counter + 1] = palette.colours[colour6].rgb;
-            self.scanline_buffer[pixel_counter] = palette.colours[colour7].rgb;
+            self.scanline_buffer[pixel_counter + 7] = palette.colour(colour0);
+            self.scanline_buffer[pixel_counter + 6] = palette.colour(colour1);
+            self.scanline_buffer[pixel_counter + 5] = palette.colour(colour2);
+            self.scanline_buffer[pixel_counter + 4] = palette.colour(colour3);
+            self.scanline_buffer[pixel_counter + 3] = palette.colour(colour4);
+            self.scanline_buffer[pixel_counter + 2] = palette.colour(colour5);
+            self.scanline_buffer[pixel_counter + 1] = palette.colour(colour6);
+            self.scanline_buffer[pixel_counter] = palette.colour(colour7);
             // We know the colourX will be a u8, we just preemptively made it a usize for index convenience.
-            self.scanline_buffer_unpalette[pixel_counter + 7] = (colour0 as u8, bg_priority);
-            self.scanline_buffer_unpalette[pixel_counter + 6] = (colour1 as u8, bg_priority);
-            self.scanline_buffer_unpalette[pixel_counter + 5] = (colour2 as u8, bg_priority);
-            self.scanline_buffer_unpalette[pixel_counter + 4] = (colour3 as u8, bg_priority);
-            self.scanline_buffer_unpalette[pixel_counter + 3] = (colour4 as u8, bg_priority);
-            self.scanline_buffer_unpalette[pixel_counter + 2] = (colour5 as u8, bg_priority);
-            self.scanline_buffer_unpalette[pixel_counter + 1] = (colour6 as u8, bg_priority);
-            self.scanline_buffer_unpalette[pixel_counter] = (colour7 as u8, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 7] = (colour0, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 6] = (colour1, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 5] = (colour2, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 4] = (colour3, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 3] = (colour4, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 2] = (colour5, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter + 1] = (colour6, bg_priority);
+            self.scanline_buffer_unpalette[pixel_counter] = (colour7, bg_priority);
         }
     }
 

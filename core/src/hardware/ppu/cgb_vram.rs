@@ -68,6 +68,21 @@ pub struct CgbPalette {
 }
 
 impl CgbPalette {
+    /// Retrieve the appropriate colour for the provided pixel value.
+    ///
+    /// Due to the aforementioned the `colour_value` should have at most 2 bits in use.
+    #[inline(always)]
+    pub fn colour(&self, color_value: u8) -> RGB {
+        // We elide a panic!/unreachable! here since this will only ever be called internally,
+        // and it gives a good speed boost.
+        match color_value {
+            0 => self.colours[0].rgb,
+            1 => self.colours[1].rgb,
+            2 => self.colours[2].rgb,
+            _ => self.colours[3].rgb,
+        }
+    }
+
     pub fn rgb(&self) -> [RGB; 4] {
         [
             self.colours[0].rgb,

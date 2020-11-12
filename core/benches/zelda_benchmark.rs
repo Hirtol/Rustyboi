@@ -36,7 +36,22 @@ fn ppu_benchmark(c: &mut Criterion) {
     group.finish();
 }
 
-fn benchmark() {}
+fn ppu_cgb_benchmark(c: &mut Criterion) {
+    let cpu_test = read("..\\roms\\Zelda.gbc").unwrap();
+
+    let mut emulator = Emulator::new(&cpu_test, EmulatorOptionsBuilder::new().build());
+    let mut group = c.benchmark_group("PPU CGB Benches");
+
+    for _ in 0..40 {
+        emulator.run_to_vblank();
+    }
+
+    emulator.ppu().current_y = 0;
+    group.bench_function("Benchmark CGB full framebuffer", |b| b.iter(|| {
+        emulator.ppu().draw_cgb_scanline();
+        emulator.ppu().current_y = (emulator.ppu().current_y % 143) + 1;
+    }));
+}
 
 criterion_group!(benches, emulator_benchmark, ppu_benchmark);
 
