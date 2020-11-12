@@ -424,7 +424,7 @@ impl PPU {
             let tile_pixel_y = (line as usize % 8) * 8;
             let pixels = tile.get_true_pixel_line(tile_pixel_y);
 
-            for j in 0..7 {
+            for j in 0..=7 {
                 // If x is flipped then we want the pixels to go in order to the screen buffer,
                 // otherwise it's the reverse.
                 let pixel = if x_flip {
