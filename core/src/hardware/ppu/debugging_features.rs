@@ -32,29 +32,24 @@ impl PPU {
     fn render_tile(&self, tile: &Tile) -> [RGB; 64] {
         let mut result = [RGB::default(); 64];
         let mut pixel_counter = 0;
-        for i in 0..8 {
-            let (top, bottom) = tile.get_pixel_line(i);
-
-            let top_pixel_data = top as usize;
-            let bottom_pixel_data = bottom as usize;
-
-            let colour0 = top_pixel_data & 0x1 | ((bottom_pixel_data & 0x1) << 1);
-            let colour1 = (top_pixel_data & 0x2) >> 1 | (bottom_pixel_data & 0x2);
-            let colour2 = (top_pixel_data & 4) >> 2 | ((bottom_pixel_data & 4) >> 1);
-            let colour3 = (top_pixel_data & 8) >> 3 | ((bottom_pixel_data & 8) >> 2);
-            let colour4 = (top_pixel_data & 16) >> 4 | ((bottom_pixel_data & 16) >> 3);
-            let colour5 = (top_pixel_data & 32) >> 5 | ((bottom_pixel_data & 32) >> 4);
-            let colour6 = (top_pixel_data & 64) >> 6 | ((bottom_pixel_data & 64) >> 5);
-            let colour7 = (top_pixel_data & 128) >> 7 | ((bottom_pixel_data & 128) >> 6);
+        for _ in 0..8 {
+            let colour0 = tile.get_pixel(pixel_counter);
+            let colour1 = tile.get_pixel(pixel_counter + 1);
+            let colour2 = tile.get_pixel(pixel_counter + 2);
+            let colour3 = tile.get_pixel(pixel_counter + 3);
+            let colour4 = tile.get_pixel(pixel_counter + 4);
+            let colour5 = tile.get_pixel(pixel_counter + 5);
+            let colour6 = tile.get_pixel(pixel_counter + 6);
+            let colour7 = tile.get_pixel(pixel_counter + 7);
             //TODO: Add palette prediction by using tile maps
-            result[pixel_counter + 7] = self.bg_window_palette.colours[colour0];
-            result[pixel_counter + 6] = self.bg_window_palette.colours[colour1];
-            result[pixel_counter + 5] = self.bg_window_palette.colours[colour2];
-            result[pixel_counter + 4] = self.bg_window_palette.colours[colour3];
-            result[pixel_counter + 3] = self.bg_window_palette.colours[colour4];
-            result[pixel_counter + 2] = self.bg_window_palette.colours[colour5];
-            result[pixel_counter + 1] = self.bg_window_palette.colours[colour6];
-            result[pixel_counter] = self.bg_window_palette.colours[colour7];
+            result[pixel_counter + 7] = self.bg_window_palette.colour(colour0);
+            result[pixel_counter + 6] = self.bg_window_palette.colour(colour1);
+            result[pixel_counter + 5] = self.bg_window_palette.colour(colour2);
+            result[pixel_counter + 4] = self.bg_window_palette.colour(colour3);
+            result[pixel_counter + 3] = self.bg_window_palette.colour(colour4);
+            result[pixel_counter + 2] = self.bg_window_palette.colour(colour5);
+            result[pixel_counter + 1] = self.bg_window_palette.colour(colour6);
+            result[pixel_counter] = self.bg_window_palette.colour(colour7);
             pixel_counter += 8;
         }
 

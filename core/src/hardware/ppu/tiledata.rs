@@ -116,11 +116,9 @@ impl Tile {
         &self.unpaletted_pixels[start_index..start_index+8]
     }
 
-    pub fn get_pixel_line(&self, line_y: u8) -> (u8, u8) {
-        let address = (line_y * 2) as usize;
-        (self.data[address], self.data[address + 1])
-    }
-
+    /// Update the tile's data representation as well as its pre-computed palette colour cache.
+    /// The current way this is done means that we'll do twice as many calculations as should strictly
+    /// be required (since 2 bytes make up one pixel row, and we update after each byte is written).
     pub fn update_pixel_data(&mut self, byte_address: usize, value: u8) {
         let pixel_array_address = (byte_address - (byte_address % 2)) * 4;
 
@@ -136,8 +134,8 @@ impl Tile {
     }
 
     fn bulk_set_pixels(&mut self, top_pixel_data: u8, bottom_pixel_data: u8, pixel_array_address: usize) {
-        self.unpaletted_pixels[pixel_array_address] = top_pixel_data & 0x1 | ((bottom_pixel_data & 0x1) << 1);
-        self.unpaletted_pixels[pixel_array_address + 1] = (top_pixel_data & 0x2) >> 1 | (bottom_pixel_data & 0x2);
+        self.unpaletted_pixels[pixel_array_address] = top_pixel_data & 1 | ((bottom_pixel_data & 1) << 1);
+        self.unpaletted_pixels[pixel_array_address + 1] = (top_pixel_data & 2) >> 1 | (bottom_pixel_data & 2);
         self.unpaletted_pixels[pixel_array_address + 2] = (top_pixel_data & 4) >> 2 | ((bottom_pixel_data & 4) >> 1);
         self.unpaletted_pixels[pixel_array_address + 3] = (top_pixel_data & 8) >> 3 | ((bottom_pixel_data & 8) >> 2);
         self.unpaletted_pixels[pixel_array_address + 4] = (top_pixel_data & 16) >> 4 | ((bottom_pixel_data & 16) >> 3);

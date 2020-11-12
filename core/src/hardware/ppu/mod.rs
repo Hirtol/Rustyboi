@@ -464,6 +464,7 @@ impl PPU {
             self.draw_contiguous_bg_window_block(*pixel_counter as usize, tile_address, tile_line_y);
             *pixel_counter += 8;
         } else {
+            let tile = &self.tiles[tile_address];
             for j in (tile_line_y..=tile_pixel_y_offset).rev() {
                 // We have to render a partial tile, so skip the first pixels_to_skip and render the rest.
                 if *pixels_to_skip > 0 {
@@ -474,7 +475,7 @@ impl PPU {
                 if *pixel_counter > 159 {
                     break;
                 }
-                let colour = self.tiles[tile_address].get_pixel(j);
+                let colour = tile.get_pixel(j);
                 self.scanline_buffer[*pixel_counter as usize] = self.bg_window_palette.colour(colour);
                 self.scanline_buffer_unpalette[*pixel_counter as usize] = (colour, false);
                 *pixel_counter += 1;
@@ -512,13 +513,6 @@ impl PPU {
         self.scanline_buffer_unpalette[pixel_counter + 2] = (colour5, false);
         self.scanline_buffer_unpalette[pixel_counter + 1] = (colour6, false);
         self.scanline_buffer_unpalette[pixel_counter] = (colour7, false);
-    }
-
-    fn get_pixel_colour(&self, bit_offset: u8, top_pixel_data: u8, bottom_pixel_data: u8) -> u8 {
-        let bit1 = (top_pixel_data & (0x1 << bit_offset)) >> bit_offset;
-        let bit2 = (bottom_pixel_data & (0x1 << bit_offset)) >> bit_offset;
-
-        bit1 | (bit2 << 1)
     }
 
     fn get_sprite_palette(&self, sprite: &SpriteAttribute) -> Palette {

@@ -178,7 +178,8 @@ impl PPU {
                 }
             };
 
-            let (top_pixel_data, bottom_pixel_data) = tile.get_pixel_line(line % 8);
+            let tile_pixel_y = (line as usize % 8) * 8;
+            let pixels = tile.get_true_pixel_line(tile_pixel_y);
 
             for j in 0..=7 {
                 // If x is flipped then we want the pixels to go in order to the screen buffer,
@@ -203,7 +204,7 @@ impl PPU {
                     }
                 }
 
-                let colour = self.get_pixel_colour(j as u8, top_pixel_data, bottom_pixel_data);
+                let colour = pixels[j as usize];
 
                 // The colour 0 should be transparent for sprites, therefore we don't draw it.
                 if colour != 0x0 {
@@ -246,6 +247,7 @@ impl PPU {
             let x_flip = tile_attributes.contains(CgbTileAttribute::X_FLIP);
             let bg_priority = tile_attributes.contains(CgbTileAttribute::BG_TO_OAM_PRIORITY);
             let tile_pixel_y_offset = tile_pixel_y + 7;
+            let tile = &self.tiles[tile_address];
             // Yes this is ugly, yes this means a vtable call, yes I'd like to do it differently.
             // Only other way is to duplicate the for loop since the .rev() is a different iterator.
             let iterator: Box<dyn Iterator<Item = usize>> = if x_flip {
@@ -265,7 +267,7 @@ impl PPU {
                     break;
                 }
 
-                let colour = self.tiles[tile_address].get_pixel(j);
+                let colour = tile.get_pixel(j);
                 self.scanline_buffer[*pixel_counter as usize] = self.cgb_bg_palette[tile_attributes.bg_palette_numb()].colour(colour);
                 self.scanline_buffer_unpalette[*pixel_counter as usize] = (colour, bg_priority);
                 *pixel_counter += 1;
