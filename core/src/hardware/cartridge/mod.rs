@@ -53,6 +53,7 @@ impl Cartridge {
 
     pub fn read_external_ram(&self, address: u16) -> u8 {
         let address = (address & 0x1FFF) as usize;
+        log::warn!("Reading ram bank: {:#4X} value: {:#4X}", address, self.ram[address | self.ram_offset]);
         match &self.mbc {
             MBC::MBC0 if self.ram.len() > 0 => {
                 self.ram[address]
@@ -68,6 +69,7 @@ impl Cartridge {
 
     pub fn write_external_ram(&mut self, address: u16, value: u8) {
         let address = (address & 0x1FFF) as usize;
+        log::warn!("Writing ram bank {}: {:#4X} value: {:#4X}", self.ram.len(), address, value);
         match &self.mbc {
             MBC::MBC0 if self.ram.len() > 0 => {
                 self.ram[address] = value;
