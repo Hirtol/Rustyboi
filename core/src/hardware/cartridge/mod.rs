@@ -64,7 +64,11 @@ impl Cartridge {
                 self.ram[address | self.ram_offset]
             }
             MBC::MBC3(state) if state.ram_enabled => {
-                self.ram[address + self.ram_offset]
+                match state.ram_bank {
+                    0x0..=0x7 => self.ram[address + self.ram_offset],
+                    0x8..=0xC => state.read_rtc_register(),
+                    _ => unreachable!()
+                }
             }
             MBC::MBC5(state) if state.ram_enabled => {
                 self.ram[address + self.ram_offset]
@@ -75,7 +79,7 @@ impl Cartridge {
 
     pub fn write_external_ram(&mut self, address: u16, value: u8) {
         let address = (address & 0x1FFF) as usize;
-        match &self.mbc {
+        match &mut self.mbc {
             MBC::MBC0 if self.ram.len() > 0 => {
                 self.ram[address] = value;
             }
@@ -83,7 +87,11 @@ impl Cartridge {
                 self.ram[address | self.ram_offset] = value;
             }
             MBC::MBC3(state) if state.ram_enabled => {
-                self.ram[address + self.ram_offset] = value;
+                match state.ram_bank {
+                    0x0..=0x7 => self.ram[address + self.ram_offset] = value,
+                    0x8..=0xC => state.write_rtc_register(value),
+                    _ => unreachable!()
+                }
             }
             MBC::MBC5(state) if state.ram_enabled => {
                 self.ram[address + self.ram_offset] = value;
@@ -128,6 +136,9 @@ impl Cartridge {
                         state.write_ram_bank(value);
                         self.ram_offset = state.get_ram_offset();
                     },
+                    0x6000..=0x7FFF => {
+                        state.write_latch_data(value);
+                    }
                     _ => {},
                 }
             }

@@ -240,9 +240,7 @@ impl APU {
         }
         // Voice 3 (Wave)
         if voice_enables[2] {
-            // The volume shift of the wave channel doesn't seem quite enough to balance it
-            // compared to the other channels, so this extra division is to soften is slightly.
-            result += (self.voice3.output_volume() as f32 / 2.0);
+            result += (self.voice3.output_volume() as f32);
         }
         // Voice 4 (Noise)
         if voice_enables[3] {

@@ -56,7 +56,7 @@ fn run_scanline_benchmark(path: impl AsRef<Path>, group: &mut BenchmarkGroup<Wal
     }));
 }
 
-criterion_group!(benches, emulator_benchmark, ppu_benchmark);
+criterion_group!(benches, emulator_benchmark);
 
 // criterion_group!(
 //     name = ppu_benches;

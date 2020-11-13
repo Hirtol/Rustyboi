@@ -89,8 +89,9 @@ impl MBC1State {
 #[derive(Debug, Clone)]
 pub struct MBC3State {
     pub ram_enabled: bool,
+    pub ram_bank: u8,
     rom_bank: u16,
-    ram_bank: u8,
+    rtc_registers: RTCRegisters,
 }
 
 impl Default for MBC3State {
@@ -99,6 +100,7 @@ impl Default for MBC3State {
             ram_enabled: false,
             rom_bank: 1,
             ram_bank: 0,
+            rtc_registers: RTCRegisters::default()
         }
     }
 }
@@ -131,9 +133,86 @@ impl MBC3State {
         self.rom_bank %= effective_rom_banks as u16;
     }
 
-    pub fn write_ram_bank(&mut self, value: u8) {
-        self.ram_bank = value & 0xA
+    pub fn read_rtc_register(&self) -> u8 {
+        self.rtc_registers.read_rtc(self.ram_bank)
     }
+
+    pub fn write_rtc_register(&mut self, value: u8) {
+        self.rtc_registers.write_rtc(self.ram_bank, value)
+    }
+
+    pub fn write_ram_bank(&mut self, value: u8) {
+        self.ram_bank = value & 0xF;
+    }
+
+    pub fn write_latch_data(&mut self, value: u8) {
+        if self.ram_enabled {
+            self.rtc_registers.latch_rtc(value);
+        }
+    }
+}
+
+//TODO: Check if we should use user system time to populate these values?
+#[derive(Debug, Default, Copy, Clone)]
+struct RTCRegisters {
+    seconds: u8,
+    minutes: u8,
+    hours: u8,
+    day_counter_lower: u8,
+    day_counter_upper: u8,
+    latched: bool,
+}
+
+impl RTCRegisters {
+    #[inline]
+    fn latch_rtc(&mut self, value: u8) {
+        if !self.latched && value != 0 {
+            //TODO: Implement actual timekeeping, look at this:
+            // https://web.archive.org/web/20150110235712/https://github.com/supergameherm/supergameherm/blob/df158781fcb85693b3d10fe2f40ea0010573fa5e/src/mbc.c#L378-430
+            // for reference.
+        }
+
+        self.latched = value == 0;
+    }
+
+    #[inline]
+    fn read_rtc(&self, address: u8) -> u8 {
+        let address = address & 0xF;
+        match address {
+            0x8 => self.seconds,
+            0x9 => self.minutes,
+            0xA => self.hours,
+            0xB => self.day_counter_lower,
+            0xC => self.day_counter_upper,
+            _ => unreachable!()
+        }
+    }
+
+    #[inline]
+    fn write_rtc(&mut self, address: u8, value: u8) {
+        let address = address & 0xF;
+        match address {
+            0x8 => self.seconds = value,
+            0x9 => self.minutes = value,
+            0xA => self.hours = value,
+            0xB => self.day_counter_lower = value,
+            0xC => self.day_counter_upper = value,
+            _ => unreachable!()
+        }
+    }
+
+    fn days(&self) -> u16 {
+        ((self.day_counter_upper as u16 & 0x1) << 8) | self.day_counter_lower as u16
+    }
+
+    fn clock_halt(&self) -> bool {
+        (self.day_counter_upper & 0b0100_0000) != 0
+    }
+
+    fn day_overflow(&self) -> bool {
+        (self.day_counter_upper & 0b1000_0000) != 0
+    }
+
 }
 
 #[derive(Debug, Clone)]
