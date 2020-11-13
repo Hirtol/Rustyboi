@@ -91,20 +91,17 @@ impl Cartridge {
                     0x2000..=0x3FFF => {
                         state.set_lower_rom_bank(value, self.effective_rom_banks);
                         self.higher_bank_offset = state.get_7fff_offset();
-                        log::warn!("Change lower ram bank, new high-bank: {:#4X}", self.higher_bank_offset);
                     },
                     0x4000..=0x5FFF => {
                         state.set_higher_rom_bank(value, self.effective_rom_banks);
                         self.lower_bank_offset = state.get_3fff_offset(self.effective_rom_banks);
                         self.higher_bank_offset = state.get_7fff_offset();
                         self.ram_offset = state.get_ram_offset(self.ram.len());
-                        log::warn!("Change higher ram bank: {:#4X} {:#4X} {:#4X}", self.lower_bank_offset, self.higher_bank_offset, self.ram_offset);
                     },
                     0x6000..=0x7FFF => {
                         state.set_bank_mode_select(value);
                         self.lower_bank_offset = state.get_3fff_offset(self.effective_rom_banks);
                         self.ram_offset = state.get_ram_offset(self.ram.len());
-                        log::warn!("Change bank mode: {:#4X} {:#4X}", self.lower_bank_offset, self.ram_offset);
                     },
                     _ => {},
                 }
