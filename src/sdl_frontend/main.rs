@@ -80,8 +80,8 @@ static GLOBAL_APP_STATE: Lazy<Mutex<AppState>> = Lazy::new(|| {
 
 fn main() {
     CombinedLogger::init(vec![
-        TermLogger::new(LevelFilter::Trace, Config::default(), TerminalMode::Mixed),
-        WriteLogger::new(LevelFilter::Trace, ConfigBuilder::new().set_location_level(LevelFilter::Off).set_time_level(LevelFilter::Off).set_target_level(LevelFilter::Off).build(), std::io::BufWriter::new(File::create("rustyboi.log").unwrap())),
+        TermLogger::new(LevelFilter::Debug, Config::default(), TerminalMode::Mixed),
+        //WriteLogger::new(LevelFilter::Trace, ConfigBuilder::new().set_location_level(LevelFilter::Off).set_time_level(LevelFilter::Off).set_target_level(LevelFilter::Off).build(), std::io::BufWriter::new(File::create("rustyboi.log").unwrap())),
     ]).unwrap();
     // We want the first click on a gui element to actually register
     sdl2::hint::set("SDL_MOUSE_FOCUS_CLICKTHROUGH", "1");
@@ -115,7 +115,7 @@ fn main() {
     // 2: Render GB games when running in GBC with GBC renderer, since bootrom sets custom palettes!
     let mut timer = sdl_context.timer().unwrap();
     let emu_opts = EmulatorOptionsBuilder::new()
-        //.boot_rom(Some(bootrom_file_cgb))
+        .boot_rom(Some(bootrom_file_cgb))
         .with_mode(CGB)
         .with_display_colour(KIRBY_DISPLAY_COLOURS)
         .build();

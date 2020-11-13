@@ -20,26 +20,27 @@ pub struct Cartridge {
     ram_offset: usize,
     rom: Vec<u8>,
     ram: Vec<u8>,
-    //mbc: Box<dyn MBCTrait + Send>,
     mbc: MBC,
 }
 
 impl Cartridge {
     pub fn new(rom: &[u8], saved_ram: Option<Vec<u8>>) -> Self {
         let header = CartridgeHeader::new(rom);
-        log::debug!(
-            "Loading ROM with type: {:#X}, CGB-flag: {}",
-            header.cartridge_type,
-            header.cgb_flag
-        );
         let (mbc, has_battery) = create_mbc(&header);
-        let saved_ram = if let Some(ram) = saved_ram {
-            ram
-        } else {
-            vec![INVALID_READ; header.ram_size.to_usize()]
-        };
+        let mut ex_ram =  vec![INVALID_READ; header.ram_size.to_usize()];
 
-        Cartridge { header, has_battery, lower_bank_offset: 0, higher_bank_offset: 0x4000, ram_offset: 0, effective_rom_banks: rom.len() / ROM_BANK_SIZE, rom: rom.to_vec(), ram: saved_ram, mbc }
+        if let Some(ram) = saved_ram {
+            ex_ram[..ram.len()].copy_from_slice(&ram);
+        }
+
+        log::debug!(
+            "Loading ROM with MBC type: {:#X}, CGB-flag: {} and ram size: {:?}",
+            header.cartridge_type,
+            header.cgb_flag,
+            header.ram_size,
+        );
+
+        Cartridge { header, has_battery, lower_bank_offset: 0, higher_bank_offset: 0x4000, ram_offset: 0, effective_rom_banks: rom.len() / ROM_BANK_SIZE, rom: rom.to_vec(), ram: ex_ram, mbc }
     }
 
     pub fn read_0000_3fff(&self, address: u16) -> u8 {
@@ -53,7 +54,6 @@ impl Cartridge {
 
     pub fn read_external_ram(&self, address: u16) -> u8 {
         let address = (address & 0x1FFF) as usize;
-        log::warn!("Reading ram bank: {:#4X} value: {:#4X}", address, self.ram[address | self.ram_offset]);
         match &self.mbc {
             MBC::MBC0 if self.ram.len() > 0 => {
                 self.ram[address]
@@ -69,7 +69,6 @@ impl Cartridge {
 
     pub fn write_external_ram(&mut self, address: u16, value: u8) {
         let address = (address & 0x1FFF) as usize;
-        log::warn!("Writing ram bank {}: {:#4X} value: {:#4X}", self.ram.len(), address, value);
         match &self.mbc {
             MBC::MBC0 if self.ram.len() > 0 => {
                 self.ram[address] = value;
