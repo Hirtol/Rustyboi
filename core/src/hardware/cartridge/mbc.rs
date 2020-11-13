@@ -88,7 +88,52 @@ impl MBC1State {
 
 #[derive(Debug, Clone)]
 pub struct MBC3State {
+    pub ram_enabled: bool,
+    rom_bank: u16,
+    ram_bank: u8,
+}
 
+impl Default for MBC3State {
+    fn default() -> Self {
+        MBC3State {
+            ram_enabled: false,
+            rom_bank: 1,
+            ram_bank: 0,
+        }
+    }
+}
+
+impl MBC3State {
+    pub fn get_3fff_offset(&self) -> usize {
+        0
+    }
+
+    pub fn get_7fff_offset(&self) -> usize {
+        (self.rom_bank as usize) << 14
+    }
+
+    pub fn get_ram_offset(&self) -> usize {
+        EXTERNAL_RAM_SIZE * self.ram_bank as usize
+    }
+
+    pub fn enable_ram(&mut self, value: u8) {
+        self.ram_enabled = (value & 0xF) == 0xA;
+    }
+
+    pub fn write_lower_rom_bank(&mut self, value: u8, effective_rom_banks: usize) {
+        // Select the first 7 bits and use that as the bank number.
+        self.rom_bank = (value & 0x7F) as u16;
+
+        if self.rom_bank == 0 {
+            self.rom_bank = 1;
+        }
+
+        self.rom_bank %= effective_rom_banks as u16;
+    }
+
+    pub fn write_ram_bank(&mut self, value: u8) {
+        self.ram_bank = value & 0xA
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -138,15 +183,4 @@ impl MBC5State {
     pub fn write_ram_bank(&mut self, value: u8) {
         self.ram_bank = value & 0xF
     }
-}
-
-pub trait MBCTrait {
-    fn read_3fff(&self, address: u16) -> u8;
-    fn read_7fff(&self, address: u16) -> u8;
-    fn read_ex_ram(&self, address: u16) -> u8;
-    /// Returns, if the current ROM has a battery, the contents of the External Ram.
-    ///
-    /// Should be used for saving functionality.
-    fn get_battery_ram(&self) -> Option<&[u8]>;
-    fn write_byte(&mut self, address: u16, value: u8);
 }
