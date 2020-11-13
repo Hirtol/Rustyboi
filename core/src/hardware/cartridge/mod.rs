@@ -131,7 +131,6 @@ impl Cartridge {
                         state.write_lower_rom_bank(value, self.effective_rom_banks);
                         self.higher_bank_offset = state.get_7fff_offset();
                     },
-                    //TODO: Timer
                     0x4000..=0x5FFF => {
                         state.write_ram_bank(value);
                         self.ram_offset = state.get_ram_offset();
