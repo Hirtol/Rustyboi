@@ -204,7 +204,7 @@ impl Memory {
             ROM_BANK_00_START..=ROM_BANK_NN_END => self.cartridge.write_byte(address, value),
             TILE_BLOCK_0_START..=TILE_BLOCK_2_END => self.ppu.set_tile_byte(address, value),
             TILEMAP_9800_START..=TILEMAP_9C00_END => self.ppu.set_tilemap_byte(address, value),
-            EXTERNAL_RAM_START..=EXTERNAL_RAM_END => self.cartridge.write_byte(address, value),
+            EXTERNAL_RAM_START..=EXTERNAL_RAM_END => self.cartridge.write_external_ram(address, value),
             WRAM_BANK_00_START..=WRAM_BANK_00_END => self.wram.write_bank_0(address, value),
             WRAM_BANK_NN_START..=WRAM_BANK_NN_END => self.wram.write_bank_n(address, value),
             ECHO_RAM_START..=ECHO_RAM_END => self.wram.write_echo_ram(address, value),

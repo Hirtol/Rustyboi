@@ -80,7 +80,7 @@ impl Emulator {
     ///
     /// Should be used for saving functionality.
     pub fn battery_ram(&self) -> Option<&[u8]> {
-        self.cpu.mmu.cartridge()?.mbc().get_battery_ram()
+        self.cpu.mmu.cartridge()?.battery_ram()
     }
 
     pub fn game_title(&self) -> Option<&str> {

@@ -1,5 +1,5 @@
 use std::cell::RefCell;
-use std::fs::read;
+use std::fs::{read, File};
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -81,7 +81,7 @@ static GLOBAL_APP_STATE: Lazy<Mutex<AppState>> = Lazy::new(|| {
 fn main() {
     CombinedLogger::init(vec![
         TermLogger::new(LevelFilter::Trace, Config::default(), TerminalMode::Mixed),
-        //WriteLogger::new(LevelFilter::Trace, ConfigBuilder::new().set_location_level(LevelFilter::Off).set_time_level(LevelFilter::Off).set_target_level(LevelFilter::Off).build(), std::io::BufWriter::new(File::create("rustyboi.log").unwrap())),
+        WriteLogger::new(LevelFilter::Trace, ConfigBuilder::new().set_location_level(LevelFilter::Off).set_time_level(LevelFilter::Off).set_target_level(LevelFilter::Off).build(), std::io::BufWriter::new(File::create("rustyboi.log").unwrap())),
     ]).unwrap();
     // We want the first click on a gui element to actually register
     sdl2::hint::set("SDL_MOUSE_FOCUS_CLICKTHROUGH", "1");
@@ -106,7 +106,7 @@ fn main() {
 
     let cartridge = "roms/Zelda.gb";
     let _yellow = "roms/Pokemon - Yellow Version.gbc";
-    let _cpu_test = "test roms/auto-run/window_y_trigger.gb";
+    let _cpu_test = "test roms/auto-run/mooneye/tests/emulator-only/mbc1/mbc1_bits_bank2.gb";
     let _cpu_test2 = "test roms/auto-run/hdma_timing-C.gbc";
 
     //Things to do:
@@ -115,12 +115,12 @@ fn main() {
     // 2: Render GB games when running in GBC with GBC renderer, since bootrom sets custom palettes!
     let mut timer = sdl_context.timer().unwrap();
     let emu_opts = EmulatorOptionsBuilder::new()
-        .boot_rom(Some(bootrom_file_cgb))
+        //.boot_rom(Some(bootrom_file_cgb))
         .with_mode(CGB)
         .with_display_colour(KIRBY_DISPLAY_COLOURS)
         .build();
 
-    let mut gameboy_runner = GameboyRunner::new(cartridge, emu_opts);
+    let mut gameboy_runner = GameboyRunner::new(_cpu_test, emu_opts);
     let mut audio_player = AudioPlayer::new(&audio_subsystem, Duration::from_millis(100));
 
     let mut loop_cycles = 0;

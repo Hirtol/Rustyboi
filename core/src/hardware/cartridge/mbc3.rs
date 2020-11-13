@@ -1,5 +1,5 @@
 use crate::hardware::cartridge::header::RamSizes;
-use crate::hardware::cartridge::mbc::{EXTERNAL_RAM_SIZE, MBC, ROM_BANK_SIZE};
+use crate::hardware::cartridge::mbc::{EXTERNAL_RAM_SIZE, MBCTrait, ROM_BANK_SIZE};
 use crate::hardware::mmu::{EXTERNAL_RAM_END, EXTERNAL_RAM_START, INVALID_READ};
 
 //TODO: Create MBC3 + Timer
@@ -50,7 +50,7 @@ impl MBC3 {
     }
 }
 
-impl MBC for MBC3 {
+impl MBCTrait for MBC3 {
     fn read_3fff(&self, address: u16) -> u8 {
         // MBC5 will always have the first 16KB of the rom mapped to the lower range \o/
         self.rom[address as usize]
