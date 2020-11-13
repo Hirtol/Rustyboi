@@ -3,7 +3,7 @@ use std::fmt;
 use bitflags::_core::fmt::{Debug, Formatter};
 
 use crate::hardware::cartridge::header::CartridgeHeader;
-use crate::hardware::cartridge::mbc::{MBC, MBC0, MBC1, MBC1State, MBC5, MBCTrait, ROM_BANK_SIZE};
+use crate::hardware::cartridge::mbc::{MBC, MBC1State, MBCTrait, ROM_BANK_SIZE, MBC5State};
 use crate::hardware::cartridge::mbc3::MBC3;
 use crate::hardware::mmu::{INVALID_READ, EXTERNAL_RAM_START};
 
@@ -30,7 +30,11 @@ impl Cartridge {
         let mut ex_ram =  vec![INVALID_READ; header.ram_size.to_usize()];
 
         if let Some(ram) = saved_ram {
-            ex_ram[..ram.len()].copy_from_slice(&ram);
+            if ram.len() == header.ram_size.to_usize() {
+                ex_ram = ram;
+            } else {
+                log::error!("Tried to load saved data with title: '{}', but the saved ram had length: {} while the header specified: {}!", header.title, ram.len(), header.ram_size.to_usize());
+            }
         }
 
         log::debug!(
@@ -61,8 +65,10 @@ impl Cartridge {
             MBC::MBC1(state) if state.ram_enabled => {
                 self.ram[address | self.ram_offset]
             }
-            MBC::MBC3 => {0}
-            MBC::MBC5 => {0}
+            MBC::MBC3(state) => {0}
+            MBC::MBC5(state) if state.ram_enabled => {
+                self.ram[address + self.ram_offset]
+            }
             _ => INVALID_READ
         }
     }
@@ -76,8 +82,10 @@ impl Cartridge {
             MBC::MBC1(state) if state.ram_enabled => {
                 self.ram[address | self.ram_offset] = value;
             }
-            MBC::MBC3 => {}
-            MBC::MBC5 => {}
+            MBC::MBC3(state) => {}
+            MBC::MBC5(state) if state.ram_enabled => {
+                self.ram[address + self.ram_offset] = value;
+            }
             _ => {}
         }
     }
@@ -106,8 +114,25 @@ impl Cartridge {
                     _ => {},
                 }
             }
-            MBC::MBC3 => {}
-            MBC::MBC5 => {}
+            MBC::MBC3(state) => {}
+            MBC::MBC5(state) => {
+                match address {
+                    0x0000..=0x1FFF => state.enable_ram(value),
+                    0x2000..=0x2FFF => {
+                        state.write_lower_rom_bank(value, self.effective_rom_banks);
+                        self.higher_bank_offset = state.get_7fff_offset();
+                    },
+                    0x3000..=0x3FFF => {
+                        state.write_higher_rom_bank(value, self.effective_rom_banks);
+                        self.higher_bank_offset = state.get_7fff_offset();
+                    },
+                    0x4000..=0x5FFF => {
+                        state.write_ram_bank(value);
+                        self.ram_offset = state.get_ram_offset();
+                    },
+                    _ => {},
+                }
+            }
             _ => {}
         }
     }
@@ -145,18 +170,13 @@ fn create_mbc(header: &CartridgeHeader) -> (MBC, bool) {
     let mbc = match header.cartridge_type {
         0x0 => MBC0,
         0x1..=0x3 => MBC1(MBC1State::default()),
+        // 1C..=1E technically contain a rumble feature, to be implemented.
+        0x19..=0x1E => MBC5(MBC5State::default()),
         // 0xF => Box::new(MBC3::new(rom_vec, true, &header.ram_size, None)),
         // 0x10 => Box::new(MBC3::new(rom_vec, true, &header.ram_size, saved_ram)),
         // 0x11 => Box::new(MBC3::new(rom_vec, false, &header.ram_size, None)),
         // 0x12 => Box::new(MBC3::new(rom_vec, false, &header.ram_size, saved_ram)),
         // 0x13 => Box::new(MBC3::new(rom_vec, true, &header.ram_size, saved_ram)),
-        // 0x19 => Box::new(MBC5::new(rom_vec, false, &header.ram_size, None)),
-        // 0x1A => Box::new(MBC5::new(rom_vec, false, &header.ram_size, None)),
-        // 0x1B => Box::new(MBC5::new(rom_vec, true, &header.ram_size, saved_ram)),
-        // // These three technically contain a rumble feature, to be implemented.
-        // 0x1C => Box::new(MBC5::new(rom_vec, false, &header.ram_size, None)),
-        // 0x1D => Box::new(MBC5::new(rom_vec, false, &header.ram_size, None)),
-        // 0x1E => Box::new(MBC5::new(rom_vec, true, &header.ram_size, saved_ram)),
         _ => panic!(
             "Unsupported cartridge type, please add support for: 0x{:02X}",
             header.cartridge_type
