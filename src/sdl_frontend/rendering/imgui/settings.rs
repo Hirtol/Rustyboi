@@ -50,7 +50,7 @@ fn create_settings(ui: &Ui, state: &mut GuiState, debug_state: &mut DebugState) 
             ui.text("Fast Forward Speed:");
             ui.same_line(0.0);
             show_help_marker(ui, "Sets the emulation speed while pressing LSHIFT.\
-            \nValues in the integer range of [1, 40] are allowed.");
+            \nValues in the integer range of [1, 100] are allowed.");
             ui.same_line_with_spacing(0.0, size(ui, 2.0));
             let mut input = ImString::new(format!("{}", GLOBAL_APP_STATE.lock().unwrap().fast_forward_rate));
             if ui.input_text(im_str!("Fast Forward Speed"), &mut input)
@@ -59,7 +59,7 @@ fn create_settings(ui: &Ui, state: &mut GuiState, debug_state: &mut DebugState) 
                 .auto_select_all(true)
                 .build() {
                 if let Ok(new_multiplier) = u64::from_str(input.as_ref()) {
-                    if (1..=40).contains(&new_multiplier) {
+                    if (1..=100).contains(&new_multiplier) {
                         GLOBAL_APP_STATE.lock().unwrap().fast_forward_rate = new_multiplier;
                     } else {
                         debug_state.notification = Notification::with_duration("Value too large (max 40).\nRun unbounded instead", Duration::from_millis(300), ui);
