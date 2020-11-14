@@ -25,6 +25,13 @@ pub struct NoiseChannel {
 }
 
 impl NoiseChannel {
+    pub fn new() -> NoiseChannel {
+        NoiseChannel {
+            timer_load_value: 8,
+            ..Default::default()
+        }
+    }
+
     /// Output a sample for this channel, returns `0` if the channel isn't enabled.
     pub fn output_volume(&self) -> u8 {
         self.output_volume * self.trigger as u8
@@ -38,47 +45,50 @@ impl NoiseChannel {
         let (mut to_generate, remainder) = if self.timer_load_value != 0 {
             (cycles / self.timer_load_value as u64, (cycles % self.timer_load_value as u64) as u16)
         } else {
-            (0, cycles as u16)
+            // self.timer_load_value = self.get_divisor_from_code() << self.clock_shift;
+            // self.timer = self.timer_load_value;
+            // if self.timer_load_value == 0 {
+            //     log::warn!("Divisor: {} and clock shift: {}",self.get_divisor_from_code(), self.clock_shift);
+            // }
+            (1, cycles as u16)
         };
 
         while to_generate > 0 {
-            let bit_1_and_0_xor = (self.lfsr & 0x1) ^ ((self.lfsr & 0x2) >> 1);
-            self.lfsr >>= 1;
-            self.lfsr |= bit_1_and_0_xor << 14;
-
-            if self.width_mode {
-                self.lfsr = (self.lfsr & 0xFFBF) | bit_1_and_0_xor << 6;
-            }
-
-            self.output_volume = (((!self.lfsr) & 0x1) as u8) * self.envelope.volume;
+            self.timer_load_value = self.get_divisor_from_code() << self.clock_shift;
+            self.timer = self.timer_load_value;
+            self.tick_calculations();
             to_generate -= 1;
         }
 
         if remainder >= self.timer {
             let to_subtract = remainder - self.timer;
-            // The formula is taken from gbdev, I haven't done the period calculations myself.
             self.timer_load_value = self.get_divisor_from_code() << self.clock_shift;
             self.timer = self.timer_load_value - to_subtract;
-            let bit_1_and_0_xor = (self.lfsr & 0x1) ^ ((self.lfsr & 0x2) >> 1);
-            // Shift LFSR right by 1
-            self.lfsr >>= 1;
-
-            // Set the high bit (bit 14) to the XOR operation of before. Always done
-            self.lfsr |= bit_1_and_0_xor << 14;
-
-            if self.width_mode {
-                // Set bit 6 as well, resulting in a 7bit LFSR.
-                // We need the AND here since the XOR result could be 0 as well, which would
-                // need to be set.
-                self.lfsr = (self.lfsr & 0xFFBF) | bit_1_and_0_xor << 6;
-            }
-            // The result is taken from the current bit 0, inverted
-            // Not sure about the envelope multiplication, docs don't mention it but I assume it's there
-            // for a reason.
-            self.output_volume = (((!self.lfsr) & 0x1) as u8) * self.envelope.volume;
+            self.tick_calculations();
         } else {
             self.timer -= remainder;
         }
+    }
+
+    #[inline]
+    fn tick_calculations(&mut self) {
+        let bit_1_and_0_xor = (self.lfsr & 0x1) ^ ((self.lfsr & 0x2) >> 1);
+        // Shift LFSR right by 1
+        self.lfsr >>= 1;
+
+        // Set the high bit (bit 14) to the XOR operation of before. Always done
+        self.lfsr |= bit_1_and_0_xor << 14;
+
+        if self.width_mode {
+            // Set bit 6 as well, resulting in a 7bit LFSR.
+            // We need the AND here since the XOR result could be 0 as well, which would
+            // need to be set.
+            self.lfsr = (self.lfsr & 0xFFBF) | bit_1_and_0_xor << 6;
+        }
+        // The result is taken from the current bit 0, inverted
+        // Not sure about the envelope multiplication, docs don't mention it but I assume it's there
+        // for a reason.
+        self.output_volume = (((!self.lfsr) & 0x1) as u8) * self.envelope.volume;
     }
 
     pub fn tick_length(&mut self) {
@@ -152,7 +162,8 @@ impl NoiseChannel {
         self.length.trigger(next_step_no_length);
         //TODO: Set this to next_step_envelope
         self.envelope.trigger(false);
-        self.timer = self.get_divisor_from_code() << self.clock_shift;
+        self.timer_load_value = self.get_divisor_from_code() << self.clock_shift;
+        self.timer = self.timer_load_value;
         // Top 15 bits all set to 1
         self.lfsr = 0x7FFF;
         // If the DAC doesn't have power we ignore this trigger.
@@ -166,10 +177,14 @@ impl NoiseChannel {
         self.length.length_enable = false;
 
         *self = if mode.is_cgb() {
-            Self::default()
+            Self {
+                timer_load_value: 8,
+                ..Default::default()
+            }
         } else {
             Self {
                 length: self.length,
+                timer_load_value: 8,
                 ..Default::default()
             }
         }

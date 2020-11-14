@@ -80,7 +80,7 @@ static GLOBAL_APP_STATE: Lazy<Mutex<AppState>> = Lazy::new(|| {
 
 fn main() {
     CombinedLogger::init(vec![
-        TermLogger::new(LevelFilter::Trace, Config::default(), TerminalMode::Mixed),
+        TermLogger::new(LevelFilter::Debug, Config::default(), TerminalMode::Mixed),
         //WriteLogger::new(LevelFilter::Trace, ConfigBuilder::new().set_location_level(LevelFilter::Off).set_time_level(LevelFilter::Off).set_target_level(LevelFilter::Off).build(), std::io::BufWriter::new(File::create("rustyboi.log").unwrap())),
     ]).unwrap();
     // We want the first click on a gui element to actually register
@@ -106,7 +106,7 @@ fn main() {
 
     let cartridge = "roms/Zelda.gb";
     let _yellow = "roms/Pokemon - Yellow Version.gbc";
-    let _cpu_test = "test roms/auto-run/mooneye/tests/emulator-only/mbc1/mbc1_bits_bank2.gb";
+    let _cpu_test = "test roms/blargg_sound/cgb_sound/cgb_sound.gb";
     let _cpu_test2 = "test roms/auto-run/hdma_timing-C.gbc";
 
     //Things to do:
@@ -120,7 +120,7 @@ fn main() {
         .with_display_colour(KIRBY_DISPLAY_COLOURS)
         .build();
 
-    let mut gameboy_runner = GameboyRunner::new(cartridge, emu_opts);
+    let mut gameboy_runner = GameboyRunner::new(_cpu_test, emu_opts);
     let mut audio_player = AudioPlayer::new(&audio_subsystem, Duration::from_millis(100));
 
     let mut loop_cycles = 0;

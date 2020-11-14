@@ -34,6 +34,14 @@ impl SquareWaveChannel {
         [0, 1, 1, 1, 1, 1, 1, 0], // 75%
     ];
 
+    pub fn new() -> SquareWaveChannel {
+        SquareWaveChannel {
+            // Purely for the initial tick_timer()
+            timer_load_value: 8192,
+            .. Default::default()
+        }
+    }
+
     /// Output a sample for this channel, returns `0` if the channel isn't enabled.
     pub fn output_volume(&self) -> u8 {
         self.output_volume * self.trigger as u8
@@ -44,16 +52,11 @@ impl SquareWaveChannel {
     }
 
     pub fn tick_timer(&mut self, cycles: u64) {
-        let (mut to_generate, remainder) = if self.timer_load_value != 0 {
-            (cycles / self.timer_load_value as u64, (cycles % self.timer_load_value as u64) as u16)
-        } else {
-            (0, cycles as u16)
-        };
+        let (mut to_generate, remainder) = (cycles / self.timer_load_value as u64, (cycles % self.timer_load_value as u64) as u16);
 
         while to_generate > 0 {
-            self.wave_table_index = (self.wave_table_index + 1) % 8;
-            self.output_volume =
-                self.envelope.volume * Self::SQUARE_WAVE_TABLE[self.duty_select][self.wave_table_index];
+            self.load_timer_values();
+            self.tick_calculations();
             to_generate -= 1;
         }
 
@@ -62,14 +65,26 @@ impl SquareWaveChannel {
             // I got this from Reddit, lord only knows why specifically 2048.
             self.timer_load_value = (2048 - self.frequency) * 4;
             self.timer = self.timer_load_value - to_subtract;
-            // Selects which sample we should select in our chosen duty cycle.
-            // Refer to SQUARE_WAVE_TABLE constant.
-            self.wave_table_index = (self.wave_table_index + 1) % 8;
-            self.output_volume =
-                self.envelope.volume * Self::SQUARE_WAVE_TABLE[self.duty_select][self.wave_table_index];
+            self.tick_calculations();
         } else {
             self.timer -= remainder;
         }
+    }
+
+    #[inline]
+    fn load_timer_values(&mut self) {
+        // I got this from Reddit, lord only knows why specifically 2048.
+        self.timer_load_value = (2048 - self.frequency) * 4;
+        self.timer = self.timer_load_value;
+    }
+
+    #[inline]
+    fn tick_calculations(&mut self) {
+        // Selects which sample we should select in our chosen duty cycle.
+        // Refer to SQUARE_WAVE_TABLE constant.
+        self.wave_table_index = (self.wave_table_index + 1) % 8;
+        self.output_volume =
+            self.envelope.volume * Self::SQUARE_WAVE_TABLE[self.duty_select][self.wave_table_index];
     }
 
     pub fn read_register(&self, address: u16) -> u8 {
@@ -130,7 +145,8 @@ impl SquareWaveChannel {
         self.length.trigger(next_step_no_length);
         //TODO: Set this to next_step_envelope
         self.envelope.trigger(false);
-        self.timer = (2048 - self.frequency) * 4;
+        self.timer_load_value = (2048 - self.frequency) * 4;
+        self.timer = self.timer_load_value;
         self.sweep.trigger_sweep(&mut self.trigger, self.frequency);
 
         // Default wave form should be selected.
@@ -146,10 +162,14 @@ impl SquareWaveChannel {
         self.length.length_enable = false;
 
         *self = if mode.is_cgb() {
-            Self::default()
+            Self {
+                timer_load_value: 8192,
+                ..Default::default()
+            }
         } else {
             Self {
                 length: self.length,
+                timer_load_value: 8192,
                 ..Default::default()
             }
         }

@@ -48,10 +48,10 @@ pub struct APU {
 impl APU {
     pub fn new() -> Self {
         APU {
-            voice1: Default::default(),
-            voice2: Default::default(),
+            voice1: SquareWaveChannel::new(),
+            voice2: SquareWaveChannel::new(),
             voice3: WaveformChannel::new(),
-            voice4: Default::default(),
+            voice4: NoiseChannel::new(),
             vin_l_enable: false,
             vin_r_enable: false,
             left_volume: 7,
