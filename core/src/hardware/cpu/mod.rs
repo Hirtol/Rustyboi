@@ -354,7 +354,7 @@ impl<M: MemoryMapper> CPU<M> {
     fn ccf(&mut self) {
         self.registers.set_n(false);
         self.registers.set_h(false);
-        self.registers.f.toggle(Flags::CF);
+        self.registers.set_cf(!self.registers.cf());
     }
 
     /// `halt until interrupt occurs (low power)`

@@ -97,14 +97,14 @@ fn test_increment_flags() {
     cpu.increment(A);
 
     assert_eq!(cpu.registers.a, 16);
-    assert!(cpu.registers.f.contains(Flags::H));
+    assert!(cpu.registers.hf());
 
     cpu.registers.b = 255;
 
     cpu.increment(B);
 
     assert_eq!(cpu.registers.b, 0);
-    assert!(cpu.registers.f.contains(Flags::ZF));
+    assert!(cpu.registers.zf());
 }
 
 #[test]
@@ -127,12 +127,12 @@ fn test_rlca() {
     cpu.rlca();
 
     assert_eq!(cpu.registers.a, 0b1000_1010);
-    assert!(!cpu.registers.f.contains(Flags::CF));
+    assert!(!cpu.registers.cf());
 
     cpu.rlca();
 
     assert_eq!(cpu.registers.a, 0b0001_0101);
-    assert!(cpu.registers.f.contains(Flags::CF));
+    assert!(cpu.registers.cf());
 }
 
 #[test]
@@ -144,14 +144,14 @@ fn test_add_16bit() {
     cpu.add16(BC);
 
     assert_eq!(cpu.registers.hl(), 0x0FFF);
-    assert!(!cpu.registers.f.contains(Flags::H));
+    assert!(!cpu.registers.hf());
 
     cpu.registers.set_de(0x001);
 
     cpu.add16(DE);
 
     assert_eq!(cpu.registers.hl(), 0x1000);
-    assert!(cpu.registers.f.contains(Flags::H));
+    assert!(cpu.registers.hf());
 }
 
 #[test]
@@ -168,7 +168,7 @@ fn test_decrement() {
     cpu.decrement(HLI);
 
     assert_eq!(cpu.mmu.read_byte(0x100), 0);
-    assert!(cpu.registers.f.contains(Flags::ZF));
+    assert!(cpu.registers.zf());
 }
 
 #[test]
@@ -195,12 +195,12 @@ fn test_rrca() {
     cpu.rrca();
 
     assert_eq!(cpu.registers.a, 0b1010_0000);
-    assert!(cpu.registers.f.contains(Flags::CF));
+    assert!(cpu.registers.cf());
 
     cpu.rrca();
 
     assert_eq!(cpu.registers.a, 0b0101_0000);
-    assert!(!cpu.registers.f.contains(Flags::CF));
+    assert!(!cpu.registers.cf());
 }
 
 #[test]
@@ -213,12 +213,12 @@ fn test_rla() {
     cpu.rla();
 
     assert_eq!(cpu.registers.a, 0b1000_1011);
-    assert!(!cpu.registers.f.contains(Flags::CF));
+    assert!(!cpu.registers.cf());
 
     cpu.rla();
 
     assert_eq!(cpu.registers.a, 0b0001_0110);
-    assert!(cpu.registers.f.contains(Flags::CF));
+    assert!(cpu.registers.cf());
 }
 
 #[test]
@@ -257,12 +257,12 @@ fn test_rra() {
     println!("{:08b}", cpu.registers.a);
 
     assert_eq!(cpu.registers.a, 0b0010_0010);
-    assert!(cpu.registers.f.contains(Flags::CF));
+    assert!(cpu.registers.cf());
 
     cpu.rra();
 
     assert_eq!(cpu.registers.a, 0b1001_0001);
-    assert!(!cpu.registers.f.contains(Flags::CF));
+    assert!(!cpu.registers.cf());
 }
 
 #[test]
@@ -349,7 +349,7 @@ fn test_add() {
     cpu.add(C);
 
     assert_eq!(cpu.registers.a, 4);
-    assert!(cpu.registers.f.contains(Flags::CF));
+    assert!(cpu.registers.cf());
 }
 
 #[test]

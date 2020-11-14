@@ -44,13 +44,18 @@ pub struct Registers {
     pub c: u8,
     pub d: u8,
     pub e: u8,
-    pub f: Flags,
     pub h: u8,
     pub l: u8,
     /// Stack pointer
     pub sp: u16,
     /// Program counter
     pub pc: u16,
+
+    /// We use the separate flags for performance.
+    zf: bool,
+    cf: bool,
+    hf: bool,
+    nf: bool,
 }
 
 impl Registers {
@@ -60,7 +65,7 @@ impl Registers {
 
     #[inline]
     pub fn af(&self) -> u16 {
-        (self.a as u16) << 8 | self.f.bits as u16
+        (self.a as u16) << 8 | (self.f() as u16)
     }
 
     #[inline]
@@ -80,7 +85,11 @@ impl Registers {
 
     pub fn set_af(&mut self, value: u16) {
         self.a = (value >> 8) as u8;
-        self.f = Flags::from_bits_truncate(value as u8);
+        let flags = Flags::from_bits_truncate(value as u8);
+        self.zf = flags.contains(Flags::ZF);
+        self.hf = flags.contains(Flags::H);
+        self.cf = flags.contains(Flags::CF);
+        self.nf = flags.contains(Flags::N);
     }
 
     pub fn set_bc(&mut self, value: u16) {
@@ -99,51 +108,57 @@ impl Registers {
     }
 
     #[inline]
+    /// The entire flags register
+    pub fn f(&self) -> u8 {
+        ((self.zf as u8) << 7) | ((self.nf as u8) << 6) | ((self.hf as u8) << 5) | ((self.cf as u8) << 4)
+    }
+
+    #[inline]
     /// Zero Flag
     pub fn zf(&self) -> bool {
-        self.f.contains(Flags::ZF)
+        self.zf
     }
 
     #[inline]
     /// Add/Sub Flag, used for BCD
     pub fn n(&self) -> bool {
-        self.f.contains(Flags::N)
+        self.nf
     }
 
     /// Half-Carry Flag
     #[inline]
     pub fn hf(&self) -> bool {
-        self.f.contains(Flags::H)
+        self.hf
     }
 
     /// Carry Flag
     #[inline]
     pub fn cf(&self) -> bool {
-        self.f.contains(Flags::CF)
+        self.cf
     }
 
     /// Set the Zero Flag.
     #[inline]
     pub fn set_zf(&mut self, value: bool) {
-        self.f.set(Flags::ZF, value);
+        self.zf = value;
     }
 
     /// Set the Add/Sub-Flag (BCD).
     #[inline]
     pub fn set_n(&mut self, value: bool) {
-        self.f.set(Flags::N, value);
+        self.nf = value;
     }
 
     /// Set the Half Carry Flag (BCD).
     #[inline]
     pub fn set_h(&mut self, value: bool) {
-        self.f.set(Flags::H, value);
+        self.hf = value;
     }
 
     /// Set the Carry Flag.
     #[inline]
     pub fn set_cf(&mut self, value: bool) {
-        self.f.set(Flags::CF, value);
+        self.cf = value;
     }
 }
 
@@ -154,7 +169,7 @@ impl Display for Registers {
             "PC:{:04x} SP:{:04x} \
             A:{:02x} F:{:08b} B:{:02x} C:{:02x} \
             D:{:02x} E:{:02x} H:{:02x} L:{:02x}",
-            self.pc, self.sp, self.a, self.f, self.b, self.c, self.d, self.e, self.h, self.l
+            self.pc, self.sp, self.a, Flags::from_bits_truncate(self.f()), self.b, self.c, self.d, self.e, self.h, self.l
         )
     }
 }
@@ -178,12 +193,12 @@ mod tests {
         // Ensure that normal insertion works properly
         register.set_af(0x0F20);
 
-        assert_eq!(register.f.bits, 0x20);
+        assert_eq!(register.f(), 0x20);
         assert_eq!(register.a, 0x0F);
 
         // Ensure that the lower 4 bit nibble is ignored when we transfer back to a Flags register.
         register.set_af(0x0FFA);
 
-        assert_eq!(register.f.bits, 0xF0);
+        assert_eq!(register.f(), 0xF0);
     }
 }
