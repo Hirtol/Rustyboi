@@ -52,9 +52,8 @@ impl Benchmarking {
             let start_time = Instant::now();
             loop {
                 while frame_count <= 20_000 {
-                    if emulator.emulate_cycle() {
-                        frame_count += 1;
-                    }
+                    emulator.run_to_vblank();
+                    frame_count += 1;
                 }
 
                 if frame_count > 20_000 {
@@ -77,10 +76,9 @@ fn run_with_send(cartridge: &Vec<u8>, sender: Sender<[RGB; FRAMEBUFFER_SIZE]>, e
         let start_time = Instant::now();
         loop {
             while frame_count <= 20_000 {
-                if emulator.emulate_cycle() {
-                    frame_count += 1;
-                    sender.send(*emulator.frame_buffer());
-                }
+                emulator.run_to_vblank();
+                frame_count += 1;
+                sender.send(*emulator.frame_buffer());
             }
 
             if frame_count > 20_000 {

@@ -119,9 +119,8 @@ fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>) {
             }
 
             while emu_frames_drawn < frames_to_render {
-                if emu.emulate_cycle() {
-                    emu_frames_drawn += 1;
-                }
+                emu.run_to_vblank();
+                emu_frames_drawn += 1;
             }
 
             save_image(emu.frame_buffer(), format!("{}.png", file_stem.to_str().unwrap()));
