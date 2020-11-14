@@ -34,13 +34,8 @@ impl Cartridge {
                 log::error!("Tried to load saved data with title: '{}', but the saved ram had length: {} while the header specified: {}!", header.title, ram.len(), header.ram_size.to_usize());
             }
         }
-
-        log::debug!(
-            "Loading ROM with MBC type: {:#X}, CGB-flag: {} and ram size: {:?}",
-            header.cartridge_type,
-            header.cgb_flag,
-            header.ram_size,
-        );
+        
+        log::info!("Loading ROM with header: {:#X?}", header);
 
         Cartridge { header, has_battery, lower_bank_offset: 0, higher_bank_offset: 0x4000, ram_offset: 0, effective_rom_banks: rom.len() / ROM_BANK_SIZE, rom: rom.to_vec(), ram: ex_ram, mbc }
     }
