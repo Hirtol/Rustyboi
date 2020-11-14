@@ -31,7 +31,7 @@ struct TestMemory {
 }
 
 impl MemoryMapper for TestMemory {
-    fn read_byte(&self, address: u16) -> u8 {
+    fn read_byte(&mut self, address: u16) -> u8 {
         self.mem[address as usize]
     }
 
@@ -101,7 +101,7 @@ fn initial_cpu() -> CPU<TestMemory> {
     cpu
 }
 
-pub fn read_short<T: MemoryMapper>(cpu: &CPU<T>, address: u16) -> u16 {
+pub fn read_short<T: MemoryMapper>(cpu: &mut CPU<T>, address: u16) -> u16 {
     let least_s_byte = cpu.mmu.read_byte(address) as u16;
     let most_s_byte = cpu.mmu.read_byte(address.wrapping_add(1)) as u16;
 

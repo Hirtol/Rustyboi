@@ -45,11 +45,6 @@ impl NoiseChannel {
         let (mut to_generate, remainder) = if self.timer_load_value != 0 {
             (cycles / self.timer_load_value as u64, (cycles % self.timer_load_value as u64) as u16)
         } else {
-            // self.timer_load_value = self.get_divisor_from_code() << self.clock_shift;
-            // self.timer = self.timer_load_value;
-            // if self.timer_load_value == 0 {
-            //     log::warn!("Divisor: {} and clock shift: {}",self.get_divisor_from_code(), self.clock_shift);
-            // }
             (1, cycles as u16)
         };
 

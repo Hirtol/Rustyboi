@@ -37,7 +37,7 @@ fn test_load_16bit() {
     cpu.cycles_performed = 0;
     cpu.step_cycle();
 
-    assert_eq!(read_short(&cpu, 0x0105), 0x500);
+    assert_eq!(read_short(&mut cpu, 0x0105), 0x500);
     assert_eq!(cpu.cycles_performed, 20);
     assert_eq!(cpu.registers.pc, 3);
 }
@@ -476,7 +476,7 @@ fn test_call_and_ret() {
     assert_eq!(cpu.registers.pc, 0x1445);
     assert_eq!(cpu.registers.sp, 0xFFFD);
     // Previous PC
-    assert_eq!(read_short(&cpu, 0xFFFD), 3);
+    assert_eq!(read_short(&mut cpu, 0xFFFD), 3);
 
     cpu.ret(JumpModifier::Always);
 
@@ -492,7 +492,8 @@ fn test_push_and_pop() {
     cpu.push(BC);
 
     assert_eq!(cpu.registers.sp, 0xFFFD);
-    assert_eq!(read_short(&cpu, cpu.registers.sp), 0x500);
+    let sp = cpu.registers.sp;
+    assert_eq!(read_short(&mut cpu, sp), 0x500);
 
     cpu.pop(DE);
 
