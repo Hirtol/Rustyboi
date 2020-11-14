@@ -124,7 +124,7 @@ impl<M: MemoryMapper> CPU<M> {
         }
     }
 
-    pub fn log_instr(&self) {
+    pub fn log_instr(&mut self) {
         let ie = self.mmu.read_byte(INTERRUPTS_ENABLE);
         let if_flag = self.mmu.read_byte(INTERRUPTS_FLAG);
         log::trace!(

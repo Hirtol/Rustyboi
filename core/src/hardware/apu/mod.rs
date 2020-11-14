@@ -42,6 +42,7 @@ pub struct APU {
     global_sound_enable: bool,
     output_buffer: Vec<f32>,
     frame_sequencer_step: u8,
+    last_access_point: u64,
 }
 
 impl APU {
@@ -61,25 +62,32 @@ impl APU {
             output_buffer: Vec::with_capacity(SAMPLE_SIZE_BUFFER * 2),
             global_sound_enable: true,
             frame_sequencer_step: 0,
+            last_access_point: 0
         }
     }
 
     /// Tick all channels, not including the frame sequencer and sampler.
-    pub fn tick(&mut self, mut delta_cycles: u16) {
+    pub fn synchronise(&mut self, scheduler: &mut Scheduler, speed_multiplier: u64) {
         if !self.global_sound_enable {
             return;
         }
 
-        self.voice1.tick_timer(delta_cycles);
-        self.voice2.tick_timer(delta_cycles);
-        self.voice3.tick_timer(delta_cycles);
-        self.voice4.tick_timer(delta_cycles);
+        let delta = (scheduler.current_time - self.last_access_point) << speed_multiplier;
+
+        self.last_access_point = scheduler.current_time;
+        //log::warn!("Synchronising after skipping: {} cycles", delta);
+
+        self.voice1.tick_timer(delta);
+        self.voice2.tick_timer(delta);
+        self.voice3.tick_timer(delta);
+        self.voice4.tick_timer(delta);
     }
 
     /// Ticked by the `Scheduler` every `8192` cycles.
     ///
     /// See `MMU` for function call.
-    pub fn tick_frame_sequencer(&mut self) {
+    pub fn tick_frame_sequencer(&mut self, scheduler: &mut Scheduler, speed_multiplier: u64) {
+        self.synchronise(scheduler, speed_multiplier);
         // The frame sequencer component clocks at 512Hz apparently.
         // 4194304/512 = 8192 cycles
         match self.frame_sequencer_step {
@@ -98,7 +106,8 @@ impl APU {
     /// This is a close enough value such that we get one sample every ~1/44100 seconds
     ///
     /// See `MMU` for function call.
-    pub fn tick_sampling_handler(&mut self) {
+    pub fn tick_sampling_handler(&mut self, scheduler: &mut Scheduler, speed_multiplier: u64) {
+        self.synchronise(scheduler, speed_multiplier);
         // This block is here such that we get ~44100 samples per second, otherwise we'd generate
         // far more than we could consume.
         // TODO: Add actual downsampling instead of the selective audio pick.
@@ -125,7 +134,8 @@ impl APU {
         self.output_buffer.clear();
     }
 
-    pub fn read_register(&self, address: u16) -> u8 {
+    pub fn read_register(&mut self, address: u16, scheduler: &mut Scheduler, speed_multiplier: u64) -> u8 {
+        self.synchronise(scheduler, speed_multiplier);
         let address = address & 0xFF;
         //TODO: No read if disabled?
         match address {
@@ -160,11 +170,12 @@ impl APU {
                 output
             }
             0x27..=0x2F => INVALID_READ, // Unused registers, always read 0xFF
-            _ => panic!("Out of bound APU register read: {}", address),
+            _ => unreachable!("Out of bound APU register read: {}", address),
         }
     }
 
-    pub fn write_register(&mut self, address: u16, value: u8, scheduler: &mut Scheduler, mode: EmulatorMode) {
+    pub fn write_register(&mut self, address: u16, value: u8, scheduler: &mut Scheduler, mode: EmulatorMode, speed_multiplier: u64) {
+        self.synchronise(scheduler, speed_multiplier);
         //log::info!("APU Write on address: 0x{:02X} with value: 0x{:02X}", address, value);
         let address = address & 0xFF;
 
@@ -210,19 +221,21 @@ impl APU {
                 }
             }
             0x27..=0x2F => {} // Writes to unused registers are silently ignored.
-            _ => panic!(
+            _ => unreachable!(
                 "Attempt to write to an unknown audio register: 0xFF{:02X} with val: {}",
                 address, value
             ),
         }
     }
 
-    pub fn read_wave_sample(&self, address: u16) -> u8 {
+    pub fn read_wave_sample(&mut self, address: u16, scheduler: &mut Scheduler, speed_multiplier: u64) -> u8 {
+        self.synchronise(scheduler, speed_multiplier);
         let address = address & 0xFF;
         self.voice3.read_register(address)
     }
 
-    pub fn write_wave_sample(&mut self, address: u16, value: u8) {
+    pub fn write_wave_sample(&mut self, address: u16, value: u8, scheduler: &mut Scheduler, speed_multiplier: u64) {
+        self.synchronise(scheduler, speed_multiplier);
         //log::info!("APU Wave_Write on address: 0x{:02X} with value: 0x{:02X}", address, value);
         let address = address & 0xFF;
         self.voice3.write_register(address, value, self.frame_sequencer_step)

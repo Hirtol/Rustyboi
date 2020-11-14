@@ -15,6 +15,7 @@ pub struct WaveformChannel {
     output_volume: u8,
     frequency: u16,
     timer: u16,
+    timer_load_value: u16,
 
     dac_power: bool,
     volume_load: u8,
@@ -46,22 +47,32 @@ impl WaveformChannel {
         self.trigger
     }
 
-    pub fn tick_timer(&mut self, cycles: u16) {
-        let (new_val, overflowed) = self.timer.overflowing_sub(cycles);
+    pub fn tick_timer(&mut self, cycles: u64) {
+        let (mut to_generate, remainder) = if self.timer_load_value != 0 {
+            (cycles / self.timer_load_value as u64, (cycles % self.timer_load_value as u64) as u16)
+        } else {
+            (0, cycles as u16)
+        };
 
-        if overflowed || new_val == 0 {
+        while to_generate > 0 {
+            self.sample_pointer = (self.sample_pointer + 1) % 32;
+
+            self.output_volume = (self.sample_buffer[self.sample_pointer] >> self.volume);
+            to_generate -= 1;
+        }
+
+        if remainder >= self.timer {
+            let to_subtract = remainder - self.timer;
             // The formula is taken from gbdev, I haven't done the period calculations myself.
-            self.timer = (2048 - self.frequency) * 2;
+            self.timer_load_value = (2048 - self.frequency) * 2;
+            self.timer = self.timer_load_value - to_subtract;
             // If we overflowed we might've lost some cycles, so we should make up for those.
-            if overflowed {
-                self.timer -= u16::MAX - new_val;
-            }
             // Selects which sample we should select in our chosen duty cycle.
             self.sample_pointer = (self.sample_pointer + 1) % 32;
 
             self.output_volume = (self.sample_buffer[self.sample_pointer] >> self.volume);
         } else {
-            self.timer = new_val;
+            self.timer -= remainder;
         }
     }
 

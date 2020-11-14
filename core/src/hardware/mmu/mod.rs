@@ -108,7 +108,7 @@ pub const INVALID_READ: u8 = 0xFF;
 /// Simple memory interface for reading and writing bytes, as well as determining the
 /// state of the BootRom.
 pub trait MemoryMapper: Debug {
-    fn read_byte(&self, address: u16) -> u8;
+    fn read_byte(&mut self, address: u16) -> u8;
     fn write_byte(&mut self, address: u16, value: u8);
     fn boot_rom_finished(&self) -> bool;
     fn get_mode(&self) -> EmulatorMode;
@@ -173,7 +173,7 @@ impl Memory {
         result
     }
 
-    pub fn read_byte(&self, address: u16) -> u8 {
+    pub fn read_byte(&mut self, address: u16) -> u8 {
         match address {
             0x0000..=0x00FF if !self.boot_rom.is_finished => self.boot_rom.read_byte(address),
             0x0200..=0x08FF if !self.boot_rom.is_finished && self.emulation_mode.is_cgb() => {
@@ -221,7 +221,7 @@ impl Memory {
     }
 
     /// Specific method for all calls to the IO registers.
-    fn read_io_byte(&self, address: u16) -> u8 {
+    fn read_io_byte(&mut self, address: u16) -> u8 {
         use crate::hardware::ppu::*;
         match address {
             JOYPAD_REGISTER => self.joypad_register.get_register(),
@@ -236,12 +236,12 @@ impl Memory {
                 self.interrupts.interrupt_flag.bits()
             }
             APU_MEM_START..=APU_MEM_END => {
-                let result = self.apu.read_register(address);
+                let result = self.apu.read_register(address, &mut self.scheduler, self.cgb_data.double_speed as u64);
                 //log::info!("APU Read on address: 0x{:02X} with return value: 0x{:02X}", address, result);
                 result
             }
             WAVE_SAMPLE_START..=WAVE_SAMPLE_END => {
-                let result = self.apu.read_wave_sample(address);
+                let result = self.apu.read_wave_sample(address, &mut self.scheduler, self.cgb_data.double_speed as u64);
                 //log::info!("APU Wave_Read on address: 0x{:02X} with return value: 0x{:02X}", address, result);
                 result
             }
@@ -301,9 +301,9 @@ impl Memory {
             INTERRUPTS_FLAG => self.interrupts.overwrite_if(value),
             APU_MEM_START..=APU_MEM_END => {
                 self.apu
-                    .write_register(address, value, &mut self.scheduler, self.emulation_mode)
+                    .write_register(address, value, &mut self.scheduler, self.emulation_mode, self.cgb_data.double_speed as u64)
             }
-            WAVE_SAMPLE_START..=WAVE_SAMPLE_END => self.apu.write_wave_sample(address, value),
+            WAVE_SAMPLE_START..=WAVE_SAMPLE_END => self.apu.write_wave_sample(address, value, &mut self.scheduler, self.cgb_data.double_speed as u64),
             LCD_CONTROL_REGISTER => self.ppu.set_lcd_control(value, &mut self.scheduler, &mut self.interrupts),
             LCD_STATUS_REGISTER => self.ppu.set_lcd_status(value, &mut self.interrupts),
             SCY_REGISTER => self.ppu.set_scy(value),
@@ -417,14 +417,14 @@ impl Memory {
                     // Both APU events rely on the scheduler being called after the APU tick
                     // (at least, that's how I used to do it in the APU tick function)
                     // Be careful about reordering.
-                    self.apu.tick_frame_sequencer();
+                    self.apu.tick_frame_sequencer(&mut self.scheduler, self.cgb_data.double_speed as u64);
                     self.scheduler.push_full_event(event.update_self(
                         EventType::APUFrameSequencer,
                         FRAME_SEQUENCE_CYCLES << self.get_speed_shift(),
                     ));
                 }
                 EventType::APUSample => {
-                    self.apu.tick_sampling_handler();
+                    self.apu.tick_sampling_handler(&mut self.scheduler, self.cgb_data.double_speed as u64);
                     self.scheduler.push_full_event(
                         event.update_self(EventType::APUSample, SAMPLE_CYCLES << self.get_speed_shift()),
                     );
@@ -438,8 +438,9 @@ impl Memory {
                 EventType::TimerTick => self.timers.scheduled_timer_tick(&mut self.scheduler),
                 EventType::DMARequested => {
                     let address = (self.io_registers.read_byte(DMA_TRANSFER) as usize) << 8;
+                    let shadow_oam = self.gather_shadow_oam(address);
                     self.ppu
-                        .oam_dma_transfer(&self.gather_shadow_oam(address), &mut self.scheduler);
+                        .oam_dma_transfer(&shadow_oam, &mut self.scheduler);
                 }
                 EventType::DMATransferComplete => {
                     self.ppu.oam_dma_finished();
@@ -490,7 +491,7 @@ impl Memory {
 }
 
 impl MemoryMapper for Memory {
-    fn read_byte(&self, address: u16) -> u8 {
+    fn read_byte(&mut self, address: u16) -> u8 {
         self.read_byte(address)
     }
 
@@ -531,13 +532,6 @@ impl MemoryMapper for Memory {
     }
 
     fn do_m_cycle(&mut self) -> bool {
-        //TODO: What if this is called by HDMA/GDMA?
-        if self.cgb_data.double_speed {
-            self.apu.tick(2);
-        } else {
-            self.apu.tick(4);
-        }
-
         self.tick_scheduler()
     }
 }

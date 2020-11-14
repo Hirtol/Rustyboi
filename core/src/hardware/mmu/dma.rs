@@ -13,7 +13,7 @@ impl Memory {
         self.scheduler.push_relative(DMARequested, 4);
     }
 
-    pub fn gather_shadow_oam(&self, start_address: usize) -> Vec<u8> {
+    pub fn gather_shadow_oam(&mut self, start_address: usize) -> Vec<u8> {
         (0..0xA0).map(|i| self.read_byte((start_address + i) as u16)).collect()
     }
 
@@ -32,7 +32,7 @@ impl Memory {
         }
     }
 
-    fn gather_gdma_data(&self) -> Vec<u8> {
+    fn gather_gdma_data(&mut self) -> Vec<u8> {
         (self.hdma.source_address..(self.hdma.source_address + self.hdma.transfer_size))
             .map(|i| self.read_byte(i))
             .collect()

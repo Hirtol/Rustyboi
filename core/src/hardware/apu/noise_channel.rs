@@ -15,6 +15,7 @@ pub struct NoiseChannel {
     trigger: bool,
     output_volume: u8,
     timer: u16,
+    timer_load_value: u16,
     // Noise Feature
     width_mode: bool,
     clock_shift: u8,
@@ -33,14 +34,31 @@ impl NoiseChannel {
         self.trigger
     }
 
-    pub fn tick_timer(&mut self, cycles: u16) {
-        let (new_val, overflowed) = self.timer.overflowing_sub(cycles);
-        //TODO: This new_val seems off, why do we u:16::MAX - new_val if new_val == 0?
+    pub fn tick_timer(&mut self, cycles: u64) {
+        let (mut to_generate, remainder) = if self.timer_load_value != 0 {
+            (cycles / self.timer_load_value as u64, (cycles % self.timer_load_value as u64) as u16)
+        } else {
+            (0, cycles as u16)
+        };
 
-        // Using a noise channel clock shift of 14 or 15 results in the LFSR receiving no clocks.
-        if new_val == 0 {
-            self.timer = self.get_divisor_from_code() << self.clock_shift;
-            // Selects which sample we should select in our chosen duty cycle.
+        while to_generate > 0 {
+            let bit_1_and_0_xor = (self.lfsr & 0x1) ^ ((self.lfsr & 0x2) >> 1);
+            self.lfsr >>= 1;
+            self.lfsr |= bit_1_and_0_xor << 14;
+
+            if self.width_mode {
+                self.lfsr = (self.lfsr & 0xFFBF) | bit_1_and_0_xor << 6;
+            }
+
+            self.output_volume = (((!self.lfsr) & 0x1) as u8) * self.envelope.volume;
+            to_generate -= 1;
+        }
+
+        if remainder >= self.timer {
+            let to_subtract = remainder - self.timer;
+            // The formula is taken from gbdev, I haven't done the period calculations myself.
+            self.timer_load_value = self.get_divisor_from_code() << self.clock_shift;
+            self.timer = self.timer_load_value - to_subtract;
             let bit_1_and_0_xor = (self.lfsr & 0x1) ^ ((self.lfsr & 0x2) >> 1);
             // Shift LFSR right by 1
             self.lfsr >>= 1;
@@ -59,7 +77,7 @@ impl NoiseChannel {
             // for a reason.
             self.output_volume = (((!self.lfsr) & 0x1) as u8) * self.envelope.volume;
         } else {
-            self.timer = new_val;
+            self.timer -= remainder;
         }
     }
 
@@ -167,7 +185,7 @@ impl NoiseChannel {
             5 => 80,
             6 => 96,
             7 => 112,
-            _ => panic!("Invalid divisor code set for noise channel!"),
+            _ => unreachable!("Invalid divisor code set for noise channel!"),
         }
     }
 }

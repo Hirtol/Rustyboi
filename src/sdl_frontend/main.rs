@@ -80,7 +80,7 @@ static GLOBAL_APP_STATE: Lazy<Mutex<AppState>> = Lazy::new(|| {
 
 fn main() {
     CombinedLogger::init(vec![
-        TermLogger::new(LevelFilter::Debug, Config::default(), TerminalMode::Mixed),
+        TermLogger::new(LevelFilter::Trace, Config::default(), TerminalMode::Mixed),
         //WriteLogger::new(LevelFilter::Trace, ConfigBuilder::new().set_location_level(LevelFilter::Off).set_time_level(LevelFilter::Off).set_target_level(LevelFilter::Off).build(), std::io::BufWriter::new(File::create("rustyboi.log").unwrap())),
     ]).unwrap();
     // We want the first click on a gui element to actually register

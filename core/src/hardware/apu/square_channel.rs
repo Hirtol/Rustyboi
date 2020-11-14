@@ -20,6 +20,7 @@ pub struct SquareWaveChannel {
     output_volume: u8,
     frequency: u16,
     timer: u16,
+    timer_load_value: u16,
     // Relevant for wave table indexing
     wave_table_index: usize,
     duty_select: usize,
@@ -42,20 +43,32 @@ impl SquareWaveChannel {
         self.trigger
     }
 
-    pub fn tick_timer(&mut self, cycles: u16) {
-        // Frequency is always a multiple of 4, so subtraction of multiples of 4 shouldn't cause issues.
-        let new_val = self.timer.saturating_sub(cycles);
+    pub fn tick_timer(&mut self, cycles: u64) {
+        let (mut to_generate, remainder) = if self.timer_load_value != 0 {
+            (cycles / self.timer_load_value as u64, (cycles % self.timer_load_value as u64) as u16)
+        } else {
+            (0, cycles as u16)
+        };
 
-        if new_val == 0 {
+        while to_generate > 0 {
+            self.wave_table_index = (self.wave_table_index + 1) % 8;
+            self.output_volume =
+                self.envelope.volume * Self::SQUARE_WAVE_TABLE[self.duty_select][self.wave_table_index];
+            to_generate -= 1;
+        }
+
+        if remainder >= self.timer {
+            let to_subtract = remainder - self.timer;
             // I got this from Reddit, lord only knows why specifically 2048.
-            self.timer = (2048 - self.frequency) * 4;
+            self.timer_load_value = (2048 - self.frequency) * 4;
+            self.timer = self.timer_load_value - to_subtract;
             // Selects which sample we should select in our chosen duty cycle.
             // Refer to SQUARE_WAVE_TABLE constant.
             self.wave_table_index = (self.wave_table_index + 1) % 8;
             self.output_volume =
                 self.envelope.volume * Self::SQUARE_WAVE_TABLE[self.duty_select][self.wave_table_index];
         } else {
-            self.timer = new_val;
+            self.timer -= remainder;
         }
     }
 
