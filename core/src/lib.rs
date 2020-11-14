@@ -3,10 +3,24 @@ mod scheduler;
 use crate::emulator::EmulatorMode;
 use crate::hardware::ppu::palette::DisplayColour;
 pub use crate::io::joypad::InputKey;
+use std::ops::DerefMut;
+use std::fmt::Debug;
+use crate::hardware::mmu::INVALID_READ;
+use bitflags::_core::ops::Deref;
 
 pub mod hardware;
 mod io;
 mod emulator_debug;
+
+pub trait ExternalRamBacking: DerefMut<Target=[u8]> + Debug {
+    /// Set the length of the underlying backed memory.
+    ///
+    /// Called preemptively in the emulator every time we load up the memory to ensure
+    /// there are no out of bounds calls
+    fn set_length(&mut self, length: usize);
+    /// Give the backing memory a chance to persist the memory before the object is destroyed.
+    fn save(&mut self);
+}
 
 /// Struct for wrapping all the various options for the `Emulator`
 #[derive(Debug)]
