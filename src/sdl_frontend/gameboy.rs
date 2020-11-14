@@ -24,9 +24,11 @@ impl GameboyRunner {
         let (frame_sender, frame_receiver) = bounded(1);
         let (request_sender, request_receiver) = unbounded::<EmulatorNotification>();
         let (response_sender, response_receiver) = unbounded::<EmulatorResponse>();
-        let mut emulator = create_emulator(rom_path, options);
+        let title = rom_path.as_ref().to_str().unwrap().to_string();
         let emulator_thread =
             std::thread::spawn(move || {
+                // Has to be allocated on this separate stack or else we get a stack overflow :D
+                let mut emulator = create_emulator(title, options);
                 run_emulator(&mut emulator, frame_sender, response_sender, request_receiver);
                 save_rom(&emulator);
             });

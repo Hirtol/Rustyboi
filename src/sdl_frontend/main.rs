@@ -121,8 +121,6 @@ fn main() {
         .build();
 
     let mut gameboy_runner = GameboyRunner::new(cartridge, emu_opts);
-    //TODO: Figure out why SDL_OpenAudioDevice causes a segmentation fault when in debug mode,
-    // which is reported as a stack overflow by rustc for some reason...
     let mut audio_player = AudioPlayer::new(&audio_subsystem, Duration::from_millis(100));
 
     let mut loop_cycles = 0;
