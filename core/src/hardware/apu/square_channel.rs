@@ -54,15 +54,11 @@ impl SquareWaveChannel {
     pub fn tick_timer(&mut self, cycles: u64) {
         let (mut to_generate, remainder) = (cycles / self.timer_load_value as u64, (cycles % self.timer_load_value as u64) as u16);
 
-        let temp_timer = self.timer;
-
         while to_generate > 0 {
-            self.load_timer_values();
+            self.timer_load_value = (2048 - self.frequency) * 4;
             self.tick_calculations();
             to_generate -= 1;
         }
-
-        self.timer = temp_timer;
 
         if remainder > self.timer {
             let to_subtract = remainder - self.timer;
