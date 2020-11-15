@@ -375,6 +375,9 @@ impl Memory {
                     self.scheduler
                         .push_full_event(event.update_self(EventType::VblankWait, 456 << self.get_speed_shift()));
                     vblank_occurred = true;
+                    //TODO: Own method
+                    let speed_mult = self.get_speed_shift();
+                    self.apu.synchronise(&mut self.scheduler, speed_mult);
                 }
                 EventType::OamSearch => {
                     self.ppu.oam_search(&mut self.interrupts);
@@ -424,10 +427,10 @@ impl Memory {
                     ));
                 }
                 EventType::APUSample => {
-                    self.apu.tick_sampling_handler(&mut self.scheduler, self.cgb_data.double_speed as u64);
-                    self.scheduler.push_full_event(
-                        event.update_self(EventType::APUSample, SAMPLE_CYCLES << self.get_speed_shift()),
-                    );
+                    // self.apu.tick_sampling_handler(&mut self.scheduler, self.cgb_data.double_speed as u64);
+                    // self.scheduler.push_full_event(
+                    //     event.update_self(EventType::APUSample, SAMPLE_CYCLES << self.get_speed_shift()),
+                    // );
                 }
                 EventType::TimerOverflow => {
                     self.timers.timer_overflow(&mut self.scheduler, &mut self.interrupts);
