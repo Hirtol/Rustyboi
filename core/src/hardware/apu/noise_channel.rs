@@ -45,7 +45,7 @@ impl NoiseChannel {
         let (mut to_generate, remainder) = if self.timer_load_value != 0 {
             (cycles / self.timer_load_value as u64, (cycles % self.timer_load_value as u64) as u16)
         } else {
-            (1, cycles as u16)
+            ((cycles != 0) as u64, 0)
         };
 
         while to_generate > 0 {
@@ -54,7 +54,7 @@ impl NoiseChannel {
             to_generate -= 1;
         }
 
-        if remainder >= self.timer {
+        if remainder > self.timer {
             let to_subtract = remainder - self.timer;
             self.load_timer_values();
             self.tick_timer(to_subtract as u64);
