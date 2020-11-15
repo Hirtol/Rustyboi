@@ -1,12 +1,12 @@
 use crate::hardware::apu::test_bit;
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Copy, Clone)]
 pub struct EnvelopeFeature {
     pub volume: u8,
     pub volume_load: u8,
     pub envelope_add_mode: bool,
-    envelope_enabled: bool,
-    envelope_period: u8,
+    pub envelope_enabled: bool,
+    pub envelope_period: u8,
     envelope_timer: u8,
 }
 
@@ -65,6 +65,33 @@ impl EnvelopeFeature {
         self.volume_load = (value & 0xF0) >> 4;
         self.envelope_add_mode = test_bit(value, 3);
         self.envelope_period = value & 0x7;
+    }
+
+    /// Checks for an obscure behaviour where the volume of the envelope feature can actually
+    /// be changed while it's active under certain circumstances.
+    ///
+    /// A notable game which makes use of this is Prehistorik Man.
+    /// The channel is expected to be triggered as a precondition for this call.
+    pub fn zombie_mode_write(&mut self, old_envelope: EnvelopeFeature) {
+        // Zombie mode, credits to SameBoy for figuring out this behaviour.
+        if self.envelope_add_mode {
+            self.volume += 1;
+        }
+
+        if old_envelope.envelope_add_mode != self.envelope_add_mode {
+            self.volume = 16 - self.volume;
+        }
+
+        if self.envelope_period != 0 && old_envelope.envelope_period == 0
+            && self.volume != 0 && !self.envelope_add_mode {
+            self.volume -= 1;
+        }
+
+        if old_envelope.envelope_period != 0 && self.envelope_add_mode {
+            self.volume -= 1;
+        }
+
+        self.volume &= 0b1111;
     }
 }
 
@@ -199,14 +226,14 @@ impl SweepFeature {
             temp_shadow = temp_shadow.wrapping_add(1);
         }
         //TODO: Check what desired behaviour is, some roms (e.g Crystal) have unchecked overflow here.
-        temp_shadow += self.sweep_frequency_shadow;
+        let new_value = temp_shadow.wrapping_add(self.sweep_frequency_shadow);
 
-        if temp_shadow > 2047 {
+        if new_value > 2047 {
             *channel_enable = false;
             self.sweep_enabled = false;
         }
 
-        temp_shadow
+        new_value
     }
 
     pub fn read_register(&self) -> u8 {

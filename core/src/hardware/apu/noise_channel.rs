@@ -33,6 +33,7 @@ impl NoiseChannel {
     }
 
     /// Output a sample for this channel, returns `0` if the channel isn't enabled.
+    #[inline(always)]
     pub fn output_volume(&self) -> u8 {
         self.output_volume * self.trigger as u8
     }
@@ -86,6 +87,12 @@ impl NoiseChannel {
             // need to be set.
             self.lfsr = (self.lfsr & 0xFFBF) | bit_1_and_0_xor << 6;
         }
+
+        self.update_sample();
+    }
+
+    #[inline]
+    pub fn update_sample(&mut self) {
         // The result is taken from the current bit 0, inverted
         // Not sure about the envelope multiplication, docs don't mention it but I assume it's there
         // for a reason.
@@ -125,10 +132,14 @@ impl NoiseChannel {
             0x1F => {}
             0x20 => self.length.write_register(value),
             0x21 => {
+                let old_envelope = self.envelope;
                 self.envelope.write_register(value);
-                // If the DAC is disabled by this write we also disable the channel
-                if self.envelope.volume_load == 0 {
+                // If the DAC is disabled by this write we disable the channel
+                if self.envelope.volume_load == 0 && !self.envelope.envelope_add_mode {
                     self.trigger = false;
+                } else if self.trigger {
+                    self.envelope.zombie_mode_write(old_envelope);
+                    self.update_sample();
                 }
             }
             0x22 => {

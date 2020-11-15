@@ -43,6 +43,7 @@ impl SquareWaveChannel {
     }
 
     /// Output a sample for this channel, returns `0` if the channel isn't enabled.
+    #[inline(always)]
     pub fn output_volume(&self) -> u8 {
         self.output_volume * self.trigger as u8
     }
@@ -82,9 +83,12 @@ impl SquareWaveChannel {
         // Selects which sample we should select in our chosen duty cycle.
         // Refer to SQUARE_WAVE_TABLE constant.
         self.wave_table_index = (self.wave_table_index + 1) % 8;
-        // Could move this to the actual output_volume() function?
-        self.output_volume =
-            self.envelope.volume * Self::SQUARE_WAVE_TABLE[self.duty_select][self.wave_table_index];
+        self.update_sample();
+    }
+
+    #[inline]
+    pub fn update_sample(&mut self) {
+        self.output_volume = self.envelope.volume * Self::SQUARE_WAVE_TABLE[self.duty_select][self.wave_table_index];
     }
 
     pub fn read_register(&self, address: u16) -> u8 {
@@ -109,10 +113,14 @@ impl SquareWaveChannel {
                 self.length.write_register(value);
             }
             0x12 | 0x17 => {
+                let old_envelope = self.envelope;
                 self.envelope.write_register(value);
                 // If the DAC is disabled by this write we disable the channel
-                if self.envelope.volume_load == 0 {
+                if self.envelope.volume_load == 0 && !self.envelope.envelope_add_mode {
                     self.trigger = false;
+                } else if self.trigger {
+                    self.envelope.zombie_mode_write(old_envelope);
+                    self.update_sample();
                 }
             }
             0x13 | 0x18 => {

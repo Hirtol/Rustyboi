@@ -105,7 +105,7 @@ fn main() {
     let bootrom_file_cgb = read("roms\\cgb_bios.bin").unwrap();
 
     let cartridge = "roms/Zelda.gb";
-    let _yellow = "roms/Pokemon - Blue Version.gb";
+    let _yellow = "roms/Prehistorik Man (U).gb";
     let _cpu_test = "test roms/blargg_sound/cgb_sound/rom_singles/12-wave.gb";
     let _cpu_test2 = "test roms/auto-run/hdma_timing-C.gbc";
 
@@ -120,7 +120,12 @@ fn main() {
         .with_display_colour(KIRBY_DISPLAY_COLOURS)
         .build();
 
-    let mut gameboy_runner = GameboyRunner::new(cartridge, emu_opts);
+    let mut gameboy_runner = GameboyRunner::new(_yellow, emu_opts);
+
+    for _ in 0..1100 {
+        gameboy_runner.frame_receiver.recv();
+    }
+
     let mut audio_player = AudioPlayer::new(&audio_subsystem, Duration::from_millis(100));
 
     let mut loop_cycles = 0;

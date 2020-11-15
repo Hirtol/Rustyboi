@@ -43,6 +43,7 @@ impl WaveformChannel {
     }
 
     /// Output a sample for this channel, returns `0` if the channel or DAC isn't enabled.
+    #[inline(always)]
     pub fn output_volume(&self) -> u8 {
         self.output_volume * self.trigger as u8 * self.dac_power as u8
     }
@@ -84,11 +85,16 @@ impl WaveformChannel {
         // Selects which sample we should select in our chosen duty cycle.
         self.sample_pointer = (self.sample_pointer + 1) % 32;
 
-        self.output_volume = (self.sample_buffer[self.sample_pointer] >> self.volume);
+        self.update_sample();
         #[cfg(feature = "apu-logging")]
             {
                 self.cycles_done += 1;
             }
+    }
+
+    #[inline]
+    pub fn update_sample(&mut self) {
+        self.output_volume = (self.sample_buffer[self.sample_pointer] >> self.volume);
     }
 
     pub fn tick_length(&mut self) {
@@ -245,6 +251,6 @@ impl WaveformChannel {
         };
 
         // Since the volume is different we should update our current sample.
-        self.output_volume = (self.sample_buffer[self.sample_pointer] >> self.volume)
+        self.update_sample();
     }
 }

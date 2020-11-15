@@ -119,6 +119,10 @@ impl APU {
         // Alternatively, we could go to 93207 sampling rate, which would give the sampling
         // handler a value of *almost* exactly 45.
 
+        // If we ever want to implement a low pass filter we would probably have to generate
+        // samples at native rate (so every 4/8 clocks) in each individual channel. Could consider
+        // trying SIMD then?
+
         // These values are purely personal preference, may even want to defer this to the emulator
         // consumer.
         let left_final_volume = self.left_volume as f32 / 6.0;
@@ -268,7 +272,7 @@ impl APU {
         if voice_enables[3] {
             result += (self.voice4.output_volume() as f32);
         }
-
+        //TODO: Move / 100.0 after high pass.
         (result / 100.0) * final_volume
     }
 
