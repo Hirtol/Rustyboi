@@ -116,11 +116,13 @@ impl SquareWaveChannel {
                 let old_envelope = self.envelope;
                 self.envelope.write_register(value);
                 // If the DAC is disabled by this write we disable the channel
-                if self.envelope.volume_load == 0 && !self.envelope.envelope_add_mode {
+                if self.envelope.volume_load == 0 {
                     self.trigger = false;
                 } else if self.trigger {
                     self.envelope.zombie_mode_write(old_envelope);
-                    self.update_sample();
+                    // It would make sense to update sample here, but if we do we get aliasing
+                    // in Zelda, todo: fix?
+                    //self.update_sample();
                 }
             }
             0x13 | 0x18 => {
