@@ -198,7 +198,7 @@ impl SweepFeature {
             temp_shadow = !temp_shadow;
             temp_shadow = temp_shadow.wrapping_add(1);
         }
-
+        //TODO: Check what desired behaviour is, some roms (e.g Crystal) have unchecked overflow here.
         temp_shadow += self.sweep_frequency_shadow;
 
         if temp_shadow > 2047 {
