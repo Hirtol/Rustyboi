@@ -72,10 +72,9 @@ impl APU {
             return;
         }
 
-        let delta = (scheduler.current_time - self.last_access_point) << speed_multiplier;
+        let delta = (scheduler.current_time - self.last_access_point) >> speed_multiplier;
 
         self.last_access_point = scheduler.current_time;
-        //log::warn!("Synchronising after skipping: {} cycles", delta);
 
         self.voice1.tick_timer(delta);
         self.voice2.tick_timer(delta);

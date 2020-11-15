@@ -58,7 +58,7 @@ impl WaveformChannel {
             to_generate -= 1;
         }
 
-        if remainder >= self.timer {
+        if remainder > self.timer {
             let to_subtract = remainder - self.timer;
             self.load_timer_values();
             // We use recursion here since it can happen that the timer_load_value is actually less than to_subtract

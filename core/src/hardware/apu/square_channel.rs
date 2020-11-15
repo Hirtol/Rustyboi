@@ -60,7 +60,7 @@ impl SquareWaveChannel {
             to_generate -= 1;
         }
 
-        if remainder >= self.timer {
+        if remainder > self.timer {
             let to_subtract = remainder - self.timer;
             self.load_timer_values();
             self.tick_timer(to_subtract as u64);
