@@ -106,7 +106,7 @@ fn main() {
 
     let cartridge = "roms/Zelda.gb";
     let _yellow = "roms/Pokemon - Yellow Version.gbc";
-    let _cpu_test = "test roms/blargg_sound/cgb_sound/rom_singles/09-wave read while on.gb";
+    let _cpu_test = "test roms/blargg_sound/cgb_sound/rom_singles/12-wave.gb";
     let _cpu_test2 = "test roms/auto-run/hdma_timing-C.gbc";
 
     //Things to do:
@@ -115,7 +115,7 @@ fn main() {
     // 2: Render GB games when running in GBC with GBC renderer, since bootrom sets custom palettes!
     let mut timer = sdl_context.timer().unwrap();
     let emu_opts = EmulatorOptionsBuilder::new()
-        .boot_rom(Some(bootrom_file_cgb))
+        //.boot_rom(Some(bootrom_file_cgb))
         .with_mode(CGB)
         .with_display_colour(KIRBY_DISPLAY_COLOURS)
         .build();

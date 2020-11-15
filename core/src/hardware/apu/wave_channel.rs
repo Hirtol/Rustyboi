@@ -11,11 +11,11 @@ use crate::hardware::mmu::INVALID_READ;
 #[derive(Default, Debug)]
 pub struct WaveformChannel {
     pub length: LengthFeature,
+    pub timer: u16,
+    frequency: u16,
+    timer_load_value: u16,
     trigger: bool,
     output_volume: u8,
-    frequency: u16,
-    timer: u16,
-    timer_load_value: u16,
 
     dac_power: bool,
     volume_load: u8,
@@ -23,6 +23,8 @@ pub struct WaveformChannel {
     sample_buffer: [u8; 32],
     wave_ram: [u8; 16],
     sample_pointer: usize,
+    #[cfg(feature = "apu-logging")]
+    pub cycles_done: u64,
 }
 
 impl WaveformChannel {
@@ -52,18 +54,22 @@ impl WaveformChannel {
     pub fn tick_timer(&mut self, cycles: u64) {
         let (mut to_generate, remainder) = (cycles / self.timer_load_value as u64, (cycles % self.timer_load_value as u64) as u16);
 
+        let temp_timer = self.timer;
+
         while to_generate > 0 {
             self.load_timer_values();
             self.tick_calculations();
             to_generate -= 1;
         }
 
+        self.timer = temp_timer;
+
         if remainder > self.timer {
             let to_subtract = remainder - self.timer;
             self.load_timer_values();
+            self.tick_calculations();
             // We use recursion here since it can happen that the timer_load_value is actually less than to_subtract
             self.tick_timer(to_subtract as u64);
-            self.tick_calculations();
         } else {
             self.timer -= remainder;
         }
@@ -83,6 +89,10 @@ impl WaveformChannel {
         self.sample_pointer = (self.sample_pointer + 1) % 32;
 
         self.output_volume = (self.sample_buffer[self.sample_pointer] >> self.volume);
+        #[cfg(feature = "apu-logging")]
+            {
+                self.cycles_done += 1;
+            }
     }
 
     pub fn tick_length(&mut self) {
@@ -137,13 +147,36 @@ impl WaveformChannel {
             }
             0x1B => self.length.write_register_256(value),
             0x1C => self.set_volume_from_val(value),
-            0x1D => self.frequency = (self.frequency & 0x0700) | value as u16,
+            0x1D => {
+                self.frequency = (self.frequency & 0x0700) | value as u16;
+                // Say we have don't have the below 2 statements and this happens:
+                // Timer load value: 32 and timer: 32
+                // 16 cycles pass
+                // Synchronise, timer gets to 16.
+                // New Frequency gets set and would cause timer_load to be set to: 4096
+                // 96 cycles pass
+                // Synchronise, to_generate gets set to 3 (since 96/32 = 3),
+                // but in truth we should only do one cycle since 96-16 = 80, which
+                // is less than 4096 obviously.
+                // Therefore, this timer load is necessary to ensure that doesn't happen in our catch up
+                // cycling. Obviously, this is only relevant if the new load value is greater than
+                // our existing one.
+                let temp_timer_load = (2048 - self.frequency) * 2;
+                if  temp_timer_load > self.timer_load_value {
+                    self.timer_load_value = temp_timer_load;
+                }
+            },
             0x1E => {
                 let old_length_enable = self.length.length_enable;
                 let no_l_next = no_length_tick_next_step(next_frame_sequencer_step);
 
                 self.length.length_enable = test_bit(value, 6);
                 self.frequency = (self.frequency & 0x00FF) | (((value & 0x07) as u16) << 8);
+                // See comment in 0x1D branch
+                let temp_timer_load = (2048 - self.frequency) * 2;
+                if  temp_timer_load > self.timer_load_value {
+                    self.timer_load_value = temp_timer_load;
+                }
 
                 if no_l_next {
                     self.length
@@ -155,6 +188,8 @@ impl WaveformChannel {
                 }
             }
             0x30..=0x3F => {
+                #[cfg(feature = "apu-logging")]
+                log::warn!("Writing current pointer: {} ({}) and wave ram: {:#X?}", self.sample_pointer, self.sample_pointer / 2, self.wave_ram);
                 if self.trigger {
                     self.wave_ram[self.sample_pointer / 2] = value;
                 } else {

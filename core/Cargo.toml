@@ -25,6 +25,7 @@ pretty_assertions = "0.6.1"
 
 [features]
 cpu-logging = []
+apu-logging= []
 
 [[bench]]
 name = "zelda_benchmark"
