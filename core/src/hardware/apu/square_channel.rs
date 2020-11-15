@@ -82,6 +82,7 @@ impl SquareWaveChannel {
         // Selects which sample we should select in our chosen duty cycle.
         // Refer to SQUARE_WAVE_TABLE constant.
         self.wave_table_index = (self.wave_table_index + 1) % 8;
+        // Could move this to the actual output_volume() function?
         self.output_volume =
             self.envelope.volume * Self::SQUARE_WAVE_TABLE[self.duty_select][self.wave_table_index];
     }

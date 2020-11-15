@@ -27,32 +27,6 @@ pub const WAVE_SAMPLE_START: u16 = 0xFF30;
 pub const WAVE_SAMPLE_END: u16 = 0xFF3F;
 
 #[derive(Debug)]
-pub struct AudioOutput {
-    remainder_cycles_sample: u64,
-    cycles_per_sample: u64,
-    highpass_rate: f32,
-    highpass_diff: (f32, f32)
-}
-
-impl Default for AudioOutput {
-    fn default() -> Self {
-        AudioOutput {
-            remainder_cycles_sample: 0,
-            cycles_per_sample: SAMPLE_CYCLES,
-            highpass_rate: get_highpass_rate(SAMPLE_CYCLES),
-            highpass_diff: (0.0, 0.0)
-        }
-    }
-}
-
-impl AudioOutput {
-    pub fn set_sample_rate(&mut self, sample_rate_in_hz: u64) {
-        self.cycles_per_sample = DMG_CLOCK_SPEED / sample_rate_in_hz;
-        self.highpass_rate = get_highpass_rate(self.cycles_per_sample);
-    }
-}
-
-#[derive(Debug)]
 pub struct APU {
     voice1: SquareWaveChannel,
     voice2: SquareWaveChannel,
@@ -154,12 +128,11 @@ impl APU {
         let left_sample = self.generate_audio(self.left_channel_enable, left_final_volume);
         // Right Audio
         let right_sample = self.generate_audio(self.right_channel_enable, right_final_volume);
-        // Highpass filter
-        let (high_left, high_right) = self.audio_output.highpass_diff;
-        let (filt_left, filt_right) = (left_sample - high_left , right_sample - high_right);
-        self.audio_output.highpass_diff = (left_sample - (filt_left * self.audio_output.highpass_rate), right_sample - (filt_right * self.audio_output.highpass_rate));
-        self.output_buffer.push(filt_left);
-        self.output_buffer.push(filt_right);
+
+        let result_samples = self.audio_output.apply_highpass_filter(left_sample, right_sample);
+
+        self.output_buffer.push(result_samples.0);
+        self.output_buffer.push(result_samples.1);
     }
 
     pub fn get_audio_buffer(&self) -> &[f32] {
@@ -332,6 +305,41 @@ impl APU {
         self.frame_sequencer_step = 0;
         scheduler.remove_event_type(EventType::APUFrameSequencer);
         scheduler.remove_event_type(EventType::APUSample);
+    }
+}
+
+#[derive(Debug)]
+pub struct AudioOutput {
+    remainder_cycles_sample: u64,
+    cycles_per_sample: u64,
+    highpass_rate: f32,
+    highpass_diff: (f32, f32)
+}
+
+impl Default for AudioOutput {
+    fn default() -> Self {
+        AudioOutput {
+            remainder_cycles_sample: 0,
+            cycles_per_sample: SAMPLE_CYCLES,
+            highpass_rate: get_highpass_rate(SAMPLE_CYCLES),
+            highpass_diff: (0.0, 0.0)
+        }
+    }
+}
+
+impl AudioOutput {
+    #[inline]
+    pub fn apply_highpass_filter(&mut self, left_in: f32, right_in: f32) -> (f32, f32) {
+        // Credits to SameBoy since I looked at their implementation for this.
+        let (high_left, high_right) = self.highpass_diff;
+        let (filt_left, filt_right) = (left_in - high_left , right_in - high_right);
+        self.highpass_diff = (left_in - (filt_left * self.highpass_rate), right_in - (filt_right * self.highpass_rate));
+        (filt_left, filt_right)
+    }
+
+    pub fn set_sample_rate(&mut self, sample_rate_in_hz: u64) {
+        self.cycles_per_sample = DMG_CLOCK_SPEED / sample_rate_in_hz;
+        self.highpass_rate = get_highpass_rate(self.cycles_per_sample);
     }
 }
 
