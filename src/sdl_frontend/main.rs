@@ -120,11 +120,7 @@ fn main() {
         .with_display_colour(KIRBY_DISPLAY_COLOURS)
         .build();
 
-    let mut gameboy_runner = GameboyRunner::new(_yellow, emu_opts);
-
-    for _ in 0..1100 {
-        gameboy_runner.frame_receiver.recv();
-    }
+    let mut gameboy_runner = GameboyRunner::new(cartridge, emu_opts);
 
     let mut audio_player = AudioPlayer::new(&audio_subsystem, Duration::from_millis(100));
 

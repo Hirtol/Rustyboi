@@ -27,20 +27,12 @@ impl EnvelopeFeature {
 
             if self.envelope_timer == 0 {
                 self.envelope_timer = self.envelope_period;
-                if self.envelope_add_mode {
-                    let new_val = self.volume + 1;
-                    if new_val <= 15 {
-                        self.volume = new_val;
-                    } else {
-                        self.envelope_enabled = false;
-                    }
+                if self.envelope_add_mode && self.volume < 0xF {
+                    self.volume += 1;
+                } else if !self.envelope_add_mode && self.volume > 0 {
+                    self.volume -= 1;
                 } else {
-                    let (new_val, overflow) = self.volume.overflowing_sub(1);
-                    if !overflow {
-                        self.volume = new_val;
-                    } else {
-                        self.envelope_enabled = false;
-                    }
+                    self.envelope_enabled = false;
                 }
             }
         }
