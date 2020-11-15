@@ -99,8 +99,6 @@ impl LengthFeature {
     /// # Manipulations
     /// * `channel_enable` - Is reset when the length timer reaches 0, otherwise untouched.
     pub fn tick(&mut self, channel_enable: &mut bool) {
-        // Not sure whether to have length_load become a separate timer, and use the
-        // length_load field as a load_value instead like we've done with envelop/sweep.
         if self.length_enable && self.length_timer > 0 {
             self.length_timer -= 1;
 

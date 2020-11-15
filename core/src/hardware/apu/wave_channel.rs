@@ -183,9 +183,8 @@ impl WaveformChannel {
                     self.timer_load_value = temp_timer_load;
                 }
 
-                if no_l_next {
-                    self.length
-                        .second_half_enable_tick(&mut self.trigger, old_length_enable);
+                if self.length.length_enable && !old_length_enable && no_l_next {
+                    self.length.second_half_enable_tick(&mut self.trigger, old_length_enable);
                 }
 
                 if test_bit(value, 7) {
