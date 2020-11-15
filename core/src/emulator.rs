@@ -16,6 +16,7 @@ use crate::EmulatorOptions;
 /// A DMG runs at `4.194304 MHz` with a Vsync of `59.7275 Hz`, so that would be
 /// `4194304 / 59.7275 = 70224 cycles/frame`
 pub const CYCLES_PER_FRAME: u64 = 70224;
+pub const DMG_CLOCK_SPEED: u64 = 4194304;
 
 /// Describes the `Emulator`'s mode.
 ///

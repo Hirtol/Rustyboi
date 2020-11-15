@@ -3,7 +3,7 @@
 //! properly. In addition, sound completely stops in the game Aladdin after the title screen for
 //! some reason.
 
-use crate::emulator::EmulatorMode;
+use crate::emulator::{EmulatorMode, DMG_CLOCK_SPEED};
 use crate::hardware::apu::noise_channel::NoiseChannel;
 use crate::hardware::apu::square_channel::SquareWaveChannel;
 use crate::hardware::apu::wave_channel::WaveformChannel;
@@ -26,11 +26,39 @@ pub const APU_MEM_END: u16 = 0xFF2F;
 pub const WAVE_SAMPLE_START: u16 = 0xFF30;
 pub const WAVE_SAMPLE_END: u16 = 0xFF3F;
 
+#[derive(Debug)]
+pub struct AudioOutput {
+    remainder_cycles_sample: u64,
+    cycles_per_sample: u64,
+    highpass_rate: f32,
+    highpass_diff: (f32, f32)
+}
+
+impl Default for AudioOutput {
+    fn default() -> Self {
+        AudioOutput {
+            remainder_cycles_sample: 0,
+            cycles_per_sample: SAMPLE_CYCLES,
+            highpass_rate: get_highpass_rate(SAMPLE_CYCLES),
+            highpass_diff: (0.0, 0.0)
+        }
+    }
+}
+
+impl AudioOutput {
+    pub fn set_sample_rate(&mut self, sample_rate_in_hz: u64) {
+        self.cycles_per_sample = DMG_CLOCK_SPEED / sample_rate_in_hz;
+        self.highpass_rate = get_highpass_rate(self.cycles_per_sample);
+    }
+}
+
+#[derive(Debug)]
 pub struct APU {
     voice1: SquareWaveChannel,
     voice2: SquareWaveChannel,
     voice3: WaveformChannel,
     voice4: NoiseChannel,
+    audio_output: AudioOutput,
     // The vins are unused by by games, but for the sake of accuracy tests will be kept here.
     vin_l_enable: bool,
     vin_r_enable: bool,
@@ -52,6 +80,7 @@ impl APU {
             voice2: SquareWaveChannel::new(),
             voice3: WaveformChannel::new(),
             voice4: NoiseChannel::new(),
+            audio_output: AudioOutput::default(),
             vin_l_enable: false,
             vin_r_enable: false,
             left_volume: 7,
@@ -122,9 +151,15 @@ impl APU {
         let right_final_volume = self.right_volume as f32 / 6.0;
 
         // Left Audio
-        self.generate_audio(self.left_channel_enable, left_final_volume);
+        let left_sample = self.generate_audio(self.left_channel_enable, left_final_volume);
         // Right Audio
-        self.generate_audio(self.right_channel_enable, right_final_volume);
+        let right_sample = self.generate_audio(self.right_channel_enable, right_final_volume);
+        // Highpass filter
+        let (high_left, high_right) = self.audio_output.highpass_diff;
+        let (filt_left, filt_right) = (left_sample - high_left , right_sample - high_right);
+        self.audio_output.highpass_diff = (left_sample - (filt_left * self.audio_output.highpass_rate), right_sample - (filt_right * self.audio_output.highpass_rate));
+        self.output_buffer.push(filt_left);
+        self.output_buffer.push(filt_right);
     }
 
     pub fn get_audio_buffer(&self) -> &[f32] {
@@ -242,7 +277,7 @@ impl APU {
         self.voice3.write_register(address, value, self.frame_sequencer_step)
     }
 
-    fn generate_audio(&mut self, voice_enables: [bool; 4], final_volume: f32) {
+    fn generate_audio(&mut self, voice_enables: [bool; 4], final_volume: f32) -> f32{
         let mut result = 0f32;
         // Voice 1 (Square wave)
         if voice_enables[0] {
@@ -261,7 +296,7 @@ impl APU {
             result += (self.voice4.output_volume() as f32);
         }
 
-        self.output_buffer.push((result / 100.0) * final_volume);
+        (result / 100.0) * final_volume
     }
 
     fn tick_length(&mut self) {
@@ -303,6 +338,10 @@ impl APU {
 fn no_length_tick_next_step(next_frame_sequence_val: u8) -> bool {
     // Due to the fact that we increment frame_sequencer immediately we have to check for current_step + 1
     [1, 3, 5, 7].contains(&next_frame_sequence_val)
+}
+
+fn get_highpass_rate(cycles_per_sample: u64) -> f32 {
+    0.999958f32.powf(cycles_per_sample as f32)
 }
 
 fn set_bit(output: &mut u8, bit: u8, set: bool) {

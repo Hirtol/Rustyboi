@@ -53,7 +53,7 @@ impl WaveformChannel {
 
     pub fn tick_timer(&mut self, cycles: u64) {
         let (mut to_generate, remainder) = (cycles / self.timer_load_value as u64, (cycles % self.timer_load_value as u64) as u16);
-        
+
         while to_generate > 0 {
             self.timer_load_value = (2048 - self.frequency) * 2;
             self.tick_calculations();
