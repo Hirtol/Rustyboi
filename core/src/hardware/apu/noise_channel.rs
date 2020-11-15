@@ -48,11 +48,15 @@ impl NoiseChannel {
             ((cycles != 0) as u64, 0)
         };
 
+        let temp_timer = self.timer;
+
         while to_generate > 0 {
             self.load_timer_values();
             self.tick_calculations();
             to_generate -= 1;
         }
+
+        self.timer = temp_timer;
 
         if remainder > self.timer {
             let to_subtract = remainder - self.timer;

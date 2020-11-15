@@ -161,6 +161,9 @@ impl WaveformChannel {
                 // Therefore, this timer load is necessary to ensure that doesn't happen in our catch up
                 // cycling. Obviously, this is only relevant if the new load value is greater than
                 // our existing one.
+                // Do note that for passing test roms this case doesn't matter, since nothing tests
+                // for this sort of behaviour (and in actual games it doesn't matter that much either)
+                // but since it's so cheap we'll keep it here for the sake of accuracy.
                 let temp_timer_load = (2048 - self.frequency) * 2;
                 if  temp_timer_load > self.timer_load_value {
                     self.timer_load_value = temp_timer_load;

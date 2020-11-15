@@ -54,11 +54,15 @@ impl SquareWaveChannel {
     pub fn tick_timer(&mut self, cycles: u64) {
         let (mut to_generate, remainder) = (cycles / self.timer_load_value as u64, (cycles % self.timer_load_value as u64) as u16);
 
+        let temp_timer = self.timer;
+
         while to_generate > 0 {
             self.load_timer_values();
             self.tick_calculations();
             to_generate -= 1;
         }
+
+        self.timer = temp_timer;
 
         if remainder > self.timer {
             let to_subtract = remainder - self.timer;
@@ -114,13 +118,26 @@ impl SquareWaveChannel {
                     self.trigger = false;
                 }
             }
-            0x13 | 0x18 => self.frequency = (self.frequency & 0x0700) | value as u16,
+            0x13 | 0x18 => {
+                self.frequency = (self.frequency & 0x0700) | value as u16;
+                // See wave channel write_register 0x1D for explanation
+                let temp_timer_load = (2048 - self.frequency) * 2;
+                if  temp_timer_load > self.timer_load_value {
+                    self.timer_load_value = temp_timer_load;
+                }
+            },
             0x14 | 0x19 => {
                 let old_length_enable = self.length.length_enable;
                 let no_l_next = no_length_tick_next_step(next_frame_sequencer_step);
 
                 self.length.length_enable = test_bit(value, 6);
                 self.frequency = (self.frequency & 0xFF) | (((value & 0x07) as u16) << 8);
+
+                // See wave channel write_register 0x1D for explanation
+                let temp_timer_load = (2048 - self.frequency) * 2;
+                if  temp_timer_load > self.timer_load_value {
+                    self.timer_load_value = temp_timer_load;
+                }
 
                 if no_l_next {
                     self.length
