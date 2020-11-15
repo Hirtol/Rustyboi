@@ -19,6 +19,7 @@ mod wave_channel;
 // In all likelihood this will cause issues due to scheduling delays so this should go up probably.
 pub const SAMPLE_SIZE_BUFFER: usize = 739;
 pub const FRAME_SEQUENCE_CYCLES: u64 = 8192;
+/// The amount of cycles (normalised to 4Mhz) between every sample.
 pub const SAMPLE_CYCLES: u64 = 95;
 
 pub const APU_MEM_START: u16 = 0xFF10;
@@ -79,11 +80,17 @@ impl APU {
         let (mut samples, remainder) = (delta / self.audio_output.cycles_per_sample, delta % self.audio_output.cycles_per_sample);
 
         self.last_access_point = scheduler.current_time;
+        self.audio_output.remainder_cycles_sample += remainder;
 
         self.voice1.tick_timer(remainder);
         self.voice2.tick_timer(remainder);
         self.voice3.tick_timer(remainder);
         self.voice4.tick_timer(remainder);
+
+        if self.audio_output.remainder_cycles_sample >= self.audio_output.cycles_per_sample {
+            self.tick_sampling_handler();
+            self.audio_output.remainder_cycles_sample -= self.audio_output.cycles_per_sample;
+        }
 
         while samples > 0 {
             self.voice1.tick_timer(self.audio_output.cycles_per_sample);
@@ -93,8 +100,6 @@ impl APU {
             self.tick_sampling_handler();
             samples -= 1;
         }
-
-        self.audio_output.remainder_cycles_sample = remainder;
 
         #[cfg(feature = "apu-logging")]
         log::debug!("Voice 3, remaining timer: {} - cycles: {} - scheduler time: {}", self.voice3.timer, self.voice3.cycles_done, scheduler.current_time);

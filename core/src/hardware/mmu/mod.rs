@@ -427,7 +427,7 @@ impl Memory {
                     ));
                 }
                 EventType::APUSample => {
-                    // self.apu.tick_sampling_handler(&mut self.scheduler, self.cgb_data.double_speed as u64);
+                    // self.apu.synchronise(&mut self.scheduler, self.cgb_data.double_speed as u64);
                     // self.scheduler.push_full_event(
                     //     event.update_self(EventType::APUSample, SAMPLE_CYCLES << self.get_speed_shift()),
                     // );
