@@ -62,9 +62,8 @@ impl SquareWaveChannel {
 
         if remainder >= self.timer {
             let to_subtract = remainder - self.timer;
-            // I got this from Reddit, lord only knows why specifically 2048.
-            self.timer_load_value = (2048 - self.frequency) * 4;
-            self.timer = self.timer_load_value - to_subtract;
+            self.load_timer_values();
+            self.tick_timer(to_subtract as u64);
             self.tick_calculations();
         } else {
             self.timer -= remainder;

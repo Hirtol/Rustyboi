@@ -49,20 +49,26 @@ impl NoiseChannel {
         };
 
         while to_generate > 0 {
-            self.timer_load_value = self.get_divisor_from_code() << self.clock_shift;
-            self.timer = self.timer_load_value;
+            self.load_timer_values();
             self.tick_calculations();
             to_generate -= 1;
         }
 
         if remainder >= self.timer {
             let to_subtract = remainder - self.timer;
-            self.timer_load_value = self.get_divisor_from_code() << self.clock_shift;
-            self.timer = self.timer_load_value - to_subtract;
+            self.load_timer_values();
+            self.tick_timer(to_subtract as u64);
             self.tick_calculations();
         } else {
             self.timer -= remainder;
         }
+    }
+
+    #[inline]
+    fn load_timer_values(&mut self) {
+        // I got this from Reddit, lord only knows why specifically 2048.
+        self.timer_load_value = self.get_divisor_from_code() << self.clock_shift;
+        self.timer = self.timer_load_value;
     }
 
     #[inline]

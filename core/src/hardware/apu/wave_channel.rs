@@ -53,21 +53,27 @@ impl WaveformChannel {
         let (mut to_generate, remainder) = (cycles / self.timer_load_value as u64, (cycles % self.timer_load_value as u64) as u16);
 
         while to_generate > 0 {
-            self.timer_load_value = (2048 - self.frequency) * 2;
-            self.timer = self.timer_load_value;
+            self.load_timer_values();
             self.tick_calculations();
             to_generate -= 1;
         }
 
         if remainder >= self.timer {
             let to_subtract = remainder - self.timer;
-            // The formula is taken from gbdev, I haven't done the period calculations myself.
-            self.timer_load_value = (2048 - self.frequency) * 2;
-            self.timer = self.timer_load_value - to_subtract;
+            self.load_timer_values();
+            // We use recursion here since it can happen that the timer_load_value is actually less than to_subtract
+            self.tick_timer(to_subtract as u64);
             self.tick_calculations();
         } else {
             self.timer -= remainder;
         }
+    }
+
+    #[inline]
+    fn load_timer_values(&mut self) {
+        // The formula is taken from gbdev, I haven't done the period calculations myself.
+        self.timer_load_value = (2048 - self.frequency) * 2;
+        self.timer = self.timer_load_value;
     }
 
     #[inline]
