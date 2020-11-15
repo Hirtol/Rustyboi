@@ -80,21 +80,21 @@ impl APU {
 
         self.last_access_point = scheduler.current_time;
 
+        self.voice1.tick_timer(remainder);
+        self.voice2.tick_timer(remainder);
+        self.voice3.tick_timer(remainder);
+        self.voice4.tick_timer(remainder);
+
         while samples > 0 {
-            self.voice1.tick_timer(self.audio_output.cycles_per_sample - self.audio_output.remainder_cycles_sample);
-            self.voice2.tick_timer(self.audio_output.cycles_per_sample - self.audio_output.remainder_cycles_sample);
-            self.voice3.tick_timer(self.audio_output.cycles_per_sample - self.audio_output.remainder_cycles_sample);
-            self.voice4.tick_timer(self.audio_output.cycles_per_sample - self.audio_output.remainder_cycles_sample);
-            self.audio_output.remainder_cycles_sample = 0;
+            self.voice1.tick_timer(self.audio_output.cycles_per_sample);
+            self.voice2.tick_timer(self.audio_output.cycles_per_sample);
+            self.voice3.tick_timer(self.audio_output.cycles_per_sample);
+            self.voice4.tick_timer(self.audio_output.cycles_per_sample);
             self.tick_sampling_handler();
             samples -= 1;
         }
 
         self.audio_output.remainder_cycles_sample = remainder;
-        self.voice1.tick_timer(remainder);
-        self.voice2.tick_timer(remainder);
-        self.voice3.tick_timer(remainder);
-        self.voice4.tick_timer(remainder);
 
         #[cfg(feature = "apu-logging")]
         log::debug!("Voice 3, remaining timer: {} - cycles: {} - scheduler time: {}", self.voice3.timer, self.voice3.cycles_done, scheduler.current_time);
