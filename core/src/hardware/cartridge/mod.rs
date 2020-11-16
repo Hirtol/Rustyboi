@@ -27,12 +27,11 @@ impl Cartridge {
         let (mbc, has_battery) = create_mbc(&header);
         let mut ex_ram =  vec![INVALID_READ; header.ram_size.to_usize()];
 
-        if let Some(ram) = saved_ram {
-            if ram.len() == header.ram_size.to_usize() {
-                ex_ram = ram;
-            } else {
-                log::error!("Tried to load saved data with title: '{}', but the saved ram had length: {} while the header specified: {}!", header.title, ram.len(), header.ram_size.to_usize());
+        if let Some(mut ram) = saved_ram {
+            if ram.len() < header.ram_size.to_usize() {
+                ram.extend_from_slice(&vec![INVALID_READ; header.ram_size.to_usize()-ram.len()]);
             }
+            ex_ram = ram;
         }
         
         log::info!("Loading ROM with header: {:#X?}", header);
