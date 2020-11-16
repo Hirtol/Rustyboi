@@ -12,8 +12,8 @@ use crate::hardware::mmu::INVALID_READ;
 pub struct WaveformChannel {
     pub length: LengthFeature,
     pub timer: u16,
+    pub timer_load_value: u16,
     frequency: u16,
-    timer_load_value: u16,
     trigger: bool,
     output_volume: u8,
 
@@ -129,8 +129,12 @@ impl WaveformChannel {
                 // couple of clocks of the wave channel accessing wave RAM;
                 // if made at any other time, reads return $FF and writes have no effect.
                 if self.trigger {
+                    #[cfg(feature = "apu-logging")]
+                    log::warn!("Reading from triggered wave: {:#X} at wave pointer: {} ({})", self.wave_ram[self.sample_pointer / 2], self.sample_pointer / 2, self.sample_pointer);
                     self.wave_ram[self.sample_pointer / 2]
                 } else {
+                    #[cfg(feature = "apu-logging")]
+                    log::warn!("Reading from address wave: {:#X} at wave pointer: {:#X} ({:#X})", self.wave_ram[self.sample_pointer / 2], (address - 0x30), address);
                     self.wave_ram[(address - 0x30) as usize]
                 }
             }
@@ -193,7 +197,7 @@ impl WaveformChannel {
             }
             0x30..=0x3F => {
                 #[cfg(feature = "apu-logging")]
-                log::warn!("Writing current pointer: {} ({}) and wave ram: {:#X?}", self.sample_pointer, self.sample_pointer / 2, self.wave_ram);
+                log::warn!("Writing {:#X} to current pointer: {} ({}) and wave ram: {:#X?}", value, self.sample_pointer, self.sample_pointer / 2, self.wave_ram);
                 if self.trigger {
                     self.wave_ram[self.sample_pointer / 2] = value;
                 } else {

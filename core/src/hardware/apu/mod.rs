@@ -106,7 +106,7 @@ impl APU {
         }
 
         #[cfg(feature = "apu-logging")]
-        log::debug!("Voice 3, remaining timer: {} - cycles: {} - scheduler time: {}", self.voice3.timer, self.voice3.cycles_done, scheduler.current_time);
+        log::debug!("Voice 3, remaining timer: {} - cycles: {} - scheduler time: {} - load value: {}", self.voice3.timer, self.voice3.cycles_done, scheduler.current_time, self.voice3.timer_load_value);
     }
 
     /// Ticked by the `Scheduler` every `8192` cycles.

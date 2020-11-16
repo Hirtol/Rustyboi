@@ -19,7 +19,7 @@ path = "src/testing_frontend/main.rs"
 log = "0.4.11"
 anyhow = "1.0.32"
 simplelog = "0.8.0"
-rustyboi-core = {path = "core", features=[]}
+rustyboi-core = {path = "core", features=["apu-logging"]}
 image = "0.23.8"
 blake2 = "0.9.0"
 gumdrop = "0.8.0"
