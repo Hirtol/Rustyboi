@@ -366,7 +366,6 @@ impl Memory {
                 EventType::NONE => {
                     // On startup we should add OAM
                     self.scheduler.push_event(EventType::OamSearch, 0);
-                    self.scheduler.push_event(EventType::APUFrameSequencer, FRAME_SEQUENCE_CYCLES);
                     self.scheduler.push_event(EventType::TimerTick, self.timers.timer_control.get_clock_interval());
                 }
                 EventType::VBLANK => {
@@ -414,16 +413,6 @@ impl Memory {
                             .push_full_event(event.update_self(EventType::OamSearch, 456 << self.get_speed_shift()));
                         self.scheduler.push_relative(EventType::Y153TickToZero, 4);
                     }
-                }
-                EventType::APUFrameSequencer => {
-                    // Both APU events rely on the scheduler being called after the APU tick
-                    // (at least, that's how I used to do it in the APU tick function)
-                    // Be careful about reordering.
-                    self.apu.tick_frame_sequencer(&mut self.scheduler, self.cgb_data.double_speed as u64);
-                    self.scheduler.push_full_event(event.update_self(
-                        EventType::APUFrameSequencer,
-                        FRAME_SEQUENCE_CYCLES << self.get_speed_shift(),
-                    ));
                 }
                 EventType::TimerOverflow => {
                     self.timers.timer_overflow(&mut self.scheduler, &mut self.interrupts);

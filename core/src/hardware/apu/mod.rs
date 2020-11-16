@@ -40,7 +40,9 @@ pub struct APU {
     global_sound_enable: bool,
     output_buffer: Vec<f32>,
     frame_sequencer_step: u8,
-    last_access_point: u64,
+    // Used for synchronisation
+    last_synchronise_time: u64,
+    last_frame_sequence_tick: u64,
 }
 
 impl APU {
@@ -61,24 +63,28 @@ impl APU {
             output_buffer: Vec::with_capacity(SAMPLE_SIZE_BUFFER * 2),
             global_sound_enable: true,
             frame_sequencer_step: 0,
-            last_access_point: 0
+            last_synchronise_time: 0,
+            last_frame_sequence_tick: 0
         }
     }
 
-    /// Tick all channels, not including the frame sequencer.
+    /// Tick all channels, but first the frame sequencer.
     /// This will synchronise the state of the APU to the point it should've been at
     /// in this cycle.
-    /// This is safe and valid so long as we do this before every memory access or frame sequence
-    /// tick. As long as that is upheld this gives a very good speedup.
+    /// This is safe and valid so long as we do this before every memory access.
+    /// As long as that is upheld this gives a very good speedup.
     pub fn synchronise(&mut self, scheduler: &mut Scheduler, speed_multiplier: u64) {
         if !self.global_sound_enable {
             return;
         }
+        // Always tick the frame sequencer first, since it may disable certain channels.
+        self.tick_frame_sequencer(scheduler, speed_multiplier);
 
-        let delta = (scheduler.current_time - self.last_access_point) >> speed_multiplier;
+        let delta = (scheduler.current_time - self.last_synchronise_time) >> speed_multiplier;
         let (mut samples, remainder) = (delta / self.audio_output.cycles_per_sample, delta % self.audio_output.cycles_per_sample);
 
-        self.last_access_point = scheduler.current_time;
+        self.last_synchronise_time = scheduler.current_time;
+        // We need to keep track of how many cycles we have left to get to the next sample via remainder
         self.audio_output.remainder_cycles_sample += remainder;
 
         self.voice1.tick_timer(remainder);
@@ -104,23 +110,28 @@ impl APU {
         log::debug!("Voice 3, remaining timer: {} - cycles: {} - scheduler time: {} - load value: {}", self.voice3.timer, self.voice3.cycles_done, scheduler.current_time, self.voice3.timer_load_value);
     }
 
-    /// Ticked by the `Scheduler` every `8192` cycles.
-    ///
-    /// See `MMU` for function call.
-    pub fn tick_frame_sequencer(&mut self, scheduler: &mut Scheduler, speed_multiplier: u64) {
-        self.synchronise(scheduler, speed_multiplier);
-        // The frame sequencer component clocks at 512Hz apparently.
-        // 4194304/512 = 8192 cycles
-        match self.frame_sequencer_step {
-            0 | 4 => self.tick_length(),
-            2 | 6 => {
-                self.tick_length();
-                self.tick_sweep();
+    /// Ticks, if it is required, the frame sequencer.
+    /// Should always be called *before* ticking channels, as channels could be disabled
+    /// based on the frame sequence ticks.
+    fn tick_frame_sequencer(&mut self, scheduler: &mut Scheduler, speed_multiplier: u64) {
+        let mut cycle_delta = (scheduler.current_time - self.last_frame_sequence_tick) >> speed_multiplier;
+        while cycle_delta >= FRAME_SEQUENCE_CYCLES {
+            // The frame sequencer component clocks at 512Hz apparently.
+            // 4194304/512 = 8192 cycles
+            match self.frame_sequencer_step {
+                0 | 4 => self.tick_length(),
+                2 | 6 => {
+                    self.tick_length();
+                    self.tick_sweep();
+                }
+                7 => self.tick_envelop(),
+                _ => {}
             }
-            7 => self.tick_envelop(),
-            _ => {}
+            self.frame_sequencer_step = (self.frame_sequencer_step + 1) % 8;
+
+            cycle_delta -= FRAME_SEQUENCE_CYCLES;
+            self.last_frame_sequence_tick += FRAME_SEQUENCE_CYCLES << speed_multiplier;
         }
-        self.frame_sequencer_step = (self.frame_sequencer_step + 1) % 8;
     }
 
     /// Ticked by the `synchronise()` method every `95` cycles.
@@ -239,8 +250,9 @@ impl APU {
                 if !self.global_sound_enable {
                     self.reset(scheduler, mode);
                 } else if !previous_enable {
-                    // Re-add the frame sequence event.
-                    scheduler.push_relative(EventType::APUFrameSequencer, FRAME_SEQUENCE_CYCLES);
+                    // After a re-enable of the APU the next frame sequence tick will once again
+                    // be 8192 t-cycles out
+                    self.last_frame_sequence_tick = scheduler.current_time;
                 }
             }
             0x27..=0x2F => {} // Writes to unused registers are silently ignored.
@@ -315,7 +327,6 @@ impl APU {
         self.left_channel_enable = [false; 4];
         self.right_channel_enable = [false; 4];
         self.frame_sequencer_step = 0;
-        scheduler.remove_event_type(EventType::APUFrameSequencer);
     }
 }
 
