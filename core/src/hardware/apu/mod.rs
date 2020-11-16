@@ -70,7 +70,11 @@ impl APU {
         }
     }
 
-    /// Tick all channels, not including the frame sequencer and sampler.
+    /// Tick all channels, not including the frame sequencer.
+    /// This will synchronise the state of the APU to the point it should've been at
+    /// in this cycle.
+    /// This is safe and valid so long as we do this before every memory access or frame sequence
+    /// tick. As long as that is upheld this gives a very good speedup.
     pub fn synchronise(&mut self, scheduler: &mut Scheduler, speed_multiplier: u64) {
         if !self.global_sound_enable {
             return;
@@ -248,7 +252,6 @@ impl APU {
                 } else if !previous_enable {
                     // Re-add the frame sequence event.
                     scheduler.push_relative(EventType::APUFrameSequencer, FRAME_SEQUENCE_CYCLES);
-                    scheduler.push_relative(EventType::APUSample, SAMPLE_CYCLES);
                 }
             }
             0x27..=0x2F => {} // Writes to unused registers are silently ignored.
@@ -326,7 +329,6 @@ impl APU {
         self.right_channel_enable = [false; 4];
         self.frame_sequencer_step = 0;
         scheduler.remove_event_type(EventType::APUFrameSequencer);
-        scheduler.remove_event_type(EventType::APUSample);
     }
 }
 

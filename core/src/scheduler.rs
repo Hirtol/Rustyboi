@@ -11,7 +11,6 @@ pub enum EventType {
     HBLANK = 3,
     VblankWait = 4,
     APUFrameSequencer = 5,
-    APUSample = 6,
     TimerOverflow = 7,
     TimerPostOverflow = 8,
     TimerTick = 9,
