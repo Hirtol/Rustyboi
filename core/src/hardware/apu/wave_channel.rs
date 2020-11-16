@@ -228,7 +228,7 @@ impl WaveformChannel {
     fn trigger(&mut self, next_step_no_length: bool) {
         self.trigger = true;
         self.length.trigger_256(next_step_no_length);
-        self.timer_load_value = (2048 - self.frequency) * 2;
+        self.timer_load_value = (2048 - self.frequency) * 2 + 6;
         self.timer = self.timer_load_value;
         self.sample_pointer = 0;
         self.set_volume_from_val(self.volume_load);
