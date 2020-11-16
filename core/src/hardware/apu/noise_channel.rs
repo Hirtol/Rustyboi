@@ -55,6 +55,7 @@ impl NoiseChannel {
             to_generate -= 1;
         }
 
+        // *should* be >=, but then we get a stack overflow due to infinite recursion. TODO: Overhaul
         if remainder > self.timer {
             let to_subtract = remainder - self.timer;
             self.load_timer_values();

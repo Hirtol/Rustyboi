@@ -61,7 +61,7 @@ impl WaveformChannel {
             to_generate -= 1;
         }
 
-        if remainder > self.timer {
+        if remainder >= self.timer {
             let to_subtract = remainder - self.timer;
             self.load_timer_values();
             self.tick_calculations();
@@ -196,12 +196,14 @@ impl WaveformChannel {
                 }
             }
             0x30..=0x3F => {
-                #[cfg(feature = "apu-logging")]
-                log::warn!("Writing {:#X} to current pointer: {} ({}) and wave ram: {:#X?}", value, self.sample_pointer, self.sample_pointer / 2, self.wave_ram);
                 if self.trigger {
+                    #[cfg(feature = "apu-logging")]
+                    log::warn!("Writing {:#X} to current pointer: {} ({}) and wave ram: {:#X?}", value, self.sample_pointer / 2, self.sample_pointer, self.wave_ram);
                     self.wave_ram[self.sample_pointer / 2] = value;
                 } else {
                     let offset_address = ((address - 0x30) * 2) as usize;
+                    #[cfg(feature = "apu-logging")]
+                    log::warn!("Writing {:#X} to offset address: {} ({}) and wave ram: {:#X?}", value, offset_address / 2, offset_address, self.wave_ram);
                     self.sample_buffer[offset_address] = value >> 4;
                     self.sample_buffer[offset_address + 1] = value & 0xF;
 
