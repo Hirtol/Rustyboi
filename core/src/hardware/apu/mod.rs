@@ -1,8 +1,3 @@
-//! This entire APU implementation currently passes the first 6/12 Blargg DMG_SOUND tests.
-//! However, there are still several other issues such as the wave_channel not always behaving
-//! properly. In addition, sound completely stops in the game Aladdin after the title screen for
-//! some reason.
-
 use crate::emulator::{EmulatorMode, DMG_CLOCK_SPEED};
 use crate::hardware::apu::noise_channel::NoiseChannel;
 use crate::hardware::apu::square_channel::SquareWaveChannel;
@@ -51,8 +46,8 @@ pub struct APU {
 impl APU {
     pub fn new() -> Self {
         APU {
-            voice1: SquareWaveChannel::new(),
-            voice2: SquareWaveChannel::new(),
+            voice1: SquareWaveChannel::default(),
+            voice2: SquareWaveChannel::default(),
             voice3: WaveformChannel::new(),
             voice4: NoiseChannel::new(),
             audio_output: AudioOutput::default(),
@@ -92,7 +87,7 @@ impl APU {
         self.voice4.tick_timer(remainder);
 
         if self.audio_output.remainder_cycles_sample >= self.audio_output.cycles_per_sample {
-            self.tick_sampling_handler();
+            self.generate_sample();
             self.audio_output.remainder_cycles_sample -= self.audio_output.cycles_per_sample;
         }
 
@@ -101,7 +96,7 @@ impl APU {
             self.voice2.tick_timer(self.audio_output.cycles_per_sample);
             self.voice3.tick_timer(self.audio_output.cycles_per_sample);
             self.voice4.tick_timer(self.audio_output.cycles_per_sample);
-            self.tick_sampling_handler();
+            self.generate_sample();
             samples -= 1;
         }
 
@@ -128,14 +123,9 @@ impl APU {
         self.frame_sequencer_step = (self.frame_sequencer_step + 1) % 8;
     }
 
-    /// Ticked by the `Scheduler` every `95` cycles.
+    /// Ticked by the `synchronise()` method every `95` cycles.
     /// This is a close enough value such that we get one sample every ~1/44100 seconds
-    ///
-    /// See `MMU` for function call.
-    pub fn tick_sampling_handler(&mut self) {
-        //self.synchronise(scheduler, speed_multiplier);
-        // This block is here such that we get ~44100 samples per second, otherwise we'd generate
-        // far more than we could consume.
+    fn generate_sample(&mut self) {
         // TODO: Add actual downsampling instead of the selective audio pick.
         // Refer to: https://www.reddit.com/r/EmuDev/comments/g5czyf/sound_emulation/
         // Alternatively, we could go to 93207 sampling rate, which would give the sampling
@@ -150,9 +140,7 @@ impl APU {
         let left_final_volume = self.left_volume as f32 / 6.0;
         let right_final_volume = self.right_volume as f32 / 6.0;
 
-        // Left Audio
         let left_sample = self.generate_audio(self.left_channel_enable, left_final_volume);
-        // Right Audio
         let right_sample = self.generate_audio(self.right_channel_enable, right_final_volume);
 
         let result_samples = self.audio_output.apply_highpass_filter(left_sample, right_sample);
@@ -211,7 +199,8 @@ impl APU {
 
     pub fn write_register(&mut self, address: u16, value: u8, scheduler: &mut Scheduler, mode: EmulatorMode, speed_multiplier: u64) {
         self.synchronise(scheduler, speed_multiplier);
-        //log::info!("APU Write on address: 0x{:02X} with value: 0x{:02X}", address, value);
+        #[cfg(feature = "apu-logging")]
+        log::trace!("APU Write on address: {:#X} with value: 0x{:#X}", address, value);
         let address = address & 0xFF;
 
         // It's not possible to access any registers beside 0x26 while the sound is disabled.
@@ -270,9 +259,7 @@ impl APU {
 
     pub fn write_wave_sample(&mut self, address: u16, value: u8, scheduler: &mut Scheduler, speed_multiplier: u64) {
         self.synchronise(scheduler, speed_multiplier);
-        //log::info!("APU Wave_Write on address: 0x{:02X} with value: 0x{:02X}", address, value);
-        let address = address & 0xFF;
-        self.voice3.write_register(address, value, self.frame_sequencer_step)
+        self.voice3.write_register(address & 0xFF, value, self.frame_sequencer_step)
     }
 
     fn generate_audio(&mut self, voice_enables: [bool; 4], final_volume: f32) -> f32{

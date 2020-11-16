@@ -34,14 +34,6 @@ impl SquareWaveChannel {
         [0, 1, 1, 1, 1, 1, 1, 0], // 75%
     ];
 
-    pub fn new() -> SquareWaveChannel {
-        SquareWaveChannel {
-            // Purely for the initial tick_timer()
-            timer_load_value: 8192,
-            .. Default::default()
-        }
-    }
-
     /// Output a sample for this channel, returns `0` if the channel isn't enabled.
     #[inline(always)]
     pub fn output_volume(&self) -> u8 {
@@ -72,7 +64,7 @@ impl SquareWaveChannel {
 
     #[inline]
     fn tick_calculations(&mut self) {
-        // Selects which sample we should select in our chosen duty cycle.
+        // Selects which sample we should use in our chosen duty cycle.
         // Refer to SQUARE_WAVE_TABLE constant.
         self.wave_table_index = (self.wave_table_index + 1) % 8;
         self.update_sample();
@@ -92,7 +84,7 @@ impl SquareWaveChannel {
             0x13 | 0x18 => INVALID_READ, // Can't read NR13
             0x14 | 0x19 => 0xBF | if self.length.length_enable { 0x40 } else { 0x0 },
             0x15 => INVALID_READ, // The second square wave channel doesn't have a sweep feature.
-            _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address),
+            _ => unreachable!("Invalid Voice1 register read: 0xFF{:02X}", address),
         }
     }
 
@@ -148,7 +140,7 @@ impl SquareWaveChannel {
                     self.trigger(no_l_next);
                 }
             }
-            _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address),
+            _ => unreachable!("Invalid Voice1 register read: 0xFF{:02X}", address),
         }
     }
 
@@ -158,12 +150,10 @@ impl SquareWaveChannel {
     fn trigger(&mut self, next_step_no_length: bool) {
         self.trigger = true;
         self.length.trigger(next_step_no_length);
-        //TODO: Set this to next_step_envelope
-        self.envelope.trigger(false);
+        self.envelope.trigger(false); //TODO: Set this to next_step_envelope
         self.timer_load_value = (2048 - self.frequency) * 4;
         self.timer = self.timer_load_value;
         self.sweep.trigger_sweep(&mut self.trigger, self.frequency);
-
         // Default wave form should be selected.
         self.duty_select = 0x2;
         // If the DAC doesn't have power we ignore this trigger.
@@ -177,14 +167,10 @@ impl SquareWaveChannel {
         self.length.length_enable = false;
 
         *self = if mode.is_cgb() {
-            Self {
-                timer_load_value: 8192,
-                ..Default::default()
-            }
+            Self::default()
         } else {
             Self {
                 length: self.length,
-                timer_load_value: 8192,
                 ..Default::default()
             }
         }

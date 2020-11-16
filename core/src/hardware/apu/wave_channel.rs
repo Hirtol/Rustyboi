@@ -36,8 +36,6 @@ impl WaveformChannel {
                 0x8, 0x4, 0x4, 0x0, 0x4, 0x3, 0xA, 0xA, 0x2, 0xD, 0x7, 0x8, 0x9, 0x2, 0x3, 0xC, 0x6, 0x0, 0x5, 0x9,
                 0x5, 0x9, 0xB, 0x0, 0x3, 0x4, 0xB, 0x8, 0x2, 0xE, 0xD, 0xA,
             ],
-            // Purely for the initial tick_timer()
-            timer_load_value: 4096,
             ..Default::default()
         }
     }
@@ -52,6 +50,8 @@ impl WaveformChannel {
         self.trigger
     }
 
+    /// Passes however many cycles as provided.
+    /// Note that samples are not saved, so manual sampling via output_volume() is required.
     pub fn tick_timer(&mut self, cycles: u64) {
         if cycles >= self.timer as u64 {
             let to_subtract = cycles - self.timer as u64;
@@ -73,7 +73,6 @@ impl WaveformChannel {
 
     #[inline]
     fn tick_calculations(&mut self) {
-        // If we overflowed we might've lost some cycles, so we should make up for those.
         // Selects which sample we should select in our chosen duty cycle.
         self.sample_pointer = (self.sample_pointer + 1) % 32;
 
@@ -122,15 +121,15 @@ impl WaveformChannel {
                 // if made at any other time, reads return $FF and writes have no effect.
                 if self.trigger {
                     #[cfg(feature = "apu-logging")]
-                    log::warn!("Reading from triggered wave: {:#X} at wave pointer: {} ({})", self.wave_ram[self.sample_pointer / 2], self.sample_pointer / 2, self.sample_pointer);
+                    log::debug!("Reading from triggered wave: {:#X} at wave pointer: {} ({})", self.wave_ram[self.sample_pointer / 2], self.sample_pointer / 2, self.sample_pointer);
                     self.wave_ram[self.sample_pointer / 2]
                 } else {
                     #[cfg(feature = "apu-logging")]
-                    log::warn!("Reading from address wave: {:#X} at wave pointer: {:#X} ({:#X})", self.wave_ram[self.sample_pointer / 2], (address - 0x30), address);
+                    log::debug!("Reading from address wave: {:#X} at wave pointer: {:#X} ({:#X})", self.wave_ram[self.sample_pointer / 2], (address - 0x30), address);
                     self.wave_ram[(address - 0x30) as usize]
                 }
             }
-            _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address),
+            _ => unreachable!("Invalid Voice1 register read: 0xFF{:02X}", address),
         }
     }
 
@@ -190,19 +189,19 @@ impl WaveformChannel {
             0x30..=0x3F => {
                 if self.trigger {
                     #[cfg(feature = "apu-logging")]
-                    log::warn!("Writing {:#X} to current pointer: {} ({}) and wave ram: {:#X?}", value, self.sample_pointer / 2, self.sample_pointer, self.wave_ram);
+                    log::debug!("Writing {:#X} to current pointer: {} ({}) and wave ram: {:#X?}", value, self.sample_pointer / 2, self.sample_pointer, self.wave_ram);
                     self.wave_ram[self.sample_pointer / 2] = value;
                 } else {
                     let offset_address = ((address - 0x30) * 2) as usize;
                     #[cfg(feature = "apu-logging")]
-                    log::warn!("Writing {:#X} to offset address: {} ({}) and wave ram: {:#X?}", value, offset_address / 2, offset_address, self.wave_ram);
+                    log::debug!("Writing {:#X} to offset address: {} ({}) and wave ram: {:#X?}", value, offset_address / 2, offset_address, self.wave_ram);
                     self.sample_buffer[offset_address] = value >> 4;
                     self.sample_buffer[offset_address + 1] = value & 0xF;
 
                     self.wave_ram[offset_address / 2] = value;
                 }
             }
-            _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address),
+            _ => unreachable!("Invalid Voice1 register read: 0xFF{:02X}", address),
         }
     }
 
@@ -244,7 +243,7 @@ impl WaveformChannel {
             0b0_01_0_0000 => 0, // 100% volume
             0b0_10_0_0000 => 1, // 50% volume
             0b0_11_0_0000 => 2, // 75% volume
-            _ => panic!("Received invalid entry in set_volume!"),
+            _ => unreachable!("Received invalid entry in set_volume!"),
         };
 
         // Since the volume is different we should update our current sample.

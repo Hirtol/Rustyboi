@@ -95,8 +95,6 @@ impl NoiseChannel {
     #[inline]
     pub fn update_sample(&mut self) {
         // The result is taken from the current bit 0, inverted
-        // Not sure about the envelope multiplication, docs don't mention it but I assume it's there
-        // for a reason.
         self.output_volume = (((!self.lfsr) & 0x1) as u8) * self.envelope.volume;
     }
 
@@ -123,7 +121,7 @@ impl NoiseChannel {
                     0xBF
                 }
             }
-            _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address),
+            _ => unreachable!("Invalid Voice1 register read: 0xFF{:02X}", address),
         }
     }
 
@@ -165,7 +163,7 @@ impl NoiseChannel {
                     self.trigger(no_l_next);
                 }
             }
-            _ => panic!("Invalid Voice1 register read: 0xFF{:02X}", address),
+            _ => unreachable!("Invalid Voice1 register read: 0xFF{:02X}", address),
         }
     }
 
