@@ -252,7 +252,6 @@ impl APU {
                 } else if !previous_enable {
                     // Re-add the frame sequence event.
                     scheduler.push_relative(EventType::APUFrameSequencer, FRAME_SEQUENCE_CYCLES);
-                    scheduler.push_relative(EventType::APUSample, SAMPLE_CYCLES);
                 }
             }
             0x27..=0x2F => {} // Writes to unused registers are silently ignored.
@@ -330,7 +329,6 @@ impl APU {
         self.right_channel_enable = [false; 4];
         self.frame_sequencer_step = 0;
         scheduler.remove_event_type(EventType::APUFrameSequencer);
-        scheduler.remove_event_type(EventType::APUSample);
     }
 }
 

@@ -367,7 +367,6 @@ impl Memory {
                     // On startup we should add OAM
                     self.scheduler.push_event(EventType::OamSearch, 0);
                     self.scheduler.push_event(EventType::APUFrameSequencer, FRAME_SEQUENCE_CYCLES);
-                    self.scheduler.push_event(EventType::APUSample, SAMPLE_CYCLES);
                     self.scheduler.push_event(EventType::TimerTick, self.timers.timer_control.get_clock_interval());
                 }
                 EventType::VBLANK => {
@@ -425,12 +424,6 @@ impl Memory {
                         EventType::APUFrameSequencer,
                         FRAME_SEQUENCE_CYCLES << self.get_speed_shift(),
                     ));
-                }
-                EventType::APUSample => {
-                    // self.apu.synchronise(&mut self.scheduler, self.cgb_data.double_speed as u64);
-                    // self.scheduler.push_full_event(
-                    //     event.update_self(EventType::APUSample, SAMPLE_CYCLES << self.get_speed_shift()),
-                    // );
                 }
                 EventType::TimerOverflow => {
                     self.timers.timer_overflow(&mut self.scheduler, &mut self.interrupts);
