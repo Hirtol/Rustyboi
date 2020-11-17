@@ -1,5 +1,5 @@
 //! This is an integration test suite which runs (if specified) all the test roms provided and saves
-//! an image of their framebuffer after ~2 million full emulation cycles (note, different from CPU cycles)
+//! an image of their framebuffer after a certain amount of frames (default 600 frames)
 //!
 //! If this is a second run then the `old` images will be compared to the `new` images via a
 //! `Blake2s` hash. Were there to be any files which differ they will be printed to the output.

@@ -1,0 +1,19 @@
+[package]
+name = "rustyboi-test-runner"
+version = "0.1.0"
+authors = ["Hirtol <gameboy@hirtol.top>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4.11"
+anyhow = "1.0.32"
+simplelog = "0.8.0"
+rustyboi-core = {path = "../core", features=[]}
+image = "0.23.8"
+blake2 = "0.9.0"
+gumdrop = "0.8.0"
+directories = "3.0.1"
+crossbeam = "0.8.0"
+serde = "1.0.117"
