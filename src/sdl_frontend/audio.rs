@@ -67,7 +67,7 @@ impl AudioPlayer {
     /// expects to be called *at least* once every 1/60th of a second.
     pub fn send_requests(&mut self, gameboy_runner: &GameboyRunner) {
         if !self.awaiting_audio && !self.has_too_many_samples() && !self.paused {
-            let buffer_to_send = std::mem::replace(&mut self.channel_queue, Vec::new());
+            let buffer_to_send = std::mem::take(&mut self.channel_queue);
             gameboy_runner
                 .request_sender
                 .send(EmulatorNotification::AudioRequest(buffer_to_send));
