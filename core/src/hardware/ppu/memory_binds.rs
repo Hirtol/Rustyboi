@@ -164,7 +164,11 @@ impl PPU {
         self.cgb_sprite_palette_ind.get_value()
     }
 
-    pub fn get_bg_palette_data(&self) -> u8 {
+    pub fn get_cgb_bg_palette_data(&self) -> u8 {
+        if self.get_current_mode() == Mode::LcdTransfer {
+            return INVALID_READ;
+        }
+
         let addr = self.cgb_bg_palette_ind.selected_address;
 
         if addr % 2 == 0 {
@@ -174,7 +178,11 @@ impl PPU {
         }
     }
 
-    pub fn get_obj_palette_data(&self) -> u8 {
+    pub fn get_cgb_obj_palette_data(&self) -> u8 {
+        if self.get_current_mode() == Mode::LcdTransfer {
+            return INVALID_READ;
+        }
+
         let addr = self.cgb_sprite_palette_ind.selected_address;
 
         if addr % 2 == 0 {
@@ -306,6 +314,11 @@ impl PPU {
     }
 
     pub fn set_colour_bg_palette_data(&mut self, value: u8) {
+        // Can't change palettes during mode 3
+        if self.get_current_mode() == Mode::LcdTransfer {
+            return;
+        }
+
         let addr = self.cgb_bg_palette_ind.selected_address;
 
         if addr % 2 == 0 {
@@ -320,6 +333,11 @@ impl PPU {
     }
 
     pub fn set_colour_obj_palette_data(&mut self, value: u8) {
+        // Can't change palettes during mode 3
+        if self.get_current_mode() == Mode::LcdTransfer {
+            return;
+        }
+
         let addr = self.cgb_sprite_palette_ind.selected_address;
 
         if addr % 2 == 0 {

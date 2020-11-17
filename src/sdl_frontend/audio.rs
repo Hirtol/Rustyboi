@@ -7,6 +7,7 @@ use sdl2::AudioSubsystem;
 
 pub struct AudioPlayer {
     awaiting_audio: bool,
+    paused: bool,
     sdl_audio: AudioQueue<f32>,
     channel_queue: Vec<f32>,
 }
@@ -31,16 +32,19 @@ impl AudioPlayer {
         audio_queue.queue(&vec![0.0; silence_samples as usize]);
         AudioPlayer{
             awaiting_audio: false,
+            paused: true,
             sdl_audio: audio_queue,
             channel_queue: Vec::with_capacity(5000),
         }
     }
 
-    pub fn start(&self) {
+    pub fn start(&mut self) {
+        self.paused = false;
         self.sdl_audio.resume();
     }
 
-    pub fn pause(&self) {
+    pub fn pause(&mut self) {
+        self.paused = true;
         self.sdl_audio.pause()
     }
 
@@ -62,7 +66,7 @@ impl AudioPlayer {
     /// Send audio requests to the emulator thread as appropriate,
     /// expects to be called *at least* once every 1/60th of a second.
     pub fn send_requests(&mut self, gameboy_runner: &GameboyRunner) {
-        if !self.awaiting_audio && !self.has_too_many_samples() {
+        if !self.awaiting_audio && !self.has_too_many_samples() && !self.paused {
             let buffer_to_send = std::mem::replace(&mut self.channel_queue, Vec::new());
             gameboy_runner
                 .request_sender

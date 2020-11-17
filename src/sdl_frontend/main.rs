@@ -133,7 +133,10 @@ fn main() {
     let mut emulation_state = AppEmulatorState::default();
 
     let mut most_recent_frame: [RGB; FRAMEBUFFER_SIZE] = [RGB::default(); FRAMEBUFFER_SIZE];
-    audio_player.start();
+
+    if !GLOBAL_APP_STATE.lock().unwrap().audio_mute {
+        audio_player.start();
+    }
 
     'mainloop: loop {
         audio_player.send_requests(&gameboy_runner);

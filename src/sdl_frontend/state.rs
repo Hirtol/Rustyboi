@@ -29,6 +29,8 @@ impl AppEmulatorState {
 pub struct AppState {
     /// The speed multiplier to use while fast forwarding.
     pub fast_forward_rate: u64,
+    pub audio_mute: bool,
+    pub audio_volume: f32,
     pub custom_display_colour: DisplayColourConfigurable,
 }
 
@@ -36,6 +38,8 @@ impl Default for AppState {
     fn default() -> Self {
         AppState {
             fast_forward_rate: 2,
+            audio_mute: false,
+            audio_volume: 0.0,
             custom_display_colour: DisplayColourConfigurable::default(),
         }
     }

@@ -275,9 +275,9 @@ impl Memory {
             }
             CGB_RP => self.io_registers.read_byte(address),
             CGB_BACKGROUND_COLOR_INDEX => self.ppu.get_bg_color_palette_index(),
-            CGB_BACKGROUND_PALETTE_DATA => self.ppu.get_bg_palette_data(),
+            CGB_BACKGROUND_PALETTE_DATA => self.ppu.get_cgb_bg_palette_data(),
             CGB_SPRITE_COLOR_INDEX => self.ppu.get_sprite_color_palette_index(),
-            CGB_OBJECT_PALETTE_DATA => self.ppu.get_obj_palette_data(),
+            CGB_OBJECT_PALETTE_DATA => self.ppu.get_cgb_obj_palette_data(),
             CGB_OBJECT_PRIORITY_MODE => self.ppu.get_object_priority(),
             CGB_WRAM_BANK => self.wram.read_bank_select(),
             _ => self.io_registers.read_byte(address),
