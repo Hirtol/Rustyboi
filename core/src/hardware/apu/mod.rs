@@ -1,3 +1,9 @@
+//! The APU runs differently from other components for the sake of performance.
+//! The only time it is ticked based on the `Scheduler` is when `Vblank` happens,
+//! it has no separate event. This is because the APU is lazily evaluated for the most part,
+//! only running to the cycle it *should* be at when a memory access/vblank occurs to one of the APU
+//! registers.
+
 use crate::emulator::{EmulatorMode, DMG_CLOCK_SPEED};
 use crate::hardware::apu::noise_channel::NoiseChannel;
 use crate::hardware::apu::square_channel::SquareWaveChannel;
@@ -9,10 +15,8 @@ mod channel_features;
 mod noise_channel;
 mod square_channel;
 mod wave_channel;
-
-// Currently chose for 44100/60 = 739 samples per frame to make it 'kinda' sync up.
-// In all likelihood this will cause issues due to scheduling delays so this should go up probably.
-pub const SAMPLE_SIZE_BUFFER: usize = 739;
+// Currently assumes 44100 Hz
+pub const SAMPLE_SIZE_BUFFER: usize = 1480;
 pub const FRAME_SEQUENCE_CYCLES: u64 = 8192;
 /// The amount of cycles (normalised to 4Mhz) between every sample.
 pub const SAMPLE_CYCLES: u64 = 95;
@@ -70,7 +74,8 @@ impl APU {
 
     /// Tick all channels, but first the frame sequencer.
     /// This will synchronise the state of the APU to the point it should've been at
-    /// in this cycle.
+    /// in this cycle (the current cycle as determined by the `Scheduler`).
+    ///
     /// This is safe and valid so long as we do this before every memory access.
     /// As long as that is upheld this gives a very good speedup.
     pub fn synchronise(&mut self, scheduler: &mut Scheduler, speed_multiplier: u64) {

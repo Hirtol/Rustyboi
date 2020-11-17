@@ -355,6 +355,14 @@ impl Memory {
         INVALID_READ
     }
 
+    /// Synchronise all components to ensure we're in a consistent state for the
+    /// current m-cycle.
+    #[inline]
+    fn synchronise_state_for_vblank(&mut self) {
+        let speed_multiplier = self.get_speed_shift();
+        self.apu.synchronise(&mut self.scheduler, speed_multiplier);
+    }
+
     /// Ticks the scheduler by 4 cycles, executes any events if they come up.
     /// Returns true if a vblank interrupt happened.
     fn tick_scheduler(&mut self) -> bool {
@@ -373,9 +381,8 @@ impl Memory {
                     self.scheduler
                         .push_full_event(event.update_self(EventType::VblankWait, 456 << self.get_speed_shift()));
                     vblank_occurred = true;
-                    //TODO: Own method
-                    let speed_mult = self.get_speed_shift();
-                    self.apu.synchronise(&mut self.scheduler, speed_mult);
+                    // Used for APU syncing.
+                    self.synchronise_state_for_vblank();
                 }
                 EventType::OamSearch => {
                     self.ppu.oam_search(&mut self.interrupts);

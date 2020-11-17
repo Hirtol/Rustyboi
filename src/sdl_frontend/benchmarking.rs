@@ -53,6 +53,7 @@ impl Benchmarking {
             loop {
                 while frame_count <= 20_000 {
                     emulator.run_to_vblank();
+                    emulator.clear_audio_buffer();
                     frame_count += 1;
                 }
 
@@ -77,6 +78,7 @@ fn run_with_send(cartridge: &Vec<u8>, sender: Sender<[RGB; FRAMEBUFFER_SIZE]>, e
         loop {
             while frame_count <= 20_000 {
                 emulator.run_to_vblank();
+                emulator.clear_audio_buffer();
                 frame_count += 1;
                 sender.send(*emulator.frame_buffer());
             }
