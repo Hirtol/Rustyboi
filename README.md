@@ -16,7 +16,7 @@ one would best refer to another fully working emulator, e.g [PyBoy](https://gith
 4. `cd target/release`
 5. Execute `rustyboi_sdl.exe` or your OS's equivalent.
 
-###Note
+### Note
 The SDL2 bundled compilation will fail if there are spaces in the path to the
 build directory.
 
