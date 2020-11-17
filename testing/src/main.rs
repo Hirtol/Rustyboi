@@ -16,7 +16,7 @@ use std::ffi::{OsStr, OsString};
 use crate::options::AppOptions;
 use blake2::{Blake2s, Digest};
 use image::ImageBuffer;
-use rustyboi_core::emulator::Emulator;
+use rustyboi_core::emulator::{Emulator, EmulatorMode};
 use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
 use std::thread::spawn;
 use std::time::Instant;
@@ -28,6 +28,7 @@ use gumdrop::Options;
 use image::imageops::FilterType;
 use rustyboi_core::hardware::ppu::palette::RGB;
 use std::sync::Arc;
+use rustyboi_core::emulator::EmulatorMode::{DMG, CGB};
 
 mod display;
 mod options;
@@ -35,6 +36,8 @@ mod options;
 const TESTING_PATH_OLD: &str = "testing_frames/old/";
 const TESTING_PATH_CHANGED: &str = "testing_frames/changed/";
 const TESTING_PATH_NEW: &str = "testing_frames/new/";
+const DMG_RESULTS_DIRECTORY: &str = "dmg/";
+const CGB_RESULTS_DIRECTORY: &str = "cgb/";
 
 fn main() -> anyhow::Result<()> {
     let options: AppOptions = AppOptions::parse_args_default_or_exit();
@@ -53,7 +56,8 @@ fn main() -> anyhow::Result<()> {
 
     let old_hashes = calculate_hashes(TESTING_PATH_OLD).unwrap_or_default();
 
-    run_test_roms(options.test_path, options.dmg_boot_rom);
+    run_test_roms(&options.test_path, &options.dmg_boot_rom, DMG);
+    run_test_roms(&options.test_path, &options.cgb_boot_rom, CGB);
 
     let new_hashes = calculate_hashes(TESTING_PATH_NEW).unwrap_or_default();
 
@@ -80,7 +84,7 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn run_test_roms(test_path: impl AsRef<str>, bootrom: impl AsRef<Path>) {
+fn run_test_roms(test_path: impl AsRef<str>, bootrom: impl AsRef<Path>, emulator_mode: EmulatorMode) {
     let boot_file = if bootrom.as_ref().exists() {
         read(bootrom.as_ref()).ok()
     } else {
@@ -88,7 +92,7 @@ fn run_test_roms(test_path: impl AsRef<str>, bootrom: impl AsRef<Path>) {
     };
 
     if !test_path.as_ref().is_empty() {
-        run_path(test_path.as_ref(), boot_file.clone());
+        run_path(test_path.as_ref(), boot_file.clone(), emulator_mode);
     }
 }
 
@@ -96,22 +100,32 @@ fn run_test_roms(test_path: impl AsRef<str>, bootrom: impl AsRef<Path>) {
 /// all test roms and running them for ~600 frames, or a custom amount if set via config.
 ///
 /// But it works!
-fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>) {
-    let tests = list_files_with_extensions(path.as_ref(), ".gb").unwrap();
+fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>, emulator_mode: EmulatorMode) {
+    let file_extension = if emulator_mode.is_dmg() { ".gb" } else { ".gbc" };
+    let tests = list_files_with_extensions(path.as_ref(), file_extension).unwrap();
     let custom_list = Arc::new(get_custom_list("custom_test_cycles.txt"));
-    let mut threads = Vec::with_capacity(100);
+    let wait_group = crossbeam::sync::WaitGroup::new();
 
     for path in tests {
         let boot_rom = boot_rom_vec.clone();
         let list_copy = custom_list.clone();
-        threads.push(spawn(move || {
+        let wg = wait_group.clone();
+
+        spawn(move || {
             let file_stem = path.file_stem().unwrap().to_owned();
             let mut frames_to_render = 600;
             let mut emu_frames_drawn = 0;
-            let emu_opts = EmulatorOptionsBuilder::new()
+            let mut options_builder = EmulatorOptionsBuilder::new()
                 .boot_rom(boot_rom)
-                .with_display_colour(TEST_COLOURS)
-                .build();
+                .with_display_colour(TEST_COLOURS);
+
+            options_builder = if emulator_mode.is_dmg() {
+                 options_builder.with_mode(DMG)
+            } else {
+                options_builder.with_mode(CGB)
+            };
+
+            let emu_opts = options_builder.build();
             let mut emu = Emulator::new(&read(path).unwrap(), emu_opts);
 
             if let Some(frames) = list_copy.get(file_stem.to_str().unwrap_or_default()) {
@@ -122,14 +136,13 @@ fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>) {
                 emu.run_to_vblank();
                 emu_frames_drawn += 1;
             }
-
-            save_image(emu.frame_buffer(), format!("{}.png", file_stem.to_str().unwrap()));
-        }));
+            let file_path = format!("{}{}_{}.png", if emulator_mode.is_dmg() { DMG_RESULTS_DIRECTORY } else { CGB_RESULTS_DIRECTORY}, file_stem.to_str().unwrap(), if emulator_mode.is_dmg() { "dmg" } else { "cgb" });
+            save_image(emu.frame_buffer(), file_path);
+            drop(wg);
+        });
     }
 
-    for t in threads {
-        t.join();
-    }
+    wait_group.wait();
 }
 
 /// Lists all files in the provided `path` (if the former is a directory) with the provided
@@ -155,18 +168,22 @@ fn list_files_with_extensions(path: impl AsRef<Path>, extension: impl AsRef<str>
 /// and [TESTING_PATH_OLD](const.TESTING_PATH_OLD.html)
 /// to [TESTING_PATH_CHANGED](const.TESTING_PATH_CHANGED.html)
 fn copy_changed_file(file_name: &OsString) {
-    for path in read_dir(TESTING_PATH_NEW).unwrap() {
-        let path = path.unwrap().path();
-        let path_str = path.file_stem().and_then(OsStr::to_str).unwrap();
-        if path_str.contains(file_name.to_str().unwrap()) {
-            copy(path.clone(), format!("{}{}_new.png", TESTING_PATH_CHANGED, path_str));
-        }
-    }
-    for path in read_dir(TESTING_PATH_OLD).unwrap() {
-        let path = path.unwrap().path();
-        let path_str = path.file_stem().and_then(OsStr::to_str).unwrap();
-        if path_str.contains(file_name.to_str().unwrap()) {
-            copy(path.clone(), format!("{}{}_old.png", TESTING_PATH_CHANGED, path_str));
+    find_and_copy_file(TESTING_PATH_NEW, file_name, "new");
+    find_and_copy_file(TESTING_PATH_OLD, file_name, "old");
+}
+
+/// Finds a file specified in `file_name` and copies it to the provided `path`,
+/// appending `appending` to the filename.
+fn find_and_copy_file(path: impl AsRef<Path>, file_name: &OsStr, appending: impl AsRef<str>) {
+    for path_dir in read_dir(path).unwrap() {
+        let path = path_dir.unwrap().path();
+        if path.is_dir() {
+            find_and_copy_file(path, file_name, appending.as_ref());
+        } else {
+            let path_str = path.file_stem().and_then(OsStr::to_str).unwrap();
+            if path_str.contains(file_name.to_str().unwrap()) {
+                copy(path.clone(), format!("{}{}_{}.png", TESTING_PATH_CHANGED, path_str, appending.as_ref()));
+            }
         }
     }
 }
@@ -206,12 +223,14 @@ fn save_image(framebuffer: &[RGB], file_name: impl AsRef<str>) {
         true_image_buffer[offset + 1] = colour.1;
         true_image_buffer[offset + 2] = colour.2;
     }
+    let path = format!("{}{}", TESTING_PATH_NEW, file_name.as_ref());
+    create_dir_all(Path::new(&path).parent().unwrap());
 
     let temp_buffer: ImageBuffer<image::Rgb<u8>, Vec<u8>> =
         image::ImageBuffer::from_raw(160, 144, true_image_buffer).unwrap();
     let temp_buffer = image::imageops::resize(&temp_buffer, 320, 288, FilterType::Nearest);
     temp_buffer
-        .save(format!("{}{}", TESTING_PATH_NEW, file_name.as_ref()))
+        .save(path)
         .unwrap();
 }
 
