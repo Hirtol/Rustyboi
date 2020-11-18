@@ -28,9 +28,9 @@ impl PPU {
             WX_REGISTER => self.get_window_x(),
             CGB_VRAM_BANK_REGISTER => self.get_vram_bank(),
             CGB_BACKGROUND_COLOR_INDEX => self.get_bg_color_palette_index(),
-            CGB_BACKGROUND_PALETTE_DATA => self.get_cgb_bg_palette_data(),
+            CGB_BACKGROUND_PALETTE_DATA if self.can_access_vram() => self.get_cgb_bg_palette_data(),
             CGB_SPRITE_COLOR_INDEX => self.get_sprite_color_palette_index(),
-            CGB_OBJECT_PALETTE_DATA => self.get_cgb_obj_palette_data(),
+            CGB_OBJECT_PALETTE_DATA if self.can_access_vram() => self.get_cgb_obj_palette_data(),
             CGB_OBJECT_PRIORITY_MODE => self.get_object_priority(),
             _ => INVALID_READ,
         }
@@ -55,9 +55,9 @@ impl PPU {
             WX_REGISTER => self.set_window_x(value),
             CGB_VRAM_BANK_REGISTER => self.set_vram_bank(value),
             CGB_BACKGROUND_COLOR_INDEX => self.set_bg_color_palette_index(value),
-            CGB_BACKGROUND_PALETTE_DATA => self.set_colour_bg_palette_data(value),
+            CGB_BACKGROUND_PALETTE_DATA if self.can_access_vram() => self.set_colour_bg_palette_data(value),
             CGB_SPRITE_COLOR_INDEX => self.set_sprite_color_palette_index(value),
-            CGB_OBJECT_PALETTE_DATA => self.set_colour_obj_palette_data(value),
+            CGB_OBJECT_PALETTE_DATA if self.can_access_vram() => self.set_colour_obj_palette_data(value),
             CGB_OBJECT_PRIORITY_MODE => self.set_object_priority(value),
             // Ignore writes if they're not valid
             _ => { },
@@ -221,10 +221,6 @@ impl PPU {
     }
 
     pub fn get_cgb_bg_palette_data(&self) -> u8 {
-        if self.get_current_mode() == Mode::LcdTransfer {
-            return INVALID_READ;
-        }
-
         let addr = self.cgb_bg_palette_ind.selected_address;
 
         if addr % 2 == 0 {
@@ -235,10 +231,6 @@ impl PPU {
     }
 
     pub fn get_cgb_obj_palette_data(&self) -> u8 {
-        if self.get_current_mode() == Mode::LcdTransfer {
-            return INVALID_READ;
-        }
-
         let addr = self.cgb_sprite_palette_ind.selected_address;
 
         if addr % 2 == 0 {
@@ -370,11 +362,6 @@ impl PPU {
     }
 
     pub fn set_colour_bg_palette_data(&mut self, value: u8) {
-        // Can't change palettes during mode 3
-        if self.get_current_mode() == Mode::LcdTransfer {
-            return;
-        }
-
         let addr = self.cgb_bg_palette_ind.selected_address;
 
         if addr % 2 == 0 {
@@ -389,11 +376,6 @@ impl PPU {
     }
 
     pub fn set_colour_obj_palette_data(&mut self, value: u8) {
-        // Can't change palettes during mode 3
-        if self.get_current_mode() == Mode::LcdTransfer {
-            return;
-        }
-
         let addr = self.cgb_sprite_palette_ind.selected_address;
 
         if addr % 2 == 0 {
