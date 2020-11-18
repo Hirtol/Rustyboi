@@ -164,6 +164,10 @@ impl PPU {
         }
     }
 
+    fn set_object_priority(&mut self, value: u8) {
+        self.cgb_object_priority = (value & 0x1) == 1
+    }
+
     fn get_cgb_bg_palette_data(&self) -> u8 {
         let addr = self.cgb_bg_palette_ind.selected_address;
 
@@ -174,6 +178,20 @@ impl PPU {
         }
     }
 
+    fn set_colour_bg_palette_data(&mut self, value: u8) {
+        let addr = self.cgb_bg_palette_ind.selected_address;
+
+        if addr % 2 == 0 {
+            self.cgb_bg_palette[addr / 8].colours[(addr % 8) / 2].set_low_byte(value);
+        } else {
+            self.cgb_bg_palette[addr / 8].colours[(addr % 8) / 2].set_high_byte(value);
+        }
+
+        if self.cgb_bg_palette_ind.auto_increment {
+            self.cgb_bg_palette_ind.selected_address = addr.wrapping_add(1) % 64;
+        }
+    }
+
     fn get_cgb_obj_palette_data(&self) -> u8 {
         let addr = self.cgb_sprite_palette_ind.selected_address;
 
@@ -181,6 +199,20 @@ impl PPU {
             self.cgb_sprite_palette[addr / 8].colours[(addr % 8) / 2].get_high_byte()
         } else {
             self.cgb_sprite_palette[addr / 8].colours[(addr % 8) / 2].get_low_byte()
+        }
+    }
+
+    fn set_colour_obj_palette_data(&mut self, value: u8) {
+        let addr = self.cgb_sprite_palette_ind.selected_address;
+
+        if addr % 2 == 0 {
+            self.cgb_sprite_palette[addr / 8].colours[(addr % 8) / 2].set_low_byte(value);
+        } else {
+            self.cgb_sprite_palette[addr / 8].colours[(addr % 8) / 2].set_high_byte(value);
+        }
+
+        if self.cgb_sprite_palette_ind.auto_increment {
+            self.cgb_sprite_palette_ind.selected_address = addr.wrapping_add(1) % 64;
         }
     }
 
@@ -257,38 +289,6 @@ impl PPU {
 
     fn set_oam_palette_1(&mut self, value: u8) {
         self.oam_palette_1 = Palette::new(value, DisplayColour::from(self.cgb_sprite_palette[1].rgb()))
-    }
-
-    fn set_object_priority(&mut self, value: u8) {
-        self.cgb_object_priority = (value & 0x1) == 1
-    }
-
-    pub fn set_colour_bg_palette_data(&mut self, value: u8) {
-        let addr = self.cgb_bg_palette_ind.selected_address;
-
-        if addr % 2 == 0 {
-            self.cgb_bg_palette[addr / 8].colours[(addr % 8) / 2].set_low_byte(value);
-        } else {
-            self.cgb_bg_palette[addr / 8].colours[(addr % 8) / 2].set_high_byte(value);
-        }
-
-        if self.cgb_bg_palette_ind.auto_increment {
-            self.cgb_bg_palette_ind.selected_address = addr.wrapping_add(1) % 64;
-        }
-    }
-
-    pub fn set_colour_obj_palette_data(&mut self, value: u8) {
-        let addr = self.cgb_sprite_palette_ind.selected_address;
-
-        if addr % 2 == 0 {
-            self.cgb_sprite_palette[addr / 8].colours[(addr % 8) / 2].set_low_byte(value);
-        } else {
-            self.cgb_sprite_palette[addr / 8].colours[(addr % 8) / 2].set_high_byte(value);
-        }
-
-        if self.cgb_sprite_palette_ind.auto_increment {
-            self.cgb_sprite_palette_ind.selected_address = addr.wrapping_add(1) % 64;
-        }
     }
 
     /// Checks all possible LCD STAT interrupts, and fires them
