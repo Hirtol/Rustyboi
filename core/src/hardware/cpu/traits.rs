@@ -174,7 +174,7 @@ impl<T: MemoryMapper> ToU16<InstructionAddress> for CPU<T> {
 
         match target {
             DIRECT => self.get_instr_u16(),
-            _ => unimplemented!(),
+            _ => unreachable!(),
         }
     }
 }
@@ -188,7 +188,7 @@ impl<T: MemoryMapper> SetU16<InstructionAddress> for CPU<T> {
                 let address = self.get_instr_u16();
                 self.write_short_cycle(address, value);
             }
-            _ => unimplemented!(),
+            _ => unreachable!(),
         }
     }
 }

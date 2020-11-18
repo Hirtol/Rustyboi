@@ -68,8 +68,15 @@ pub const NOT_USABLE_END: u16 = 0xFEFF;
 pub const IO_START: u16 = 0xFF00;
 pub const IO_END: u16 = 0xFF7F;
 
+pub const PPU_IO_START: u16 = 0xF40;
+pub const PPU_IO_END: u16 = 0xFF4F;
+pub const PPU_CGB_IO_START: u16 = 0xFF68;
+pub const PPU_CGB_IO_END: u16 = 0xFF6C;
+// TODO: Implement
+/// Not documented anywhere I could find, but if one writes 0x04 to this register it'll manually
+/// put the CGB into DMG mode (e.g, sprite priority changes)
+pub const CGB_SWITCH_MODE: u16 = 0xFF4C;
 pub const CGB_PREPARE_SWITCH: u16 = 0xFF4D;
-pub const CGB_VRAM_BANK_REGISTER: u16 = 0xFF4F;
 /// Specifies the higher byte of the source address. Always returns FFh when read.
 pub const CGB_HDMA_1: u16 = 0xFF51;
 /// Specifies the lower byte of the source address. Lower 4 bits are ignored, addresses are always
@@ -88,10 +95,6 @@ pub const CGB_HDMA_4: u16 = 0xFF54;
 pub const CGB_HDMA_5: u16 = 0xFF55;
 /// Infrared Communications Port //TODO: Implement?
 pub const CGB_RP: u16 = 0xFF56;
-///This register serves as a flag for which object priority mode to use. While the DMG prioritizes
-///objects by x-coordinate, the CGB prioritizes them by location in OAM.
-/// This flag is set by the CGB bios after checking the game's CGB compatibility.
-pub const CGB_OBJECT_PRIORITY_MODE: u16 = 0xFF6C;
 /// Work ram bank switching.
 pub const CGB_WRAM_BANK: u16 = 0xFF70;
 
@@ -181,13 +184,12 @@ impl Memory {
             }
             ROM_BANK_00_START..=ROM_BANK_00_END => self.cartridge.read_0000_3fff(address),
             ROM_BANK_NN_START..=ROM_BANK_NN_END => self.cartridge.read_4000_7fff(address),
-            TILE_BLOCK_0_START..=TILE_BLOCK_2_END => self.ppu.get_tile_byte(address),
-            TILEMAP_9800_START..=TILEMAP_9C00_END => self.ppu.get_tilemap_byte(address),
+            VRAM_START..=VRAM_END => self.ppu.read_vram(address),
             EXTERNAL_RAM_START..=EXTERNAL_RAM_END => self.cartridge.read_external_ram(address),
             WRAM_BANK_00_START..=WRAM_BANK_00_END => self.wram.read_bank_0(address),
             WRAM_BANK_NN_START..=WRAM_BANK_NN_END => self.wram.read_bank_n(address),
             ECHO_RAM_START..=ECHO_RAM_END => self.wram.read_echo_ram(address),
-            OAM_ATTRIBUTE_START..=OAM_ATTRIBUTE_END => self.ppu.get_oam_byte(address),
+            OAM_ATTRIBUTE_START..=OAM_ATTRIBUTE_END => self.ppu.read_vram(address),
             NOT_USABLE_START..=NOT_USABLE_END => self.non_usable_call(address),
             IO_START..=IO_END => self.read_io_byte(address),
             HRAM_START..=HRAM_END => self.hram.read_byte(address),
@@ -202,13 +204,12 @@ impl Memory {
     pub fn write_byte(&mut self, address: u16, value: u8) {
         match address {
             ROM_BANK_00_START..=ROM_BANK_NN_END => self.cartridge.write_byte(address, value),
-            TILE_BLOCK_0_START..=TILE_BLOCK_2_END => self.ppu.set_tile_byte(address, value),
-            TILEMAP_9800_START..=TILEMAP_9C00_END => self.ppu.set_tilemap_byte(address, value),
+            VRAM_START..=VRAM_END => self.ppu.write_vram(address, value, &mut self.scheduler, &mut self.interrupts),
             EXTERNAL_RAM_START..=EXTERNAL_RAM_END => self.cartridge.write_external_ram(address, value),
             WRAM_BANK_00_START..=WRAM_BANK_00_END => self.wram.write_bank_0(address, value),
             WRAM_BANK_NN_START..=WRAM_BANK_NN_END => self.wram.write_bank_n(address, value),
             ECHO_RAM_START..=ECHO_RAM_END => self.wram.write_echo_ram(address, value),
-            OAM_ATTRIBUTE_START..=OAM_ATTRIBUTE_END => self.ppu.set_oam_byte(address, value),
+            OAM_ATTRIBUTE_START..=OAM_ATTRIBUTE_END => self.ppu.write_vram(address, value, &mut self.scheduler, &mut self.interrupts),
             NOT_USABLE_START..=NOT_USABLE_END => log::trace!("ROM Writing to Non-usable memory: {:04X}", address),
             IO_START..=IO_END => self.write_io_byte(address, value),
             HRAM_START..=HRAM_END => self.hram.set_byte(address, value),
@@ -245,26 +246,16 @@ impl Memory {
                 //log::info!("APU Wave_Read on address: 0x{:02X} with return value: 0x{:02X}", address, result);
                 result
             }
-            LCD_CONTROL_REGISTER => self.ppu.get_lcd_control(),
-            LCD_STATUS_REGISTER => self.ppu.get_lcd_status(),
-            SCY_REGISTER => self.ppu.get_scy(),
-            SCX_REGISTER => self.ppu.get_scx(),
-            LY_REGISTER => self.ppu.get_ly(),
-            LYC_REGISTER => self.ppu.get_lyc(),
             DMA_TRANSFER => self.io_registers.read_byte(address),
-            BG_PALETTE => self.ppu.get_bg_palette(),
-            OB_PALETTE_0 => self.ppu.get_oam_palette_0(),
-            OB_PALETTE_1 => self.ppu.get_oam_palette_1(),
-            WY_REGISTER => self.ppu.get_window_y(),
-            WX_REGISTER => self.ppu.get_window_x(),
             CGB_PREPARE_SWITCH => {
                 if self.emulation_mode.is_cgb() {
                     self.cgb_data.read_prepare_switch()
                 } else {
-                    0xFF
+                    INVALID_READ
                 }
             }
-            CGB_VRAM_BANK_REGISTER => self.ppu.get_vram_bank(),
+            0xFF4E => self.io_registers.read_byte(address),
+            PPU_IO_START..=PPU_IO_END => self.ppu.read_vram(address),
             CGB_HDMA_1 | CGB_HDMA_2 | CGB_HDMA_3 | CGB_HDMA_4 => INVALID_READ,
             CGB_HDMA_5 => {
                 if self.emulation_mode.is_dmg() {
@@ -274,11 +265,7 @@ impl Memory {
                 }
             }
             CGB_RP => self.io_registers.read_byte(address),
-            CGB_BACKGROUND_COLOR_INDEX => self.ppu.get_bg_color_palette_index(),
-            CGB_BACKGROUND_PALETTE_DATA => self.ppu.get_cgb_bg_palette_data(),
-            CGB_SPRITE_COLOR_INDEX => self.ppu.get_sprite_color_palette_index(),
-            CGB_OBJECT_PALETTE_DATA => self.ppu.get_cgb_obj_palette_data(),
-            CGB_OBJECT_PRIORITY_MODE => self.ppu.get_object_priority(),
+            PPU_CGB_IO_START..=PPU_CGB_IO_END => self.ppu.read_vram(address),
             CGB_WRAM_BANK => self.wram.read_bank_select(),
             _ => self.io_registers.read_byte(address),
         }
@@ -304,20 +291,10 @@ impl Memory {
                     .write_register(address, value, &mut self.scheduler, self.emulation_mode, self.cgb_data.double_speed as u64)
             }
             WAVE_SAMPLE_START..=WAVE_SAMPLE_END => self.apu.write_wave_sample(address, value, &mut self.scheduler, self.cgb_data.double_speed as u64),
-            LCD_CONTROL_REGISTER => self.ppu.set_lcd_control(value, &mut self.scheduler, &mut self.interrupts),
-            LCD_STATUS_REGISTER => self.ppu.set_lcd_status(value, &mut self.interrupts),
-            SCY_REGISTER => self.ppu.set_scy(value),
-            SCX_REGISTER => self.ppu.set_scx(value),
-            LY_REGISTER => self.ppu.set_ly(value),
-            LYC_REGISTER => self.ppu.set_lyc(value, &mut self.interrupts),
             DMA_TRANSFER => self.dma_transfer(value),
-            BG_PALETTE => self.ppu.set_bg_palette(value),
-            OB_PALETTE_0 => self.ppu.set_oam_palette_0(value),
-            OB_PALETTE_1 => self.ppu.set_oam_palette_1(value),
-            WY_REGISTER => self.ppu.set_window_y(value),
-            WX_REGISTER => self.ppu.set_window_x(value),
             CGB_PREPARE_SWITCH => self.cgb_data.write_prepare_switch(value),
-            CGB_VRAM_BANK_REGISTER => self.ppu.set_vram_bank(value),
+            0xFF4E => self.io_registers.write_byte(address, value),
+            PPU_IO_START..=PPU_IO_END => self.ppu.write_vram(address, value, &mut self.scheduler, &mut self.interrupts),
             CGB_HDMA_1 => self.hdma.write_hdma1(value),
             CGB_HDMA_2 => self.hdma.write_hdma2(value),
             CGB_HDMA_3 => self.hdma.write_hdma3(value),
@@ -339,11 +316,7 @@ impl Memory {
                 info!("Finished executing BootRom!");
             }
             CGB_RP => self.io_registers.write_byte(address, value),
-            CGB_BACKGROUND_COLOR_INDEX => self.ppu.set_bg_color_palette_index(value),
-            CGB_BACKGROUND_PALETTE_DATA => self.ppu.set_colour_bg_palette_data(value),
-            CGB_SPRITE_COLOR_INDEX => self.ppu.set_sprite_color_palette_index(value),
-            CGB_OBJECT_PALETTE_DATA => self.ppu.set_colour_obj_palette_data(value),
-            CGB_OBJECT_PRIORITY_MODE => self.ppu.set_object_priority(value),
+            PPU_CGB_IO_START..=PPU_CGB_IO_END => self.ppu.write_vram(address, value, &mut self.scheduler, &mut self.interrupts),
             CGB_WRAM_BANK => self.wram.write_bank_select(value),
             _ => self.io_registers.write_byte(address, value),
         }

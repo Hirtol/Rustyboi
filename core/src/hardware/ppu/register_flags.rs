@@ -136,7 +136,7 @@ impl LcdStatus {
             1 => Mode::VBlank,
             2 => Mode::OamSearch,
             3 => Mode::LcdTransfer,
-            _ => panic!("Invalid value entered for mode flag"),
+            _ => unreachable!("Invalid value entered for mode flag"),
         }
     }
 

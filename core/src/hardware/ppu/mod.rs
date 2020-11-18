@@ -59,6 +59,7 @@ pub const OB_PALETTE_0: u16 = 0xFF48;
 ///
 /// Same as [OB_PALETTE_0](const.OB_PALETTE_0.html)
 pub const OB_PALETTE_1: u16 = 0xFF49;
+pub const CGB_VRAM_BANK_REGISTER: u16 = 0xFF4F;
 /// DMA Transfer and Start Address (R/W).
 /// Writing to this register launches a DMA transfer from ROM or RAM to OAM memory (sprite attribute table).
 /// The written value specifies the transfer source address divided by 100h, ie. source & destination are:
@@ -78,6 +79,10 @@ pub const CGB_BACKGROUND_PALETTE_DATA: u16 = 0xFF69;
 /// These registers are used to initialize the Sprite Palettes OBP0-7
 pub const CGB_SPRITE_COLOR_INDEX: u16 = 0xFF6A;
 pub const CGB_OBJECT_PALETTE_DATA: u16 = 0xFF6B;
+///This register serves as a flag for which object priority mode to use. While the DMG prioritizes
+///objects by x-coordinate, the CGB prioritizes them by location in OAM.
+/// This flag is set by the CGB bios after checking the game's CGB compatibility.
+pub const CGB_OBJECT_PRIORITY_MODE: u16 = 0xFF6C;
 
 pub mod cgb_ppu;
 pub mod cgb_vram;
@@ -90,10 +95,10 @@ pub mod tiledata;
 
 #[derive(Debug, PartialOrd, PartialEq, Copy, Clone)]
 pub enum Mode {
-    HBlank,
-    VBlank,
-    OamSearch,
-    LcdTransfer,
+    HBlank = 0x0,
+    VBlank = 0x1,
+    OamSearch = 0x2,
+    LcdTransfer = 0x3,
 }
 
 pub struct PPU {

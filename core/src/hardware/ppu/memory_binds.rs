@@ -1,6 +1,6 @@
 //! This module is purely used for providing access to PPU memory resources
 //! to the MMU.
-use crate::hardware::mmu::{INVALID_READ, OAM_ATTRIBUTE_START};
+use crate::hardware::mmu::{INVALID_READ, OAM_ATTRIBUTE_START, OAM_ATTRIBUTE_END};
 use crate::hardware::ppu::cgb_vram::CgbTileAttribute;
 use crate::hardware::ppu::PPU;
 use crate::print_array_raw;
@@ -9,26 +9,100 @@ use crate::scheduler::EventType::{DMATransferComplete, HBLANK, VBLANK};
 use super::*;
 
 impl PPU {
+    pub fn read_vram(&self, address: u16) -> u8 {
+        match address {
+            TILE_BLOCK_0_START..=TILE_BLOCK_2_END if self.can_access_vram() => self.get_tile_byte(address),
+            TILEMAP_9800_START..=TILEMAP_9C00_END if self.can_access_vram() => self.get_tilemap_byte(address),
+            OAM_ATTRIBUTE_START..=OAM_ATTRIBUTE_END if self.can_access_oam() => self.get_oam_byte(address),
+            // I/O Registers
+            LCD_CONTROL_REGISTER => self.get_lcd_control(),
+            LCD_STATUS_REGISTER => self.get_lcd_status(),
+            SCY_REGISTER => self.get_scy(),
+            SCX_REGISTER => self.get_scx(),
+            LY_REGISTER => self.get_ly(),
+            LYC_REGISTER => self.get_lyc(),
+            BG_PALETTE => self.get_bg_palette(),
+            OB_PALETTE_0 => self.get_oam_palette_0(),
+            OB_PALETTE_1 => self.get_oam_palette_1(),
+            WY_REGISTER => self.get_window_y(),
+            WX_REGISTER => self.get_window_x(),
+            CGB_VRAM_BANK_REGISTER => self.get_vram_bank(),
+            CGB_BACKGROUND_COLOR_INDEX => self.get_bg_color_palette_index(),
+            CGB_BACKGROUND_PALETTE_DATA => self.get_cgb_bg_palette_data(),
+            CGB_SPRITE_COLOR_INDEX => self.get_sprite_color_palette_index(),
+            CGB_OBJECT_PALETTE_DATA => self.get_cgb_obj_palette_data(),
+            CGB_OBJECT_PRIORITY_MODE => self.get_object_priority(),
+            _ => INVALID_READ,
+        }
+    }
+
+    pub fn write_vram(&mut self, address: u16, value: u8, scheduler: &mut Scheduler, interrupts: &mut Interrupts) {
+        match address {
+            TILE_BLOCK_0_START..=TILE_BLOCK_2_END if self.can_access_vram() => self.set_tile_byte(address, value),
+            TILEMAP_9800_START..=TILEMAP_9C00_END if self.can_access_vram() => self.set_tilemap_byte(address, value),
+            OAM_ATTRIBUTE_START..=OAM_ATTRIBUTE_END if self.can_access_oam() => self.set_oam_byte(address, value),
+            // I/O Registers
+            LCD_CONTROL_REGISTER => self.set_lcd_control(value, scheduler, interrupts),
+            LCD_STATUS_REGISTER => self.set_lcd_status(value, interrupts),
+            SCY_REGISTER => self.set_scy(value),
+            SCX_REGISTER => self.set_scx(value),
+            LY_REGISTER => self.set_ly(value),
+            LYC_REGISTER => self.set_lyc(value, interrupts),
+            BG_PALETTE => self.set_bg_palette(value),
+            OB_PALETTE_0 => self.set_oam_palette_0(value),
+            OB_PALETTE_1 => self.set_oam_palette_1(value),
+            WY_REGISTER => self.set_window_y(value),
+            WX_REGISTER => self.set_window_x(value),
+            CGB_VRAM_BANK_REGISTER => self.set_vram_bank(value),
+            CGB_BACKGROUND_COLOR_INDEX => self.set_bg_color_palette_index(value),
+            CGB_BACKGROUND_PALETTE_DATA => self.set_colour_bg_palette_data(value),
+            CGB_SPRITE_COLOR_INDEX => self.set_sprite_color_palette_index(value),
+            CGB_OBJECT_PALETTE_DATA => self.set_colour_obj_palette_data(value),
+            CGB_OBJECT_PRIORITY_MODE => self.set_object_priority(value),
+            // Ignore writes if they're not valid
+            _ => { },
+        }
+    }
+
+
+    /// Can always access vram if PPU is disabled (then `Mode` == `Hblank`, so allowed).
+    /// However, during `LcdTransfer` it's not allowed, nor is it allowed
+    /// the cycle before changing to `LcdTransfer` (while still in OamTransfer).
+    /// TODO: Add cycle check
+    #[inline]
+    fn can_access_vram(&self) -> bool {
+        self.lcd_status.mode_flag() != LcdTransfer
+    }
+
+    /// Check if the OAM is currently accessible, only possible during `Hblank` and `Vblank`,
+    /// or when the PPU is off.
+    ///
+    /// Will also block on the first cycle of every scanline. TODO: Add cycle check.
+    #[inline]
+    fn can_access_oam(&self) -> bool {
+        let mode = self.lcd_status.mode_flag();
+        mode != OamSearch && mode != LcdTransfer && !self.oam_transfer_ongoing
+    }
+
     pub fn get_current_mode(&self) -> Mode {
         self.lcd_status.mode_flag()
     }
 
-    pub fn get_tile_byte(&self, address: u16) -> u8 {
+    fn get_tile_byte(&self, address: u16) -> u8 {
         let (tile_address, byte_address) = get_tile_address(address);
-        //TODO: Optimise?
         let offset = 384 * self.tile_bank_currently_used as usize;
 
         self.tiles[offset + tile_address].data[byte_address]
     }
 
-    pub fn set_tile_byte(&mut self, address: u16, value: u8) {
+    fn set_tile_byte(&mut self, address: u16, value: u8) {
         let (tile_address, byte_address) = get_tile_address(address);
         let offset = 384 * self.tile_bank_currently_used as usize;
 
         self.tiles[offset + tile_address].update_pixel_data(byte_address, value);
     }
 
-    pub fn get_tilemap_byte(&self, address: u16) -> u8 {
+    fn get_tilemap_byte(&self, address: u16) -> u8 {
         match address {
             TILEMAP_9800_START..=TILEMAP_9800_END => {
                 if self.tile_bank_currently_used == 0 {
@@ -48,7 +122,7 @@ impl PPU {
         }
     }
 
-    pub fn set_tilemap_byte(&mut self, address: u16, value: u8) {
+    fn set_tilemap_byte(&mut self, address: u16, value: u8) {
         match address {
             TILEMAP_9800_START..=TILEMAP_9800_END => {
                 if self.tile_bank_currently_used == 0 {
@@ -70,34 +144,16 @@ impl PPU {
         }
     }
 
-    pub fn get_oam_byte(&self, address: u16) -> u8 {
-        if self.lcd_status.mode_flag() != OamSearch
-            && self.lcd_status.mode_flag() != LcdTransfer
-            && !self.oam_transfer_ongoing
-        {
-            let relative_address = (address - OAM_ATTRIBUTE_START) / 4;
+    fn get_oam_byte(&self, address: u16) -> u8 {
+        let relative_address = (address - OAM_ATTRIBUTE_START) / 4;
 
-            self.oam[relative_address as usize].get_byte((address % 4) as u8)
-        } else {
-            log::info!(
-                "Attempted read of blocked OAM (0x{:4X}), value: (0x{:2X}), transfer ongoing: {}",
-                address,
-                self.oam[((address - OAM_ATTRIBUTE_START) / 4) as usize].get_byte((address % 4) as u8),
-                self.oam_transfer_ongoing
-            );
-            INVALID_READ
-        }
+        self.oam[relative_address as usize].get_byte((address % 4) as u8)
     }
 
-    pub fn set_oam_byte(&mut self, address: u16, value: u8) {
-        if self.lcd_status.mode_flag() != OamSearch
-            && self.lcd_status.mode_flag() != LcdTransfer
-            && !self.oam_transfer_ongoing
-        {
-            let relative_address = (address - OAM_ATTRIBUTE_START) / 4;
+    fn set_oam_byte(&mut self, address: u16, value: u8) {
+        let relative_address = (address - OAM_ATTRIBUTE_START) / 4;
 
-            self.oam[relative_address as usize].set_byte((address % 4) as u8, value);
-        }
+        self.oam[relative_address as usize].set_byte((address % 4) as u8, value);
     }
 
     pub fn get_vram_bank(&self) -> u8 {
@@ -390,6 +446,6 @@ impl PPU {
 /// Get the internal PPU address for a tile from a normal u16 address.
 /// Returns in the format `(tile_addresss, byte_address)`
 fn get_tile_address(address: u16) -> (usize, usize) {
-    let relative_address = address as usize - TILE_BLOCK_0_START as usize;
+    let relative_address = (address - TILE_BLOCK_0_START) as usize;
     (relative_address / 16, relative_address % 16)
 }

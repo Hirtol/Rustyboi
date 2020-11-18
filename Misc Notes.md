@@ -18,7 +18,7 @@ whether LY == WY. As soon as that has happened *once* in the frame, the window w
 This can then only be disabled by toggling the window enable bit in LCD Control.
 Apparently Pokemon Crystal relies on this behaviour, a good test for this behaviour can be found [here](https://github.com/Powerlated/TurtleTests/releases/tag/v1.0)
 * For some obscure PPU bugs for the DMG [this](http://www.devrs.com/gb/files/faqs.html#GBBugs) is a pretty good resource.
-
+* For behaviour when it comes to sprite priority and 0xFF4C and 0xFF6C refer to: [mattcurie's video](https://www.youtube.com/watch?v=ZaXHkUwLh5U)
 
 ## Joypad
 * Games pretty much never use the Joypad interrupt. 
