@@ -9,6 +9,7 @@ use crate::scheduler::EventType::{DMATransferComplete, HBLANK, VBLANK};
 use super::*;
 
 impl PPU {
+    #[inline]
     pub fn read_vram(&self, address: u16) -> u8 {
         match address {
             TILE_BLOCK_0_START..=TILE_BLOCK_2_END if self.can_access_vram() => self.get_tile_byte(address),
@@ -36,6 +37,7 @@ impl PPU {
         }
     }
 
+    #[inline]
     pub fn write_vram(&mut self, address: u16, value: u8, scheduler: &mut Scheduler, interrupts: &mut Interrupts) {
         match address {
             TILE_BLOCK_0_START..=TILE_BLOCK_2_END if self.can_access_vram() => self.set_tile_byte(address, value),
