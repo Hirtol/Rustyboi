@@ -140,6 +140,7 @@ pub struct PPU {
     oam_transfer_ongoing: bool,
     /// (false=OAM Priority, true=Coordinate Priority)
     cgb_object_priority: bool,
+    stat_irq_triggered: bool,
 }
 
 impl PPU {
@@ -182,6 +183,7 @@ impl PPU {
             window_triggered: false,
             oam_transfer_ongoing: false,
             cgb_object_priority: true,
+            stat_irq_triggered: false
         }
     }
 
@@ -194,12 +196,10 @@ impl PPU {
 
         self.lcd_status.set_mode_flag(Mode::OamSearch);
         // OAM Interrupt
-        if self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT) {
-            interrupts.insert_interrupt(InterruptFlags::LCD);
-        }
+        self.request_stat_interrupt(interrupts);
     }
 
-    pub fn lcd_transfer(&mut self, selected_mode: EmulatorMode) {
+    pub fn lcd_transfer(&mut self, selected_mode: EmulatorMode, interrupts: &mut Interrupts) {
         // Drawing (Mode 3)
         self.lcd_status.set_mode_flag(LcdTransfer);
 
@@ -214,9 +214,7 @@ impl PPU {
     pub fn hblank(&mut self, interrupts: &mut Interrupts) {
         self.lcd_status.set_mode_flag(HBlank);
 
-        if self.lcd_status.contains(LcdStatus::MODE_0_H_INTERRUPT) {
-            interrupts.insert_interrupt(InterruptFlags::LCD);
-        }
+        self.request_stat_interrupt(interrupts);
     }
 
     pub fn vblank(&mut self, interrupts: &mut Interrupts) {
@@ -228,10 +226,8 @@ impl PPU {
 
         self.window_counter = 0;
         self.window_triggered = false;
-
-        if self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT) {
-            interrupts.insert_interrupt(InterruptFlags::LCD);
-        }
+        // Check for Vblank flag in LCD Stat
+        self.request_stat_interrupt(interrupts);
 
         interrupts.insert_interrupt(InterruptFlags::VBLANK);
     }
@@ -545,15 +541,8 @@ impl PPU {
     }
 
     fn ly_lyc_compare(&mut self, interrupts: &mut Interrupts) {
-        if self.current_y == self.lyc_compare {
-            self.lcd_status.set(LcdStatus::COINCIDENCE_FLAG, true);
-            if self.lcd_status.contains(LcdStatus::COINCIDENCE_INTERRUPT) {
-                interrupts.insert_interrupt(InterruptFlags::LCD);
-            }
-        } else {
-            //TODO: Verify if this is correct.
-            self.lcd_status.set(LcdStatus::COINCIDENCE_FLAG, false);
-        }
+        self.lcd_status.set(LcdStatus::COINCIDENCE_FLAG, self.current_y == self.lyc_compare);
+        self.request_stat_interrupt(interrupts);
     }
 
     pub fn frame_buffer(&self) -> &[RGB; FRAMEBUFFER_SIZE] {

@@ -235,6 +235,7 @@ impl PPU {
 
     pub fn turn_off_lcd(&mut self, scheduler: &mut Scheduler) {
         log::debug!("Turning off LCD");
+        self.stat_irq_triggered = false;
         self.current_y = 0;
         self.window_counter = 0;
         self.lcd_status.set_mode_flag(Mode::HBlank);
@@ -257,16 +258,12 @@ impl PPU {
     fn set_lcd_status(&mut self, value: u8, interrupts: &mut Interrupts) {
         // Mask the 3 lower bits, which are read only and must therefore be preserved.
         let read_only_bits = self.lcd_status.bits() & 0x7;
-        // For Stat IRQ blocking, TODO: note: currently not actually working (stat irq blocking that is)
-        let none = self.count_currently_true_stat_interrupts() == 0;
         // Mask bit 3..=6 in case a game tries to write to the three lower bits as well.
         self.lcd_status = LcdStatus::from_bits_truncate(0x80 | (value & 0x78) | read_only_bits);
 
         // If we're in a mode where the interrupt should occur we need to fire those interrupts.
         // So long as there were no previous interrupts triggered.
-        if none {
-            self.check_all_interrupts(interrupts);
-        }
+        self.request_stat_interrupt(interrupts);
     }
 
     pub fn update_display_colours(&mut self, bg_palette: DisplayColour, sp0_palette: DisplayColour, sp1_palette: DisplayColour, emu_mode: EmulatorMode) {
@@ -293,39 +290,30 @@ impl PPU {
         self.oam_palette_1 = Palette::new(value, DisplayColour::from(self.cgb_sprite_palette[1].rgb()))
     }
 
-    /// Checks all possible LCD STAT interrupts, and fires them
-    /// if available.
-    fn check_all_interrupts(&mut self, interrupts: &mut Interrupts) {
-        self.ly_lyc_compare(interrupts);
+    /// Checks which interrupt(s) should fire, and if there are any, check for a rising
+    /// edge for the actual LCD Stat interrupt.
+    pub fn request_stat_interrupt(&mut self, interrupts: &mut Interrupts) {
+        if !self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
+            return;
+        }
 
-        if self.lcd_status.mode_flag() == VBlank && self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT) {
-            interrupts.insert_interrupt(InterruptFlags::LCD);
-        } else if self.lcd_status.mode_flag() == OamSearch && self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT)
-        {
-            interrupts.insert_interrupt(InterruptFlags::LCD);
-        } else if self.lcd_status.mode_flag() == HBlank && self.lcd_status.contains(LcdStatus::MODE_0_H_INTERRUPT) {
-            interrupts.insert_interrupt(InterruptFlags::LCD);
-        }
-    }
+        let old_stat_irq = self.stat_irq_triggered;
 
-    /// Returns the amount of interrupts (mode 0,1,2, ly=lc) set for LCD Stat
-    pub(crate) fn count_currently_true_stat_interrupts(&self) -> u8 {
-        let mut count = 0;
+        self.stat_irq_triggered = match self.get_current_mode() {
+            HBlank => self.lcd_status.contains(LcdStatus::MODE_0_H_INTERRUPT),
+            VBlank => self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT),
+            OamSearch => self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT),
+            _ => false,
+        };
 
-        if self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT) && self.lcd_status.mode_flag() == VBlank {
-            count += 1;
-        }
-        if self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT) && self.lcd_status.mode_flag() == OamSearch {
-            count += 1;
-        }
-        if self.lcd_status.contains(LcdStatus::MODE_0_H_INTERRUPT) && self.lcd_status.mode_flag() == HBlank {
-            count += 1;
-        }
+        // If Ly=Lyc we want to reactivate this interrupt.
         if self.lcd_status.contains(LcdStatus::COINCIDENCE_INTERRUPT) && self.current_y == self.lyc_compare {
-            count += 1;
+            self.stat_irq_triggered = true;
         }
-
-        count
+        // Only on a rising edge do we want to trigger the LCD interrupts.
+        if !old_stat_irq && self.stat_irq_triggered {
+            interrupts.insert_interrupt(InterruptFlags::LCD);
+        }
     }
 }
 
