@@ -14,22 +14,22 @@ impl PPU {
             TILE_BLOCK_0_START..=TILE_BLOCK_2_END if self.can_access_vram() => self.get_tile_byte(address),
             TILEMAP_9800_START..=TILEMAP_9C00_END if self.can_access_vram() => self.get_tilemap_byte(address),
             OAM_ATTRIBUTE_START..=OAM_ATTRIBUTE_END if self.can_access_oam() => self.get_oam_byte(address),
-            // I/O Registers
-            LCD_CONTROL_REGISTER => self.get_lcd_control(),
-            LCD_STATUS_REGISTER => self.get_lcd_status(),
-            SCY_REGISTER => self.get_scy(),
-            SCX_REGISTER => self.get_scx(),
-            LY_REGISTER => self.get_ly(),
-            LYC_REGISTER => self.get_lyc(),
-            BG_PALETTE => self.get_bg_palette(),
-            OB_PALETTE_0 => self.get_oam_palette_0(),
-            OB_PALETTE_1 => self.get_oam_palette_1(),
-            WY_REGISTER => self.get_window_y(),
-            WX_REGISTER => self.get_window_x(),
-            CGB_VRAM_BANK_REGISTER => self.get_vram_bank(),
-            CGB_BACKGROUND_COLOR_INDEX => self.get_bg_color_palette_index(),
+            // *** I/O Registers ***
+            LCD_CONTROL_REGISTER => self.lcd_control.bits(),
+            LCD_STATUS_REGISTER => 0x80 | self.lcd_status.bits(), // Bit 7 of LCD stat is always 1
+            SCY_REGISTER => self.scroll_y,
+            SCX_REGISTER => self.scroll_x,
+            LY_REGISTER => self.current_y,
+            LYC_REGISTER => self.lyc_compare,
+            BG_PALETTE => self.bg_window_palette.into(),
+            OB_PALETTE_0 => self.oam_palette_0.into(),
+            OB_PALETTE_1 => self.oam_palette_1.into(),
+            WY_REGISTER => self.window_y,
+            WX_REGISTER => self.window_x,
+            CGB_VRAM_BANK_REGISTER => 0xFE | self.tile_bank_currently_used,
+            CGB_BACKGROUND_COLOR_INDEX => self.cgb_bg_palette_ind.get_value(),
             CGB_BACKGROUND_PALETTE_DATA if self.can_access_vram() => self.get_cgb_bg_palette_data(),
-            CGB_SPRITE_COLOR_INDEX => self.get_sprite_color_palette_index(),
+            CGB_SPRITE_COLOR_INDEX => self.cgb_sprite_palette_ind.get_value(),
             CGB_OBJECT_PALETTE_DATA if self.can_access_vram() => self.get_cgb_obj_palette_data(),
             CGB_OBJECT_PRIORITY_MODE => self.get_object_priority(),
             _ => INVALID_READ,
@@ -41,22 +41,22 @@ impl PPU {
             TILE_BLOCK_0_START..=TILE_BLOCK_2_END if self.can_access_vram() => self.set_tile_byte(address, value),
             TILEMAP_9800_START..=TILEMAP_9C00_END if self.can_access_vram() => self.set_tilemap_byte(address, value),
             OAM_ATTRIBUTE_START..=OAM_ATTRIBUTE_END if self.can_access_oam() => self.set_oam_byte(address, value),
-            // I/O Registers
+            // *** I/O Registers ***
             LCD_CONTROL_REGISTER => self.set_lcd_control(value, scheduler, interrupts),
             LCD_STATUS_REGISTER => self.set_lcd_status(value, interrupts),
-            SCY_REGISTER => self.set_scy(value),
-            SCX_REGISTER => self.set_scx(value),
-            LY_REGISTER => self.set_ly(value),
-            LYC_REGISTER => self.set_lyc(value, interrupts),
+            SCY_REGISTER => self.scroll_y = value,
+            SCX_REGISTER => self.scroll_x = value,
+            LY_REGISTER => log::debug!("ROM tried to write to LY with value: {}", value),
+            LYC_REGISTER => self.lyc_compare = value,
             BG_PALETTE => self.set_bg_palette(value),
             OB_PALETTE_0 => self.set_oam_palette_0(value),
             OB_PALETTE_1 => self.set_oam_palette_1(value),
-            WY_REGISTER => self.set_window_y(value),
-            WX_REGISTER => self.set_window_x(value),
-            CGB_VRAM_BANK_REGISTER => self.set_vram_bank(value),
-            CGB_BACKGROUND_COLOR_INDEX => self.set_bg_color_palette_index(value),
+            WY_REGISTER => self.window_y = value,
+            WX_REGISTER => self.window_x = value,
+            CGB_VRAM_BANK_REGISTER => self.tile_bank_currently_used = value & 0x1,
+            CGB_BACKGROUND_COLOR_INDEX => self.cgb_bg_palette_ind.set_value(value),
             CGB_BACKGROUND_PALETTE_DATA if self.can_access_vram() => self.set_colour_bg_palette_data(value),
-            CGB_SPRITE_COLOR_INDEX => self.set_sprite_color_palette_index(value),
+            CGB_SPRITE_COLOR_INDEX => self.cgb_sprite_palette_ind.set_value(value),
             CGB_OBJECT_PALETTE_DATA if self.can_access_vram() => self.set_colour_obj_palette_data(value),
             CGB_OBJECT_PRIORITY_MODE => self.set_object_priority(value),
             // Ignore writes if they're not valid
@@ -156,55 +156,7 @@ impl PPU {
         self.oam[relative_address as usize].set_byte((address % 4) as u8, value);
     }
 
-    pub fn get_vram_bank(&self) -> u8 {
-        0xFE | self.tile_bank_currently_used
-    }
-
-    pub fn get_lcd_control(&self) -> u8 {
-        self.lcd_control.bits()
-    }
-
-    pub fn get_lcd_status(&self) -> u8 {
-        self.lcd_status.bits()
-    }
-
-    pub fn get_scy(&self) -> u8 {
-        self.scroll_y
-    }
-
-    pub fn get_scx(&self) -> u8 {
-        self.scroll_x
-    }
-
-    pub fn get_ly(&self) -> u8 {
-        self.current_y
-    }
-
-    pub fn get_lyc(&self) -> u8 {
-        self.compare_line
-    }
-
-    pub fn get_bg_palette(&self) -> u8 {
-        self.bg_window_palette.into()
-    }
-
-    pub fn get_oam_palette_0(&self) -> u8 {
-        self.oam_palette_0.into()
-    }
-
-    pub fn get_oam_palette_1(&self) -> u8 {
-        self.oam_palette_1.into()
-    }
-
-    pub fn get_window_y(&self) -> u8 {
-        self.window_y
-    }
-
-    pub fn get_window_x(&self) -> u8 {
-        self.window_x
-    }
-
-    pub fn get_object_priority(&self) -> u8 {
+    fn get_object_priority(&self) -> u8 {
         if self.cgb_object_priority {
             0x1
         } else {
@@ -212,15 +164,7 @@ impl PPU {
         }
     }
 
-    pub fn get_bg_color_palette_index(&self) -> u8 {
-        self.cgb_bg_palette_ind.get_value()
-    }
-
-    pub fn get_sprite_color_palette_index(&self) -> u8 {
-        self.cgb_sprite_palette_ind.get_value()
-    }
-
-    pub fn get_cgb_bg_palette_data(&self) -> u8 {
+    fn get_cgb_bg_palette_data(&self) -> u8 {
         let addr = self.cgb_bg_palette_ind.selected_address;
 
         if addr % 2 == 0 {
@@ -230,7 +174,7 @@ impl PPU {
         }
     }
 
-    pub fn get_cgb_obj_palette_data(&self) -> u8 {
+    fn get_cgb_obj_palette_data(&self) -> u8 {
         let addr = self.cgb_sprite_palette_ind.selected_address;
 
         if addr % 2 == 0 {
@@ -240,12 +184,7 @@ impl PPU {
         }
     }
 
-    pub fn set_vram_bank(&mut self, value: u8) {
-        self.tile_bank_currently_used = value & 0x1;
-        //log::warn!("Switching vram bank to: {:#X?}", self.tile_bank_currently_used);
-    }
-
-    pub fn set_lcd_control(&mut self, value: u8, scheduler: &mut Scheduler, interrupts: &mut Interrupts) {
+    fn set_lcd_control(&mut self, value: u8, scheduler: &mut Scheduler, interrupts: &mut Interrupts) {
         let new_control = LcdControl::from_bits_truncate(value);
 
         // If we turn OFF the display
@@ -265,6 +204,7 @@ impl PPU {
         self.current_y = 0;
         self.window_counter = 0;
         self.lcd_status.set_mode_flag(Mode::HBlank);
+        self.lcd_status.set(LcdStatus::COINCIDENCE_FLAG, false);
         // Turn PPU off by removing all scheduled events. TODO: Find cleaner way to do this.
         scheduler.remove_event_type(EventType::HBLANK);
         scheduler.remove_event_type(EventType::VblankWait);
@@ -280,7 +220,7 @@ impl PPU {
         scheduler.push_relative(EventType::OamSearch, 204);
     }
 
-    pub fn set_lcd_status(&mut self, value: u8, interrupts: &mut Interrupts) {
+    fn set_lcd_status(&mut self, value: u8, interrupts: &mut Interrupts) {
         // Mask the 3 lower bits, which are read only and must therefore be preserved.
         let read_only_bits = self.lcd_status.bits() & 0x7;
         // For Stat IRQ blocking, TODO: note: currently not actually working (stat irq blocking that is)
@@ -295,28 +235,6 @@ impl PPU {
         }
     }
 
-    pub fn set_scy(&mut self, value: u8) {
-        self.scroll_y = value
-    }
-
-    pub fn set_scx(&mut self, value: u8) {
-        self.scroll_x = value
-    }
-
-    pub fn set_ly(&mut self, value: u8) {
-        //log::debug!("Attempted write to LY (0xFF44) when this register is read only!");
-    }
-
-    pub fn set_lyc(&mut self, value: u8, interrupts: &mut Interrupts) {
-        self.compare_line = value;
-        // Only update the LYC=LY STAT if the PPU is on
-        // TODO: Figure out why this causes a regression in Prehistorik Man, even though it helps pass part of stat_lyc_onoff.gb
-        // if self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
-        //     self.ly_lyc_compare(interrupts);
-        //     log::warn!("Read: {:08b}", self.lcd_status.bits());
-        // }
-    }
-
     pub fn update_display_colours(&mut self, bg_palette: DisplayColour, sp0_palette: DisplayColour, sp1_palette: DisplayColour, emu_mode: EmulatorMode) {
         // We don't want to overwrite CGB registers if we're actually running a CGB game.
         if emu_mode.is_dmg() {
@@ -329,36 +247,20 @@ impl PPU {
         }
     }
 
-    pub fn set_bg_palette(&mut self, value: u8) {
+    fn set_bg_palette(&mut self, value: u8) {
         self.bg_window_palette = Palette::new(value, DisplayColour::from(self.cgb_bg_palette[0].rgb()))
     }
 
-    pub fn set_oam_palette_0(&mut self, value: u8) {
+    fn set_oam_palette_0(&mut self, value: u8) {
         self.oam_palette_0 = Palette::new(value, DisplayColour::from(self.cgb_sprite_palette[0].rgb()))
     }
 
-    pub fn set_oam_palette_1(&mut self, value: u8) {
+    fn set_oam_palette_1(&mut self, value: u8) {
         self.oam_palette_1 = Palette::new(value, DisplayColour::from(self.cgb_sprite_palette[1].rgb()))
     }
 
-    pub fn set_window_y(&mut self, value: u8) {
-        self.window_y = value
-    }
-
-    pub fn set_window_x(&mut self, value: u8) {
-        self.window_x = value
-    }
-
-    pub fn set_object_priority(&mut self, value: u8) {
+    fn set_object_priority(&mut self, value: u8) {
         self.cgb_object_priority = (value & 0x1) == 1
-    }
-
-    pub fn set_bg_color_palette_index(&mut self, value: u8) {
-        self.cgb_bg_palette_ind.set_value(value);
-    }
-
-    pub fn set_sprite_color_palette_index(&mut self, value: u8) {
-        self.cgb_sprite_palette_ind.set_value(value);
     }
 
     pub fn set_colour_bg_palette_data(&mut self, value: u8) {
@@ -417,7 +319,7 @@ impl PPU {
         if self.lcd_status.contains(LcdStatus::MODE_0_H_INTERRUPT) && self.lcd_status.mode_flag() == HBlank {
             count += 1;
         }
-        if self.lcd_status.contains(LcdStatus::COINCIDENCE_INTERRUPT) && self.current_y == self.compare_line {
+        if self.lcd_status.contains(LcdStatus::COINCIDENCE_INTERRUPT) && self.current_y == self.lyc_compare {
             count += 1;
         }
 

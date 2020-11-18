@@ -127,7 +127,7 @@ pub struct PPU {
     cgb_sprite_palette: [CgbPalette; 8],
 
     pub current_y: u8,
-    compare_line: u8,
+    lyc_compare: u8,
 
     scroll_x: u8,
     scroll_y: u8,
@@ -164,7 +164,7 @@ impl PPU {
             cgb_9c00_tile_map: CgbTileMap::new(),
             oam: [SpriteAttribute::default(); 40],
             lcd_control: LcdControl::from_bits_truncate(0b1001_0011),
-            lcd_status: LcdStatus::from_bits_truncate(0b0000_0001),
+            lcd_status: LcdStatus::from_bits_truncate(0b1000_0001),
             bg_window_palette: Palette::new(0b1110_0100, DisplayColour::from(cgb_bg_palette[0].rgb())),
             oam_palette_0: Palette::new(0b1110_0100, DisplayColour::from(cgb_sprite_palette[0].rgb())),
             oam_palette_1: Palette::new(0b1110_0100, DisplayColour::from(cgb_sprite_palette[1].rgb())),
@@ -172,7 +172,7 @@ impl PPU {
             cgb_sprite_palette_ind: CgbPaletteIndex::default(),
             cgb_bg_palette,
             cgb_sprite_palette,
-            compare_line: 0,
+            lyc_compare: 0,
             current_y: 0,
             scroll_x: 0,
             scroll_y: 0,
@@ -545,9 +545,7 @@ impl PPU {
     }
 
     fn ly_lyc_compare(&mut self, interrupts: &mut Interrupts) {
-        // Shamelessly ripped from GBE-Plus, since I couldn't figure out from the docs
-        // what we were supposed to do with this interrupt.
-        if self.current_y == self.compare_line {
+        if self.current_y == self.lyc_compare {
             self.lcd_status.set(LcdStatus::COINCIDENCE_FLAG, true);
             if self.lcd_status.contains(LcdStatus::COINCIDENCE_INTERRUPT) {
                 interrupts.insert_interrupt(InterruptFlags::LCD);
