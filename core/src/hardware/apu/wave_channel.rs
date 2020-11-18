@@ -214,7 +214,7 @@ impl WaveformChannel {
         self.dac_power = false;
         self.volume_load = 0;
         self.volume = 0;
-        self.timer_load_value = 4096;
+        self.timer_load_value = 0;
         self.timer = self.timer_load_value;
         self.frequency = 0;
     }

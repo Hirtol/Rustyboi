@@ -216,7 +216,7 @@ impl APU {
     pub fn write_register(&mut self, address: u16, value: u8, scheduler: &mut Scheduler, mode: EmulatorMode, speed_multiplier: u64) {
         self.synchronise(scheduler, speed_multiplier);
         #[cfg(feature = "apu-logging")]
-        log::trace!("APU Write on address: {:#X} with value: 0x{:#X}", address, value);
+        log::trace!("APU Write on address: {:#X} with value: {:#X}", address, value);
         let address = address & 0xFF;
 
         // It's not possible to access any registers beside 0x26 while the sound is disabled.
@@ -258,6 +258,7 @@ impl APU {
                     // After a re-enable of the APU the next frame sequence tick will once again
                     // be 8192 t-cycles out
                     self.last_frame_sequence_tick = scheduler.current_time;
+                    self.frame_sequencer_step = 0;
                 }
             }
             0x27..=0x2F => {} // Writes to unused registers are silently ignored.
