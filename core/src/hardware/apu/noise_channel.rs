@@ -1,4 +1,4 @@
-use crate::emulator::EmulatorMode;
+use crate::emulator::GameBoyModel;
 use crate::hardware::apu::channel_features::{EnvelopeFeature, LengthFeature};
 use crate::hardware::apu::{no_length_tick_next_step, test_bit};
 use crate::hardware::mmu::INVALID_READ;
@@ -186,7 +186,7 @@ impl NoiseChannel {
         }
     }
 
-    pub fn reset(&mut self, mode: EmulatorMode) {
+    pub fn reset(&mut self, mode: GameBoyModel) {
         self.length.length_enable = false;
 
         *self = if mode.is_cgb() {

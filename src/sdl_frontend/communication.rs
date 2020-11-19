@@ -1,4 +1,4 @@
-use rustyboi_core::emulator::{Emulator, EmulatorMode};
+use rustyboi_core::emulator::{Emulator, GameBoyModel};
 use rustyboi_core::InputKey;
 use rustyboi_core::hardware::ppu::debugging_features::PaletteDebugInfo;
 use crate::state::DisplayColourConfigurable;
@@ -26,7 +26,7 @@ pub enum EmulatorResponse {
 /// thread.
 #[derive(Debug, Clone, PartialOrd, PartialEq)]
 pub enum DebugMessage {
-    Mode(Option<EmulatorMode>),
+    Mode(Option<GameBoyModel>),
     Palette(Option<PaletteDebugInfo>),
 }
 

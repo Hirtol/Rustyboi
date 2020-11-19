@@ -16,7 +16,7 @@ use std::ffi::{OsStr, OsString};
 use crate::options::AppOptions;
 use blake2::{Blake2s, Digest};
 use image::ImageBuffer;
-use rustyboi_core::emulator::{Emulator, EmulatorMode};
+use rustyboi_core::emulator::{Emulator, GameBoyModel};
 use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
 use std::thread::spawn;
 use std::time::Instant;
@@ -28,7 +28,7 @@ use gumdrop::Options;
 use image::imageops::FilterType;
 use rustyboi_core::hardware::ppu::palette::RGB;
 use std::sync::Arc;
-use rustyboi_core::emulator::EmulatorMode::{DMG, CGB};
+use rustyboi_core::emulator::GameBoyModel::{DMG, CGB};
 
 mod display;
 mod options;
@@ -84,7 +84,7 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn run_test_roms(test_path: impl AsRef<str>, bootrom: impl AsRef<Path>, emulator_mode: EmulatorMode) {
+fn run_test_roms(test_path: impl AsRef<str>, bootrom: impl AsRef<Path>, emulator_mode: GameBoyModel) {
     let boot_file = if bootrom.as_ref().exists() {
         read(bootrom.as_ref()).ok()
     } else {
@@ -100,7 +100,7 @@ fn run_test_roms(test_path: impl AsRef<str>, bootrom: impl AsRef<Path>, emulator
 /// all test roms and running them for ~600 frames, or a custom amount if set via config.
 ///
 /// But it works!
-fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>, emulator_mode: EmulatorMode) {
+fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>, emulator_mode: GameBoyModel) {
     let file_extension = if emulator_mode.is_dmg() { ".gb" } else { ".gbc" };
     let tests = list_files_with_extensions(path.as_ref(), file_extension).unwrap();
     let custom_list = Arc::new(get_custom_list("custom_test_cycles.txt"));

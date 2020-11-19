@@ -3,7 +3,7 @@ use crate::hardware::ppu::palette::{DisplayColour, Palette, RGB};
 use crate::hardware::ppu::PPU;
 use crate::hardware::ppu::tiledata::Tile;
 use bitflags::_core::iter::FromIterator;
-use crate::emulator::EmulatorMode;
+use crate::emulator::GameBoyModel;
 
 impl PPU {
     /// Returns an array of the full 768 tiles rendered next to each other in a
@@ -64,7 +64,7 @@ pub struct PaletteDebugInfo {
 }
 
 impl PaletteDebugInfo {
-    pub fn new(ppu: &PPU, current_mode: EmulatorMode) -> Self {
+    pub fn new(ppu: &PPU, current_mode: GameBoyModel) -> Self {
         let mut bg_palette;
         let mut sprite_palette;
         if current_mode.is_dmg() {

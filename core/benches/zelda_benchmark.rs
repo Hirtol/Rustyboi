@@ -6,7 +6,7 @@ use criterion::measurement::WallTime;
 use criterion_cycles_per_byte::CyclesPerByte;
 
 use rustyboi_core::emulator::Emulator;
-use rustyboi_core::emulator::EmulatorMode::CGB;
+use rustyboi_core::emulator::GameBoyModel::CGB;
 use rustyboi_core::EmulatorOptionsBuilder;
 
 fn emulator_benchmark(c: &mut Criterion) {

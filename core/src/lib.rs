@@ -1,6 +1,6 @@
 pub mod emulator;
 mod scheduler;
-use crate::emulator::EmulatorMode;
+use crate::emulator::GameBoyModel;
 use crate::hardware::ppu::palette::DisplayColour;
 pub use crate::io::joypad::InputKey;
 use std::ops::DerefMut;
@@ -27,7 +27,7 @@ pub trait ExternalRamBacking: DerefMut<Target=[u8]> + Debug {
 pub struct EmulatorOptions {
     pub boot_rom: Option<Vec<u8>>,
     pub saved_ram: Option<Vec<u8>>,
-    pub emulator_mode: EmulatorMode,
+    pub emulator_mode: GameBoyModel,
     pub bg_display_colour: DisplayColour,
     pub sp0_display_colour: DisplayColour,
     pub sp1_display_colour: DisplayColour,
@@ -37,7 +37,7 @@ pub struct EmulatorOptions {
 pub struct EmulatorOptionsBuilder {
     boot_rom: Option<Vec<u8>>,
     saved_ram: Option<Vec<u8>>,
-    emulator_mode: EmulatorMode,
+    emulator_mode: GameBoyModel,
     bg_display_colour: DisplayColour,
     sp0_display_colour: DisplayColour,
     sp1_display_colour: DisplayColour,
@@ -48,7 +48,7 @@ impl EmulatorOptionsBuilder {
         EmulatorOptionsBuilder {
             boot_rom: None,
             saved_ram: None,
-            emulator_mode: EmulatorMode::DMG,
+            emulator_mode: GameBoyModel::DMG,
             bg_display_colour: Default::default(),
             sp0_display_colour: Default::default(),
             sp1_display_colour: Default::default()
@@ -65,7 +65,7 @@ impl EmulatorOptionsBuilder {
         self
     }
 
-    pub fn with_mode(mut self, mode: EmulatorMode) -> Self {
+    pub fn with_mode(mut self, mode: GameBoyModel) -> Self {
         self.emulator_mode = mode;
         self
     }

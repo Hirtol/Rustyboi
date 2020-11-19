@@ -7,8 +7,8 @@ use log::*;
 
 use hram::Hram;
 
-use crate::emulator::EmulatorMode;
-use crate::emulator::EmulatorMode::DMG;
+use crate::emulator::GameBoyModel;
+use crate::emulator::GameBoyModel::DMG;
 use crate::hardware::apu::{
     APU, APU_MEM_END, APU_MEM_START, FRAME_SEQUENCE_CYCLES, SAMPLE_CYCLES, WAVE_SAMPLE_END, WAVE_SAMPLE_START,
 };
@@ -114,7 +114,7 @@ pub trait MemoryMapper: Debug {
     fn read_byte(&mut self, address: u16) -> u8;
     fn write_byte(&mut self, address: u16, value: u8);
     fn boot_rom_finished(&self) -> bool;
-    fn get_mode(&self) -> EmulatorMode;
+    fn get_mode(&self) -> GameBoyModel;
     /// Returns, if the current ROM has a battery, the contents of the External Ram.
     ///
     /// Should be used for saving functionality.
@@ -133,7 +133,7 @@ pub struct Memory {
     boot_rom: BootRom,
     cartridge: Cartridge,
     pub scheduler: Scheduler,
-    pub emulation_mode: EmulatorMode,
+    pub emulated_model: GameBoyModel,
     pub cgb_data: CgbSpeedData,
     pub hdma: HdmaRegister,
 
@@ -149,15 +149,16 @@ pub struct Memory {
 }
 
 impl Memory {
-    pub fn new(cartridge: &[u8], emu_opts: EmulatorOptions) -> Self {
-        let mut result = Memory {
+    pub fn new(rom_data: &[u8], emu_opts: EmulatorOptions) -> Self {
+        let cartridge = Cartridge::new(rom_data, emu_opts.saved_ram);
+        Memory {
             boot_rom: BootRom::new(emu_opts.boot_rom),
-            cartridge: Cartridge::new(cartridge, emu_opts.saved_ram),
+            ppu: PPU::new(emu_opts.bg_display_colour, emu_opts.sp0_display_colour, emu_opts.sp1_display_colour, cartridge.cartridge_header().cgb_flag),
+            cartridge,
             scheduler: Scheduler::new(),
-            emulation_mode: emu_opts.emulator_mode,
+            emulated_model: emu_opts.emulator_mode,
             cgb_data: CgbSpeedData::new(),
             hdma: HdmaRegister::new(),
-            ppu: PPU::new(emu_opts.bg_display_colour, emu_opts.sp0_display_colour, emu_opts.sp1_display_colour),
             apu: APU::new(),
             hram: Hram::new(),
             wram: Wram::new(),
@@ -165,21 +166,13 @@ impl Memory {
             timers: Default::default(),
             interrupts: Default::default(),
             io_registers: IORegisters::new(),
-        };
-
-        // If we're not doing the CGB bootrom AND the cartridge is not a CGB, we switch to DMG
-        if !result.cartridge.cartridge_header().cgb_flag && result.boot_rom_finished() {
-            info!("Switching to DMG mode!");
-            result.emulation_mode = DMG;
         }
-
-        result
     }
 
     pub fn read_byte(&mut self, address: u16) -> u8 {
         match address {
             0x0000..=0x00FF if !self.boot_rom.is_finished => self.boot_rom.read_byte(address),
-            0x0200..=0x08FF if !self.boot_rom.is_finished && self.emulation_mode.is_cgb() => {
+            0x0200..=0x08FF if !self.boot_rom.is_finished && self.emulated_model.is_cgb() => {
                 self.boot_rom.read_byte(address)
             }
             ROM_BANK_00_START..=ROM_BANK_00_END => self.cartridge.read_0000_3fff(address),
@@ -248,7 +241,7 @@ impl Memory {
             }
             DMA_TRANSFER => self.io_registers.read_byte(address),
             CGB_PREPARE_SWITCH => {
-                if self.emulation_mode.is_cgb() {
+                if self.emulated_model.is_cgb() {
                     self.cgb_data.read_prepare_switch()
                 } else {
                     INVALID_READ
@@ -258,7 +251,7 @@ impl Memory {
             PPU_IO_START..=PPU_IO_END => self.ppu.read_vram(address),
             CGB_HDMA_1 | CGB_HDMA_2 | CGB_HDMA_3 | CGB_HDMA_4 => INVALID_READ,
             CGB_HDMA_5 => {
-                if self.emulation_mode.is_dmg() {
+                if self.emulated_model.is_dmg() {
                     INVALID_READ
                 } else {
                     self.hdma.hdma5()
@@ -288,7 +281,7 @@ impl Memory {
             INTERRUPTS_FLAG => self.interrupts.overwrite_if(value),
             APU_MEM_START..=APU_MEM_END => {
                 self.apu
-                    .write_register(address, value, &mut self.scheduler, self.emulation_mode, self.cgb_data.double_speed as u64)
+                    .write_register(address, value, &mut self.scheduler, self.emulated_model, self.cgb_data.double_speed as u64)
             }
             WAVE_SAMPLE_START..=WAVE_SAMPLE_END => self.apu.write_wave_sample(address, value, &mut self.scheduler, self.cgb_data.double_speed as u64),
             DMA_TRANSFER => self.dma_transfer(value),
@@ -308,11 +301,6 @@ impl Memory {
             }
             0xFF50 if !self.boot_rom.is_finished => {
                 self.boot_rom.is_finished = true;
-                // If the cartridge doesn't support CGB at all we switch to DMG mode.
-                if !self.cartridge.cartridge_header().cgb_flag {
-                    info!("Switching to DMG mode!");
-                    self.emulation_mode = EmulatorMode::DMG;
-                }
                 info!("Finished executing BootRom!");
             }
             CGB_RP => self.io_registers.write_byte(address, value),
@@ -363,7 +351,7 @@ impl Memory {
                         .push_full_event(event.update_self(EventType::LcdTransfer, 80 << self.get_speed_shift()));
                 }
                 EventType::LcdTransfer => {
-                    self.ppu.lcd_transfer(self.emulation_mode, &mut self.interrupts);
+                    self.ppu.lcd_transfer();
                     self.scheduler
                         .push_full_event(event.update_self(EventType::HBLANK, 172 << self.get_speed_shift()));
                 }
@@ -468,8 +456,8 @@ impl MemoryMapper for Memory {
         self.boot_rom.is_finished
     }
 
-    fn get_mode(&self) -> EmulatorMode {
-        self.emulation_mode
+    fn get_mode(&self) -> GameBoyModel {
+        self.emulated_model
     }
 
     fn cartridge(&self) -> Option<&Cartridge> {

@@ -1,5 +1,5 @@
-use crate::emulator::EmulatorMode;
-use crate::emulator::EmulatorMode::DMG;
+use crate::emulator::GameBoyModel;
+use crate::emulator::GameBoyModel::DMG;
 use crate::hardware::apu::APU;
 use crate::hardware::cartridge::Cartridge;
 use crate::hardware::cpu::registers::Registers;
@@ -43,7 +43,7 @@ impl MemoryMapper for TestMemory {
         false
     }
 
-    fn get_mode(&self) -> EmulatorMode {
+    fn get_mode(&self) -> GameBoyModel {
         DMG
     }
 

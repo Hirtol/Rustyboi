@@ -22,24 +22,24 @@ pub const DMG_CLOCK_SPEED: u64 = 4194304;
 ///
 /// If DMG is chosen no CGB features will be used.
 #[derive(Debug, Clone, Copy, PartialOrd, PartialEq)]
-pub enum EmulatorMode {
+pub enum GameBoyModel {
     DMG,
     CGB,
 }
 
-impl Default for EmulatorMode {
+impl Default for GameBoyModel {
     fn default() -> Self {
-        EmulatorMode::DMG
+        GameBoyModel::DMG
     }
 }
 
-impl EmulatorMode {
+impl GameBoyModel {
     pub fn is_dmg(&self) -> bool {
-        *self == EmulatorMode::DMG
+        *self == GameBoyModel::DMG
     }
 
     pub fn is_cgb(&self) -> bool {
-        *self == EmulatorMode::CGB
+        *self == GameBoyModel::CGB
     }
 }
 

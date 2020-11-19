@@ -4,7 +4,7 @@
 //! only running to the cycle it *should* be at when a memory access/vblank occurs to one of the APU
 //! registers.
 
-use crate::emulator::{EmulatorMode, DMG_CLOCK_SPEED};
+use crate::emulator::{GameBoyModel, DMG_CLOCK_SPEED};
 use crate::hardware::apu::noise_channel::NoiseChannel;
 use crate::hardware::apu::square_channel::SquareWaveChannel;
 use crate::hardware::apu::wave_channel::WaveformChannel;
@@ -213,7 +213,7 @@ impl APU {
         }
     }
 
-    pub fn write_register(&mut self, address: u16, value: u8, scheduler: &mut Scheduler, mode: EmulatorMode, speed_multiplier: u64) {
+    pub fn write_register(&mut self, address: u16, value: u8, scheduler: &mut Scheduler, model: GameBoyModel, speed_multiplier: u64) {
         self.synchronise(scheduler, speed_multiplier);
         #[cfg(feature = "apu-logging")]
         log::trace!("APU Write on address: {:#X} with value: {:#X}", address, value);
@@ -224,7 +224,7 @@ impl APU {
         // However in CGB mode this is not possible, and should thus not be allowed.
         if !self.global_sound_enable
             && address != 0x26
-            && (mode.is_cgb() || (mode.is_dmg() && ![0x20, 0x1B].contains(&address)))
+            && (model.is_cgb() || (model.is_dmg() && ![0x20, 0x1B].contains(&address)))
         {
             log::warn!("Tried to write to APU while inaccessible at address: 0x{:02X}", address);
             return;
@@ -253,7 +253,7 @@ impl APU {
                 let previous_enable = self.global_sound_enable;
                 self.global_sound_enable = test_bit(value, 7);
                 if !self.global_sound_enable {
-                    self.reset(scheduler, mode);
+                    self.reset(scheduler, model);
                 } else if !previous_enable {
                     // After a re-enable of the APU the next frame sequence tick will once again
                     // be 8192 t-cycles out
@@ -321,7 +321,7 @@ impl APU {
         self.voice1.tick_sweep();
     }
 
-    fn reset(&mut self, scheduler: &mut Scheduler, mode: EmulatorMode) {
+    fn reset(&mut self, scheduler: &mut Scheduler, mode: GameBoyModel) {
         self.voice1.reset(mode);
         self.voice2.reset(mode);
         self.voice3.reset();

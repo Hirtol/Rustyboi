@@ -1,6 +1,6 @@
 use nanoserde::{DeJson, SerJson};
 use rustyboi_core::hardware::ppu::debugging_features::PaletteDebugInfo;
-use rustyboi_core::emulator::EmulatorMode;
+use rustyboi_core::emulator::GameBoyModel;
 use std::time::{Duration, Instant};
 use crate::rendering::imgui::animate::{FadeAnimation, formulas::Quadratic};
 use imgui::Ui;
@@ -25,7 +25,7 @@ impl GuiState {
 
 #[derive(Default, Debug, Clone)]
 pub struct DebugState {
-    pub current_emu_mode: EmulatorMode,
+    pub current_emu_mode: GameBoyModel,
     pub palette: PaletteDebugInfo,
     pub notification: Notification,
 }

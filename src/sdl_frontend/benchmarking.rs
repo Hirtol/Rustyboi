@@ -4,7 +4,7 @@ use crossbeam::channel::*;
 use crate::rendering::Renderer;
 use rustyboi_core::emulator::Emulator;
 use rustyboi_core::{EmulatorOptionsBuilder, EmulatorOptions};
-use rustyboi_core::emulator::EmulatorMode::CGB;
+use rustyboi_core::emulator::GameBoyModel::CGB;
 use crate::DEFAULT_DISPLAY_COLOURS;
 use std::time::Instant;
 use std::fs::read;

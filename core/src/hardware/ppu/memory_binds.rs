@@ -263,12 +263,10 @@ impl PPU {
         // Mask bit 3..=6 in case a game tries to write to the three lower bits as well.
         self.lcd_status = LcdStatus::from_bits_truncate(0x80 | (value & 0x78) | read_only_bits);
 
-        // If we're in a mode where the interrupt should occur we need to fire those interrupts.
-        // So long as there were no previous interrupts triggered.
         self.request_stat_interrupt(interrupts);
     }
 
-    pub fn update_display_colours(&mut self, bg_palette: DisplayColour, sp0_palette: DisplayColour, sp1_palette: DisplayColour, emu_mode: EmulatorMode) {
+    pub fn update_display_colours(&mut self, bg_palette: DisplayColour, sp0_palette: DisplayColour, sp1_palette: DisplayColour, emu_mode: GameBoyModel) {
         // We don't want to overwrite CGB registers if we're actually running a CGB game.
         if emu_mode.is_dmg() {
             let (cgb_bg_palette, cgb_sprite_palette) = initialise_cgb_palette(bg_palette, sp0_palette, sp1_palette);

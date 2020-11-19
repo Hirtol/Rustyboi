@@ -1,4 +1,4 @@
-use crate::emulator::{Emulator, EmulatorMode};
+use crate::emulator::{Emulator, GameBoyModel};
 use crate::hardware::ppu::debugging_features::PaletteDebugInfo;
 use crate::hardware::ppu::tiledata::SpriteAttribute;
 use crate::hardware::ppu::palette::RGB;
@@ -18,7 +18,7 @@ impl Emulator {
         &self.cpu.mmu.ppu.oam
     }
 
-    pub fn emulator_mode(&self) -> EmulatorMode {
-        self.cpu.mmu.emulation_mode
+    pub fn emulator_mode(&self) -> GameBoyModel {
+        self.cpu.mmu.emulated_model
     }
 }

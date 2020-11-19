@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use num_integer::Integer;
 
-use crate::emulator::{EmulatorMode, CYCLES_PER_FRAME};
+use crate::emulator::{GameBoyModel, CYCLES_PER_FRAME};
 use crate::hardware::ppu::cgb_vram::{CgbPalette, CgbPaletteIndex, CgbTileMap};
 use crate::hardware::ppu::palette::{DisplayColour, Palette, RGB};
 use crate::hardware::ppu::register_flags::*;
@@ -141,6 +141,8 @@ pub struct PPU {
     /// (false=OAM Priority, true=Coordinate Priority)
     cgb_object_priority: bool,
     stat_irq_triggered: bool,
+    /// Whether to use the CGB scanline renderer
+    cgb_rendering: bool,
 }
 
 impl PPU {
@@ -151,7 +153,7 @@ impl PPU {
     /// Otherwise, the PPU will use CGB registers. In addition we proceed to load
     /// `DisplayColour` into the CGB palette registries (BG0, OBJ0, OBJ1) and we'll
     /// *always* use those three registries as our source of `RGB` colour (Both in `DMG` and `CGB`).
-    pub fn new(bg_display_colour: DisplayColour, sp0_display: DisplayColour, sp1_display: DisplayColour) -> Self {
+    pub fn new(bg_display_colour: DisplayColour, sp0_display: DisplayColour, sp1_display: DisplayColour, cgb_rendering: bool) -> Self {
         let (cgb_bg_palette, cgb_sprite_palette) = initialise_cgb_palette(bg_display_colour, sp0_display, sp1_display);
         PPU {
             frame_buffer: [RGB::default(); FRAMEBUFFER_SIZE],
@@ -183,7 +185,8 @@ impl PPU {
             window_triggered: false,
             oam_transfer_ongoing: false,
             cgb_object_priority: true,
-            stat_irq_triggered: false
+            stat_irq_triggered: false,
+            cgb_rendering,
         }
     }
 
@@ -199,12 +202,12 @@ impl PPU {
         self.request_stat_interrupt(interrupts);
     }
 
-    pub fn lcd_transfer(&mut self, selected_mode: EmulatorMode, interrupts: &mut Interrupts) {
+    pub fn lcd_transfer(&mut self) {
         // Drawing (Mode 3)
         self.lcd_status.set_mode_flag(LcdTransfer);
 
         // Draw our actual line once we enter Drawing mode.
-        if selected_mode.is_cgb() {
+        if self.cgb_rendering {
             self.draw_cgb_scanline();
         } else {
             self.draw_scanline();
