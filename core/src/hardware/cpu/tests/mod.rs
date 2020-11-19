@@ -91,7 +91,7 @@ impl<T: MemoryMapper> CPU<T> {
 fn initial_cpu() -> CPU<TestMemory> {
     let mut cpu = CPU::new(TestMemory {
         mem: vec![0; 0x10000],
-        ppu: PPU::new(DisplayColour::default(), DisplayColour::default(), DisplayColour::default()),
+        ppu: PPU::new(DisplayColour::default(), DisplayColour::default(), DisplayColour::default(), Default::default(), Default::default()),
         apu: APU::new(),
         timers: Default::default(),
         interrupts: Default::default(),

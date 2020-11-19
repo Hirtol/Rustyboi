@@ -301,8 +301,8 @@ impl PPU {
 
         self.stat_irq_triggered = match self.get_current_mode() {
             HBlank => self.lcd_status.contains(LcdStatus::MODE_0_H_INTERRUPT),
-            VBlank => self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT),
-            //TODO: Enable for passing vblank_stat_intr in DMG mode: VBlank => self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT) || self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT),
+            VBlank if self.emulated_model.is_dmg() => self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT) || self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT),
+            VBlank if self.emulated_model.is_cgb() => self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT),
             OamSearch => self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT),
             _ => false,
         };

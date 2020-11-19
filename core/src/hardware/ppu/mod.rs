@@ -143,6 +143,7 @@ pub struct PPU {
     stat_irq_triggered: bool,
     /// Whether to use the CGB scanline renderer
     cgb_rendering: bool,
+    emulated_model: GameBoyModel,
 }
 
 impl PPU {
@@ -153,7 +154,7 @@ impl PPU {
     /// Otherwise, the PPU will use CGB registers. In addition we proceed to load
     /// `DisplayColour` into the CGB palette registries (BG0, OBJ0, OBJ1) and we'll
     /// *always* use those three registries as our source of `RGB` colour (Both in `DMG` and `CGB`).
-    pub fn new(bg_display_colour: DisplayColour, sp0_display: DisplayColour, sp1_display: DisplayColour, cgb_rendering: bool) -> Self {
+    pub fn new(bg_display_colour: DisplayColour, sp0_display: DisplayColour, sp1_display: DisplayColour, cgb_rendering: bool, gb_model: GameBoyModel) -> Self {
         let (cgb_bg_palette, cgb_sprite_palette) = initialise_cgb_palette(bg_display_colour, sp0_display, sp1_display);
         PPU {
             frame_buffer: [RGB::default(); FRAMEBUFFER_SIZE],
@@ -187,6 +188,7 @@ impl PPU {
             cgb_object_priority: true,
             stat_irq_triggered: false,
             cgb_rendering,
+            emulated_model: gb_model
         }
     }
 

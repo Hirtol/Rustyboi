@@ -153,7 +153,7 @@ impl Memory {
         let cartridge = Cartridge::new(rom_data, emu_opts.saved_ram);
         Memory {
             boot_rom: BootRom::new(emu_opts.boot_rom),
-            ppu: PPU::new(emu_opts.bg_display_colour, emu_opts.sp0_display_colour, emu_opts.sp1_display_colour, cartridge.cartridge_header().cgb_flag),
+            ppu: PPU::new(emu_opts.bg_display_colour, emu_opts.sp0_display_colour, emu_opts.sp1_display_colour, cartridge.cartridge_header().cgb_flag, emu_opts.emulator_mode),
             cartridge,
             scheduler: Scheduler::new(),
             emulated_model: emu_opts.emulator_mode,
