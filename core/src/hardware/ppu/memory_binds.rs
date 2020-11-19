@@ -225,23 +225,18 @@ impl PPU {
     }
 
     fn set_lcd_control(&mut self, value: u8, scheduler: &mut Scheduler, interrupts: &mut Interrupts) {
-        let new_control = LcdControl::from_bits_truncate(value);
-
+        let was_lcd_on = self.lcd_control.contains(LcdControl::LCD_DISPLAY);
+        self.lcd_control = LcdControl::from_bits_truncate(value);
         // If we turn OFF the display
-        if !new_control.contains(LcdControl::LCD_DISPLAY) && self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
-            self.turn_off_lcd(scheduler)
-        }
-        // If we turn ON the display
-        if new_control.contains(LcdControl::LCD_DISPLAY) && !self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
+        if !self.lcd_control.contains(LcdControl::LCD_DISPLAY) && was_lcd_on {
+            self.turn_off_lcd(scheduler);
+        } else if self.lcd_control.contains(LcdControl::LCD_DISPLAY) && !was_lcd_on {
             self.turn_on_lcd(scheduler, interrupts);
         }
-
-        self.lcd_control = new_control;
     }
 
     pub fn turn_off_lcd(&mut self, scheduler: &mut Scheduler) {
         log::debug!("Turning off LCD");
-        self.stat_irq_triggered = false;
         self.current_y = 0;
         self.window_counter = 0;
         self.lcd_status.set_mode_flag(Mode::HBlank);
