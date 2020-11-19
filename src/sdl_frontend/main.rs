@@ -106,7 +106,7 @@ fn main() {
 
     let cartridge = "roms/Zelda.gb";
     let _yellow = "roms/Prehistorik Man (U).gb";
-    let _cpu_test = "test roms/auto-run/dmg-acid2.gb";
+    let _cpu_test = "test roms/auto-run/mooneye/tests/acceptance/ppu/stat_lyc_onoff.gb";
     let _cpu_test2 = "test roms/auto-run/hdma_timing-C.gbc";
 
     //Things to do:

@@ -49,7 +49,13 @@ impl PPU {
             SCY_REGISTER => self.scroll_y = value,
             SCX_REGISTER => self.scroll_x = value,
             LY_REGISTER => log::debug!("ROM tried to write to LY with value: {}", value),
-            LYC_REGISTER => self.lyc_compare = value,
+            LYC_REGISTER => {
+                self.lyc_compare = value;
+                // Ensure the comparison flag in LCD Stat is correct, so long as the PPU is on.
+                if self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
+                    self.ly_lyc_compare(interrupts);
+                }
+            },
             BG_PALETTE => self.set_bg_palette(value),
             OB_PALETTE_0 => self.set_oam_palette_0(value),
             OB_PALETTE_1 => self.set_oam_palette_1(value),
@@ -239,7 +245,6 @@ impl PPU {
         self.current_y = 0;
         self.window_counter = 0;
         self.lcd_status.set_mode_flag(Mode::HBlank);
-        self.lcd_status.set(LcdStatus::COINCIDENCE_FLAG, false);
         // Turn PPU off by removing all scheduled events. TODO: Find cleaner way to do this.
         scheduler.remove_event_type(EventType::HBLANK);
         scheduler.remove_event_type(EventType::VblankWait);
@@ -251,8 +256,10 @@ impl PPU {
     pub fn turn_on_lcd(&mut self, scheduler: &mut Scheduler, interrupts: &mut Interrupts) {
         log::debug!("Turning on LCD");
         self.ly_lyc_compare(interrupts);
-        // Turn PPU back on. Assume pessimistic hblank timing
-        scheduler.push_relative(EventType::OamSearch, 204);
+        // Turn PPU back on. The first line is very funky, as we skip OamSearch entirely
+        // and skip to LcdTransfer instead after 76 cycles (unconfirmed exact amount).
+        // Seems we should end the line 4 cycles early as well?
+        scheduler.push_relative(EventType::LcdTransfer, 76);
     }
 
     fn set_lcd_status(&mut self, value: u8, interrupts: &mut Interrupts) {
