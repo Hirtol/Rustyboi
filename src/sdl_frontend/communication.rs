@@ -1,7 +1,7 @@
-use rustyboi_core::emulator::{Emulator, GameBoyModel};
-use rustyboi_core::InputKey;
-use rustyboi_core::hardware::ppu::debugging_features::PaletteDebugInfo;
 use crate::state::DisplayColourConfigurable;
+use rustyboi_core::emulator::GameBoyModel;
+use rustyboi_core::hardware::ppu::debugging_features::PaletteDebugInfo;
+use rustyboi_core::InputKey;
 
 /// Represents a notification for the emulator thread to execute when possible.
 #[derive(Debug)]
@@ -13,7 +13,7 @@ pub enum EmulatorNotification {
     ExtraAudioRequest,
     ExitRequest,
     Debug(DebugMessage),
-    ChangeDisplayColour(DisplayColourConfigurable)
+    ChangeDisplayColour(DisplayColourConfigurable),
 }
 
 #[derive(Debug, Clone, PartialOrd, PartialEq)]

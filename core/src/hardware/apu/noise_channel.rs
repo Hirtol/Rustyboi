@@ -44,7 +44,10 @@ impl NoiseChannel {
 
     pub fn tick_timer(&mut self, cycles: u64) {
         let (mut to_generate, remainder) = if self.timer_load_value != 0 {
-            (cycles / self.timer_load_value as u64, (cycles % self.timer_load_value as u64) as u16)
+            (
+                cycles / self.timer_load_value as u64,
+                (cycles % self.timer_load_value as u64) as u16,
+            )
         } else {
             ((cycles != 0) as u64, 0)
         };

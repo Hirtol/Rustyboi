@@ -78,9 +78,9 @@ impl WaveformChannel {
 
         self.update_sample();
         #[cfg(feature = "apu-logging")]
-            {
-                self.cycles_done += 1;
-            }
+        {
+            self.cycles_done += 1;
+        }
     }
 
     #[inline]
@@ -121,11 +121,21 @@ impl WaveformChannel {
                 // if made at any other time, reads return $FF and writes have no effect.
                 if self.trigger {
                     #[cfg(feature = "apu-logging")]
-                    log::debug!("Reading from triggered wave: {:#X} at wave pointer: {} ({})", self.wave_ram[self.sample_pointer / 2], self.sample_pointer / 2, self.sample_pointer);
+                    log::debug!(
+                        "Reading from triggered wave: {:#X} at wave pointer: {} ({})",
+                        self.wave_ram[self.sample_pointer / 2],
+                        self.sample_pointer / 2,
+                        self.sample_pointer
+                    );
                     self.wave_ram[self.sample_pointer / 2]
                 } else {
                     #[cfg(feature = "apu-logging")]
-                    log::debug!("Reading from address wave: {:#X} at wave pointer: {:#X} ({:#X})", self.wave_ram[self.sample_pointer / 2], (address - 0x30), address);
+                    log::debug!(
+                        "Reading from address wave: {:#X} at wave pointer: {:#X} ({:#X})",
+                        self.wave_ram[self.sample_pointer / 2],
+                        (address - 0x30),
+                        address
+                    );
                     self.wave_ram[(address - 0x30) as usize]
                 }
             }
@@ -162,10 +172,10 @@ impl WaveformChannel {
                 // for this sort of behaviour (and in actual games it doesn't matter that much either)
                 // but since it's so cheap we'll keep it here for the sake of accuracy.
                 let temp_timer_load = (2048 - self.frequency) * 2;
-                if  temp_timer_load > self.timer_load_value {
+                if temp_timer_load > self.timer_load_value {
                     self.timer_load_value = temp_timer_load;
                 }
-            },
+            }
             0x1E => {
                 let old_length_enable = self.length.length_enable;
                 let no_l_next = no_length_tick_next_step(next_frame_sequencer_step);
@@ -174,7 +184,7 @@ impl WaveformChannel {
                 self.frequency = (self.frequency & 0x00FF) | (((value & 0x07) as u16) << 8);
                 // See comment in 0x1D branch
                 let temp_timer_load = (2048 - self.frequency) * 2;
-                if  temp_timer_load > self.timer_load_value {
+                if temp_timer_load > self.timer_load_value {
                     self.timer_load_value = temp_timer_load;
                 }
 
@@ -189,12 +199,24 @@ impl WaveformChannel {
             0x30..=0x3F => {
                 if self.trigger {
                     #[cfg(feature = "apu-logging")]
-                    log::debug!("Writing {:#X} to current pointer: {} ({}) and wave ram: {:#X?}", value, self.sample_pointer / 2, self.sample_pointer, self.wave_ram);
+                    log::debug!(
+                        "Writing {:#X} to current pointer: {} ({}) and wave ram: {:#X?}",
+                        value,
+                        self.sample_pointer / 2,
+                        self.sample_pointer,
+                        self.wave_ram
+                    );
                     self.wave_ram[self.sample_pointer / 2] = value;
                 } else {
                     let offset_address = ((address - 0x30) * 2) as usize;
                     #[cfg(feature = "apu-logging")]
-                    log::debug!("Writing {:#X} to offset address: {} ({}) and wave ram: {:#X?}", value, offset_address / 2, offset_address, self.wave_ram);
+                    log::debug!(
+                        "Writing {:#X} to offset address: {} ({}) and wave ram: {:#X?}",
+                        value,
+                        offset_address / 2,
+                        offset_address,
+                        self.wave_ram
+                    );
                     self.sample_buffer[offset_address] = value >> 4;
                     self.sample_buffer[offset_address + 1] = value & 0xF;
 

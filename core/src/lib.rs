@@ -1,18 +1,18 @@
 pub mod emulator;
 mod scheduler;
 use crate::emulator::GameBoyModel;
+use crate::hardware::mmu::INVALID_READ;
 use crate::hardware::ppu::palette::DisplayColour;
 pub use crate::io::joypad::InputKey;
-use std::ops::DerefMut;
-use std::fmt::Debug;
-use crate::hardware::mmu::INVALID_READ;
 use bitflags::_core::ops::Deref;
+use std::fmt::Debug;
+use std::ops::DerefMut;
 
+mod emulator_debug;
 pub mod hardware;
 mod io;
-mod emulator_debug;
 
-pub trait ExternalRamBacking: DerefMut<Target=[u8]> + Debug {
+pub trait ExternalRamBacking: DerefMut<Target = [u8]> + Debug {
     /// Set the length of the underlying backed memory.
     ///
     /// Called preemptively in the emulator every time we load up the memory to ensure
@@ -51,7 +51,7 @@ impl EmulatorOptionsBuilder {
             emulator_mode: GameBoyModel::DMG,
             bg_display_colour: Default::default(),
             sp0_display_colour: Default::default(),
-            sp1_display_colour: Default::default()
+            sp1_display_colour: Default::default(),
         }
     }
 
@@ -78,7 +78,7 @@ impl EmulatorOptionsBuilder {
     }
 
     pub fn with_bg_display_colour(mut self, colours: DisplayColour) -> Self {
-        self.bg_display_colour   = colours;
+        self.bg_display_colour = colours;
         self
     }
 
@@ -99,7 +99,7 @@ impl EmulatorOptionsBuilder {
             emulator_mode: self.emulator_mode,
             bg_display_colour: self.bg_display_colour,
             sp0_display_colour: self.sp0_display_colour,
-            sp1_display_colour: self.sp1_display_colour
+            sp1_display_colour: self.sp1_display_colour,
         }
     }
 }
@@ -112,7 +112,7 @@ impl From<EmulatorOptions> for EmulatorOptionsBuilder {
             emulator_mode: from.emulator_mode,
             bg_display_colour: from.bg_display_colour,
             sp0_display_colour: from.sp0_display_colour,
-            sp1_display_colour: from.sp1_display_colour
+            sp1_display_colour: from.sp1_display_colour,
         }
     }
 }

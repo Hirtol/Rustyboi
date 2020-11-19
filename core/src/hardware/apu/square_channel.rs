@@ -113,10 +113,10 @@ impl SquareWaveChannel {
                 self.frequency = (self.frequency & 0x0700) | value as u16;
                 // See wave channel write_register 0x1D for explanation
                 let temp_timer_load = (2048 - self.frequency) * 2;
-                if  temp_timer_load > self.timer_load_value {
+                if temp_timer_load > self.timer_load_value {
                     self.timer_load_value = temp_timer_load;
                 }
-            },
+            }
             0x14 | 0x19 => {
                 let old_length_enable = self.length.length_enable;
                 let no_l_next = no_length_tick_next_step(next_frame_sequencer_step);
@@ -126,7 +126,7 @@ impl SquareWaveChannel {
 
                 // See wave channel write_register 0x1D for explanation
                 let temp_timer_load = (2048 - self.frequency) * 2;
-                if  temp_timer_load > self.timer_load_value {
+                if temp_timer_load > self.timer_load_value {
                     self.timer_load_value = temp_timer_load;
                 }
 

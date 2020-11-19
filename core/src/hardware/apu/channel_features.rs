@@ -74,8 +74,7 @@ impl EnvelopeFeature {
             self.volume = 16 - self.volume;
         }
 
-        if self.envelope_period != 0 && old_envelope.envelope_period == 0
-            && self.volume != 0 && !self.envelope_add_mode {
+        if self.envelope_period != 0 && old_envelope.envelope_period == 0 && self.volume != 0 && !self.envelope_add_mode {
             self.volume -= 1;
         }
 

@@ -1,6 +1,6 @@
-use nanoserde::{DeJson, SerJson, SerJsonState};
+use crate::DEFAULT_DISPLAY_COLOURS;
+use nanoserde::{DeJson, SerJson};
 use rustyboi_core::hardware::ppu::palette::DisplayColour;
-use crate::{KIRBY_DISPLAY_COLOURS, DEFAULT_DISPLAY_COLOURS};
 
 #[derive(Default, Debug, Copy, Clone)]
 /// Struct for non-persistent options during runtime.
@@ -49,7 +49,7 @@ impl Default for AppState {
 pub struct DisplayColourConfigurable {
     pub dmg_bg_colour: DisplayColourDTO,
     pub dmg_sprite_colour_0: DisplayColourDTO,
-    pub dmg_sprite_colour_1: DisplayColourDTO
+    pub dmg_sprite_colour_1: DisplayColourDTO,
 }
 
 impl Default for DisplayColourConfigurable {
@@ -57,7 +57,7 @@ impl Default for DisplayColourConfigurable {
         DisplayColourConfigurable {
             dmg_bg_colour: DEFAULT_DISPLAY_COLOURS.into(),
             dmg_sprite_colour_0: DEFAULT_DISPLAY_COLOURS.into(),
-            dmg_sprite_colour_1: DEFAULT_DISPLAY_COLOURS.into()
+            dmg_sprite_colour_1: DEFAULT_DISPLAY_COLOURS.into(),
         }
     }
 }
@@ -78,7 +78,7 @@ impl Into<DisplayColour> for DisplayColourDTO {
             white: self.white.into(),
             light_grey: self.light_grey.into(),
             dark_grey: self.dark_grey.into(),
-            black: self.black.into()
+            black: self.black.into(),
         }
     }
 }
@@ -89,7 +89,7 @@ impl Into<DisplayColourDTO> for DisplayColour {
             white: self.white.into(),
             light_grey: self.light_grey.into(),
             dark_grey: self.dark_grey.into(),
-            black: self.black.into()
+            black: self.black.into(),
         }
     }
 }

@@ -1,9 +1,9 @@
-use std::time::Duration;
-use crate::{AUDIO_FREQUENCY, MIN_AUDIO_SAMPLES, MAX_AUDIO_SAMPLES};
-use crate::gameboy::GameboyRunner;
 use crate::communication::EmulatorNotification;
+use crate::gameboy::GameboyRunner;
+use crate::{AUDIO_FREQUENCY, MAX_AUDIO_SAMPLES, MIN_AUDIO_SAMPLES};
 use sdl2::audio::{AudioQueue, AudioSpecDesired};
 use sdl2::AudioSubsystem;
+use std::time::Duration;
 
 pub struct AudioPlayer {
     awaiting_audio: bool,
@@ -30,7 +30,7 @@ impl AudioPlayer {
             .unwrap();
         let silence_samples = initial_buffer_length.as_secs_f64() * AUDIO_FREQUENCY as f64;
         audio_queue.queue(&vec![0.0; silence_samples as usize]);
-        AudioPlayer{
+        AudioPlayer {
             awaiting_audio: false,
             paused: true,
             sdl_audio: audio_queue,

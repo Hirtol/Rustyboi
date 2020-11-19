@@ -22,11 +22,7 @@ impl<M: MemoryMapper> CPU<M> {
     pub fn cb_prefix_call(&mut self) {
         self.opcode = self.get_instr_u8();
         #[cfg(feature = "cpu-logging")]
-        log::trace!(
-            "Executing opcode: {:04X} - registers: {}",
-            self.opcode,
-            self.registers,
-        );
+        log::trace!("Executing opcode: {:04X} - registers: {}", self.opcode, self.registers,);
         self.execute_prefix(self.opcode);
     }
 

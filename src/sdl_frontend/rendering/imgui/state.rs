@@ -1,10 +1,10 @@
-use nanoserde::{DeJson, SerJson};
-use rustyboi_core::hardware::ppu::debugging_features::PaletteDebugInfo;
-use rustyboi_core::emulator::GameBoyModel;
-use std::time::{Duration, Instant};
-use crate::rendering::imgui::animate::{FadeAnimation, formulas::Quadratic};
+use crate::rendering::imgui::animate::{formulas::Quadratic, FadeAnimation};
 use imgui::Ui;
-use crate::rendering::imgui::animate::formulas::ParametricBlend;
+use nanoserde::{DeJson, SerJson};
+use rustyboi_core::emulator::GameBoyModel;
+use rustyboi_core::hardware::ppu::debugging_features::PaletteDebugInfo;
+use std::time::Duration;
+
 use crate::rendering::imgui::settings::SettingScreenState;
 
 #[derive(Default, Debug, Clone, DeJson, SerJson)]
@@ -40,14 +40,14 @@ impl Notification {
     pub fn new(message: &'static str, ui: &Ui) -> Notification {
         Notification {
             animation: FadeAnimation::new(ui, Duration::from_millis(2000)),
-            message
+            message,
         }
     }
 
     pub fn with_duration(message: &'static str, duration: Duration, ui: &Ui) -> Notification {
         Notification {
             animation: FadeAnimation::new(ui, duration),
-            message
+            message,
         }
     }
 }

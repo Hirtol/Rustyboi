@@ -9,8 +9,7 @@ use std::time::Duration;
 pub fn create_main_menu_bar(state: &mut GuiState, ui: &Ui) {
     ui.main_menu_bar(|| {
         ui.menu(im_str!("Debug"), true, || {
-            if MenuItem::new(im_str!("ImGui Metrics"))
-                .build_with_ref(ui, &mut state.show_metrics) {}
+            if MenuItem::new(im_str!("ImGui Metrics")).build_with_ref(ui, &mut state.show_metrics) {}
             MenuItem::new(im_str!("Settings"))
                 .shortcut(im_str!("Ctrl+S"))
                 .build_with_ref(ui, &mut state.show_settings);
@@ -25,7 +24,6 @@ pub fn create_main_menu_bar(state: &mut GuiState, ui: &Ui) {
             MenuItem::new(im_str!("VRAM View"))
                 .shortcut(im_str!("Ctrl+Q"))
                 .build_with_ref(ui, &mut state.tile_display);
-
         });
         main_menu_shortcuts(state, ui);
     })
@@ -55,8 +53,11 @@ pub fn render_notification(debug: &mut DebugState, ui: &Ui) {
     let alert_colour: [f32; 4] = rgb_to_f32(51, 51, 153);
     let display_size = ui.io().display_size;
     let window_width = size(ui, 10f32.max(display_size[0] / 180.));
-    let window_height =  size(ui, 7f32.max(display_size[0] / 270.));
-    let window_pos = [display_size[0] - window_width - size(ui, 3.), display_size[1] - window_height - size(ui, 3.)];
+    let window_height = size(ui, 7f32.max(display_size[0] / 270.));
+    let window_pos = [
+        display_size[0] - window_width - size(ui, 3.),
+        display_size[1] - window_height - size(ui, 3.),
+    ];
     let style = ui.push_style_var(StyleVar::Alpha(debug.notification.animation.progress()));
     Window::new(im_str!("Notification"))
         .position(window_pos, Condition::Always)
@@ -96,12 +97,22 @@ pub fn render_palette_view(state: &mut GuiState, ui: &Ui, debug_state: &mut Debu
             .build(ui, || {
                 ui.columns(2, im_str!("Palettes"), true);
                 ui.text("Background Palettes:");
-                show_palettes_column(ui, &mut debug_state.notification, &debug_state.palette.bg_palette, "BG Colour ");
+                show_palettes_column(
+                    ui,
+                    &mut debug_state.notification,
+                    &debug_state.palette.bg_palette,
+                    "BG Colour ",
+                );
                 ui.next_column();
                 ui.text("Sprite Palettes:");
                 ui.same_line(0.0);
                 show_help_marker(ui, "Hover over a palette colour to see its values, left click to copy");
-                show_palettes_column(ui, &mut debug_state.notification, &debug_state.palette.sprite_palette, "Sprite Colour ");
+                show_palettes_column(
+                    ui,
+                    &mut debug_state.notification,
+                    &debug_state.palette.sprite_palette,
+                    "Sprite Colour ",
+                );
             });
     }
 }
@@ -112,9 +123,10 @@ fn show_palettes_column(ui: &Ui, notification: &mut Notification, palettes: &Vec
     for (index, c_palette) in palettes.iter().enumerate() {
         move_hori_cursor(ui, 2.0);
         for (i, rgb) in c_palette.iter().enumerate() {
-            if ColorButton::new(&im_str!("{} {}", name_prefix, index*4 + i), rgb.into_f())
+            if ColorButton::new(&im_str!("{} {}", name_prefix, index * 4 + i), rgb.into_f())
                 .alpha(false)
-                .build(&ui) {
+                .build(&ui)
+            {
                 ui.set_clipboard_text(&im_str!("{:?}", rgb));
                 *notification = Notification::with_duration("Copied colour to clipboard!", Duration::from_millis(2000), ui);
             }
@@ -154,7 +166,6 @@ pub(super) fn size_a(ui: &Ui, mut sizes: [f32; 2]) -> [f32; 2] {
     }
     sizes
 }
-
 
 pub(super) trait ImguiColour {
     fn into_f(self) -> [f32; 4];

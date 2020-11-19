@@ -1,9 +1,9 @@
+use crate::emulator::GameBoyModel;
 use crate::hardware::ppu::cgb_vram::CgbPalette;
 use crate::hardware::ppu::palette::{DisplayColour, Palette, RGB};
-use crate::hardware::ppu::PPU;
 use crate::hardware::ppu::tiledata::Tile;
+use crate::hardware::ppu::PPU;
 use bitflags::_core::iter::FromIterator;
-use crate::emulator::GameBoyModel;
 
 impl PPU {
     /// Returns an array of the full 768 tiles rendered next to each other in a
@@ -74,9 +74,11 @@ impl PaletteDebugInfo {
             sprite_palette[0] = ppu.oam_palette_0.colours;
             sprite_palette[1] = ppu.oam_palette_1.colours;
         } else {
-            let cgb_to_rgb_array = |cgb: [CgbPalette; 8]| cgb.iter()
-                .map(|p| p.colours.iter().map(|c| c.rgb).collect())
-                .collect::<Vec<[RGB;4]>>();
+            let cgb_to_rgb_array = |cgb: [CgbPalette; 8]| {
+                cgb.iter()
+                    .map(|p| p.colours.iter().map(|c| c.rgb).collect())
+                    .collect::<Vec<[RGB; 4]>>()
+            };
             bg_palette = cgb_to_rgb_array(ppu.cgb_bg_palette);
             sprite_palette = cgb_to_rgb_array(ppu.cgb_sprite_palette);
         }
@@ -94,13 +96,13 @@ impl Default for PaletteDebugInfo {
         let sprite_palette = vec![[RGB::default(); 4]; 8];
         PaletteDebugInfo {
             bg_palette,
-            sprite_palette
+            sprite_palette,
         }
     }
 }
 
-impl FromIterator<RGB> for [RGB;4] {
-    fn from_iter<T: IntoIterator<Item=RGB>>(iter: T) -> Self {
+impl FromIterator<RGB> for [RGB; 4] {
+    fn from_iter<T: IntoIterator<Item = RGB>>(iter: T) -> Self {
         let mut result = [RGB::default(); 4];
         for (i, rgb) in iter.into_iter().enumerate() {
             result[i] = rgb;

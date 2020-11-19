@@ -1,7 +1,7 @@
 use crate::emulator::{Emulator, GameBoyModel};
 use crate::hardware::ppu::debugging_features::PaletteDebugInfo;
-use crate::hardware::ppu::tiledata::SpriteAttribute;
 use crate::hardware::ppu::palette::RGB;
+use crate::hardware::ppu::tiledata::SpriteAttribute;
 
 impl Emulator {
     /// Retrieves and returns all palette info from the `PPU`

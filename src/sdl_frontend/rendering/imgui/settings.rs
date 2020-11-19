@@ -1,12 +1,12 @@
-use crate::rendering::imgui::state::{GuiState, Notification, DebugState};
+use crate::rendering::imgui::interface::{show_help_marker, size, size_a, ImguiColour};
+use crate::rendering::imgui::state::{DebugState, GuiState, Notification};
+use crate::GLOBAL_APP_STATE;
 use imgui::*;
 use nanoserde::*;
-use crate::rendering::imgui::interface::{show_help_marker, size_a, size, ImguiColour};
-use crate::GLOBAL_APP_STATE;
 use std::str::FromStr;
 use std::time::Duration;
-use rustyboi_core::hardware::ppu::palette::{DisplayColour, RGB};
-use crate::state::{DisplayColourDTO, DisplayColourConfigurable};
+
+use crate::state::{DisplayColourConfigurable, DisplayColourDTO};
 
 const SUB_MENUS: [&str; 2] = ["General", "Display"];
 
@@ -57,18 +57,23 @@ fn create_settings(ui: &Ui, state: &mut GuiState, debug_state: &mut DebugState) 
                 .chars_decimal(true)
                 .allow_tab_input(false)
                 .auto_select_all(true)
-                .build() {
+                .build()
+            {
                 if let Ok(new_multiplier) = u64::from_str(input.as_ref()) {
                     if (1..=100).contains(&new_multiplier) {
                         GLOBAL_APP_STATE.lock().unwrap().fast_forward_rate = new_multiplier;
                     } else {
-                        debug_state.notification = Notification::with_duration("Value too large (max 40).\nRun unbounded instead", Duration::from_millis(300), ui);
+                        debug_state.notification = Notification::with_duration(
+                            "Value too large (max 40).\nRun unbounded instead",
+                            Duration::from_millis(300),
+                            ui,
+                        );
                     }
                 } else {
                     debug_state.notification = Notification::new("Only integers are valid!", ui);
                 }
             }
-        },
+        }
         "Display" => {
             let mut global_state = GLOBAL_APP_STATE.lock().unwrap();
             create_display_colour_picker(ui, "Background Palette:", &mut global_state.custom_display_colour.dmg_bg_colour, "Bg");
@@ -85,7 +90,12 @@ fn create_settings(ui: &Ui, state: &mut GuiState, debug_state: &mut DebugState) 
     ui.set_window_font_scale(1.0);
 }
 
-fn create_display_colour_picker(ui: &Ui, title: impl AsRef<str>, linked_display: &mut DisplayColourDTO, suffix: impl AsRef<str>) {
+fn create_display_colour_picker(
+    ui: &Ui,
+    title: impl AsRef<str>,
+    linked_display: &mut DisplayColourDTO,
+    suffix: impl AsRef<str>,
+) {
     ui.text(title.as_ref());
     ui.same_line(0.0);
     ui.set_cursor_pos([ui.window_size()[0] - size(ui, 8.0), ui.cursor_pos()[1]]);
@@ -110,22 +120,25 @@ fn create_picker(ui: &Ui, title: impl AsRef<str>, linked_rgb: &mut (u8, u8, u8))
         .display_mode(ColorEditDisplayMode::RGB)
         .picker(true)
         .inputs(false)
-        .build(ui) {
+        .build(ui)
+    {
         *linked_rgb = f32_to_rgb(editable_colour);
     }
 }
 
 fn create_selectables(ui: &Ui, state: &mut GuiState) {
-    for  menu in SUB_MENUS.iter() {
+    for menu in SUB_MENUS.iter() {
         let is_selected = state.setting_state.current_item == *menu;
-        if Selectable::new(&im_str!("{}", menu))
-            .selected(is_selected)
-            .build(ui) {
+        if Selectable::new(&im_str!("{}", menu)).selected(is_selected).build(ui) {
             state.setting_state.current_item = menu.to_string();
         }
     }
 }
 
 fn f32_to_rgb(input: [f32; 4]) -> (u8, u8, u8) {
-    ((input[0] * 255.) as u8, (input[1] * 255.) as u8, (input[2] * 255.) as u8)
+    (
+        (input[0] * 255.) as u8,
+        (input[1] * 255.) as u8,
+        (input[2] * 255.) as u8,
+    )
 }

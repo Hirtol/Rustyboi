@@ -1,8 +1,8 @@
 use std::fs::read;
 use std::path::Path;
 
-use criterion::{BenchmarkGroup, Criterion, criterion_group, criterion_main};
 use criterion::measurement::WallTime;
+use criterion::{criterion_group, criterion_main, BenchmarkGroup, Criterion};
 use criterion_cycles_per_byte::CyclesPerByte;
 
 use rustyboi_core::emulator::Emulator;
@@ -25,7 +25,11 @@ fn ppu_benchmark(c: &mut Criterion) {
     run_scanline_benchmark("..\\roms\\Kirby's Dream Land.gb", &mut group, "Kirby");
     run_scanline_benchmark("..\\roms\\Pokemon Red.gb", &mut group, "Pokemon Red");
     run_scanline_benchmark("..\\roms\\Prehistorik Man (U).gb", &mut group, "Prehistorik Man");
-    run_scanline_benchmark("..\\roms\\Tomb Raider - Curse of the Sword (U) [C][!].gbc", &mut group, "Tomb Raider");
+    run_scanline_benchmark(
+        "..\\roms\\Tomb Raider - Curse of the Sword (U) [C][!].gbc",
+        &mut group,
+        "Tomb Raider",
+    );
     run_scanline_benchmark("..\\roms\\Zelda.gbc", &mut group, "Zelda GBC");
 
     group.finish();
@@ -46,14 +50,16 @@ fn run_scanline_benchmark(path: impl AsRef<Path>, group: &mut BenchmarkGroup<Wal
     }
 
     emulator.ppu().current_y = 0;
-    group.bench_function(format!("Benchmark {} full framebuffer", name.as_ref()), |b| b.iter(|| {
-        if is_cgb_rom {
-            emulator.ppu().draw_cgb_scanline();
-        } else {
-            emulator.ppu().draw_scanline();
-        }
-        emulator.ppu().current_y = (emulator.ppu().current_y % 143) + 1;
-    }));
+    group.bench_function(format!("Benchmark {} full framebuffer", name.as_ref()), |b| {
+        b.iter(|| {
+            if is_cgb_rom {
+                emulator.ppu().draw_cgb_scanline();
+            } else {
+                emulator.ppu().draw_scanline();
+            }
+            emulator.ppu().current_y = (emulator.ppu().current_y % 143) + 1;
+        })
+    });
 }
 
 criterion_group!(benches, emulator_benchmark);

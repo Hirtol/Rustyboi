@@ -154,7 +154,13 @@ impl PPU {
     /// Otherwise, the PPU will use CGB registers. In addition we proceed to load
     /// `DisplayColour` into the CGB palette registries (BG0, OBJ0, OBJ1) and we'll
     /// *always* use those three registries as our source of `RGB` colour (Both in `DMG` and `CGB`).
-    pub fn new(bg_display_colour: DisplayColour, sp0_display: DisplayColour, sp1_display: DisplayColour, cgb_rendering: bool, gb_model: GameBoyModel) -> Self {
+    pub fn new(
+        bg_display_colour: DisplayColour,
+        sp0_display: DisplayColour,
+        sp1_display: DisplayColour,
+        cgb_rendering: bool,
+        gb_model: GameBoyModel,
+    ) -> Self {
         let (cgb_bg_palette, cgb_sprite_palette) = initialise_cgb_palette(bg_display_colour, sp0_display, sp1_display);
         PPU {
             frame_buffer: [RGB::default(); FRAMEBUFFER_SIZE],
@@ -188,7 +194,7 @@ impl PPU {
             cgb_object_priority: true,
             stat_irq_triggered: false,
             cgb_rendering,
-            emulated_model: gb_model
+            emulated_model: gb_model,
         }
     }
 
@@ -329,7 +335,10 @@ impl PPU {
             self.draw_background_window_line(
                 &mut pixel_counter,
                 &mut pixels_to_skip,
-                tile_address, tile_pixel_y, tile_pixel_y_offset)
+                tile_address,
+                tile_pixel_y,
+                tile_pixel_y_offset,
+            )
         }
     }
 
@@ -376,7 +385,9 @@ impl PPU {
                 &mut pixel_counter,
                 &mut pixels_to_skip,
                 tile_address,
-              tile_pixel_y, tile_pixel_y_offset);
+                tile_pixel_y,
+                tile_pixel_y_offset,
+            );
         }
     }
 
@@ -463,7 +474,14 @@ impl PPU {
 
     /// Draw a tile in a way appropriate for both the window, as well as the background.
     /// `pixels_to_skip` will skip pixels so long as it's greater than 0
-    fn draw_background_window_line(&mut self, pixel_counter: &mut i16, pixels_to_skip: &mut u8, tile_address: usize, tile_line_y: usize, tile_pixel_y_offset: usize) {
+    fn draw_background_window_line(
+        &mut self,
+        pixel_counter: &mut i16,
+        pixels_to_skip: &mut u8,
+        tile_address: usize,
+        tile_line_y: usize,
+        tile_pixel_y_offset: usize,
+    ) {
         // If we can draw 8 pixels in one go, we should.
         // pixel_counter Should be less than 152 otherwise we'd go over the 160 allowed pixels.
         if *pixels_to_skip == 0 && *pixel_counter < 152 {
@@ -557,7 +575,11 @@ impl PPU {
 
 /// Initialises BG0, OBJ0, OBJ1 in the CGB palettes to `dmg_display_colour` while leaving
 /// the remaining palettes default. See PPU `new()` for an explanation as to why.
-fn initialise_cgb_palette(bg_display: DisplayColour, sp0_display: DisplayColour, sp1_display: DisplayColour) -> ([CgbPalette; 8], [CgbPalette; 8]) {
+fn initialise_cgb_palette(
+    bg_display: DisplayColour,
+    sp0_display: DisplayColour,
+    sp1_display: DisplayColour,
+) -> ([CgbPalette; 8], [CgbPalette; 8]) {
     fn set_cgb_palette(p: &mut CgbPalette, dmg_display_colour: DisplayColour) {
         for (i, colour) in p.colours.iter_mut().enumerate() {
             colour.rgb = dmg_display_colour.get_colour(i);

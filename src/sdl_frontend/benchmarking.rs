@@ -1,17 +1,17 @@
-use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
-use rustyboi_core::hardware::ppu::palette::RGB;
-use crossbeam::channel::*;
+use crate::options::AppOptions;
+use crate::rendering::immediate::ImmediateGui;
 use crate::rendering::Renderer;
-use rustyboi_core::emulator::Emulator;
-use rustyboi_core::{EmulatorOptionsBuilder, EmulatorOptions};
-use rustyboi_core::emulator::GameBoyModel::CGB;
 use crate::DEFAULT_DISPLAY_COLOURS;
-use std::time::Instant;
+use crossbeam::channel::*;
+use rustyboi_core::emulator::Emulator;
+use rustyboi_core::emulator::GameBoyModel::CGB;
+use rustyboi_core::hardware::ppu::palette::RGB;
+use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
+use rustyboi_core::{EmulatorOptions, EmulatorOptionsBuilder};
 use std::fs::read;
 use std::path::Path;
-use crate::rendering::immediate::ImmediateGui;
-use crate::options::AppOptions;
 use std::process::exit;
+use std::time::Instant;
 
 #[inline(always)]
 pub fn run_benchmark(options: &AppOptions) {
@@ -29,7 +29,11 @@ pub struct Benchmarking;
 
 impl Benchmarking {
     #[inline(always)]
-    pub fn benchmark_with_render<T: ImmediateGui>(cartridge: impl AsRef<Path>, renderer: &mut Renderer<T>, emu_opts: EmulatorOptions) {
+    pub fn benchmark_with_render<T: ImmediateGui>(
+        cartridge: impl AsRef<Path>,
+        renderer: &mut Renderer<T>,
+        emu_opts: EmulatorOptions,
+    ) {
         let (frame_sender, frame_receiver) = bounded(1);
         let data = read(cartridge).unwrap();
         std::thread::spawn(move || run_with_send(&data, frame_sender, emu_opts));

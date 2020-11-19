@@ -26,9 +26,9 @@ use std::collections::{HashMap, HashSet};
 
 use gumdrop::Options;
 use image::imageops::FilterType;
+use rustyboi_core::emulator::GameBoyModel::{CGB, DMG};
 use rustyboi_core::hardware::ppu::palette::RGB;
 use std::sync::Arc;
-use rustyboi_core::emulator::GameBoyModel::{DMG, CGB};
 
 mod display;
 mod options;
@@ -120,7 +120,7 @@ fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>, emulator_mode:
                 .with_display_colour(TEST_COLOURS);
 
             options_builder = if emulator_mode.is_dmg() {
-                 options_builder.with_mode(DMG)
+                options_builder.with_mode(DMG)
             } else {
                 options_builder.with_mode(CGB)
             };
@@ -136,7 +136,16 @@ fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>, emulator_mode:
                 emu.run_to_vblank();
                 emu_frames_drawn += 1;
             }
-            let file_path = format!("{}{}_{}.png", if emulator_mode.is_dmg() { DMG_RESULTS_DIRECTORY } else { CGB_RESULTS_DIRECTORY}, file_stem.to_str().unwrap(), if emulator_mode.is_dmg() { "dmg" } else { "cgb" });
+            let file_path = format!(
+                "{}{}_{}.png",
+                if emulator_mode.is_dmg() {
+                    DMG_RESULTS_DIRECTORY
+                } else {
+                    CGB_RESULTS_DIRECTORY
+                },
+                file_stem.to_str().unwrap(),
+                if emulator_mode.is_dmg() { "dmg" } else { "cgb" }
+            );
             save_image(emu.frame_buffer(), file_path);
             drop(wg);
         });
@@ -229,9 +238,7 @@ fn save_image(framebuffer: &[RGB], file_name: impl AsRef<str>) {
     let temp_buffer: ImageBuffer<image::Rgb<u8>, Vec<u8>> =
         image::ImageBuffer::from_raw(160, 144, true_image_buffer).unwrap();
     let temp_buffer = image::imageops::resize(&temp_buffer, 320, 288, FilterType::Nearest);
-    temp_buffer
-        .save(path)
-        .unwrap();
+    temp_buffer.save(path).unwrap();
 }
 
 /// Returns the entries from the provided `filename` in the format:

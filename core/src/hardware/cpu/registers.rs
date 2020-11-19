@@ -169,7 +169,16 @@ impl Display for Registers {
             "PC:{:04x} SP:{:04x} \
             A:{:02x} F:{:08b} B:{:02x} C:{:02x} \
             D:{:02x} E:{:02x} H:{:02x} L:{:02x}",
-            self.pc, self.sp, self.a, Flags::from_bits_truncate(self.f()), self.b, self.c, self.d, self.e, self.h, self.l
+            self.pc,
+            self.sp,
+            self.a,
+            Flags::from_bits_truncate(self.f()),
+            self.b,
+            self.c,
+            self.d,
+            self.e,
+            self.h,
+            self.l
         )
     }
 }

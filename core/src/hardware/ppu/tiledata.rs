@@ -1,8 +1,8 @@
+use crate::hardware::ppu::palette::RGB;
 use crate::hardware::ppu::register_flags::AttributeFlags;
 use bitflags::_core::fmt::Formatter;
 use std::fmt;
 use std::fmt::Debug;
-use crate::hardware::ppu::palette::RGB;
 
 // 128 tiles each of 16 bytes each.
 pub const TILE_BLOCK_0_START: u16 = 0x8000;
@@ -98,7 +98,10 @@ impl Debug for SpriteAttribute {
 
 impl Default for Tile {
     fn default() -> Self {
-        Tile { data: [0; 16], unpaletted_pixels: [0; 64] }
+        Tile {
+            data: [0; 16],
+            unpaletted_pixels: [0; 64],
+        }
     }
 }
 
@@ -113,7 +116,7 @@ impl Tile {
     /// efficient however.
     #[inline(always)]
     pub fn get_true_pixel_line(&self, start_index: usize) -> &[u8] {
-        &self.unpaletted_pixels[start_index..start_index+8]
+        &self.unpaletted_pixels[start_index..start_index + 8]
     }
 
     /// Update the tile's data representation as well as its pre-computed palette colour cache.

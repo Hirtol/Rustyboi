@@ -6,23 +6,23 @@ use sdl2::mouse::MouseState;
 
 use sdl2::VideoSubsystem;
 
-use crate::rendering::imgui::state::{GuiState, DebugState};
+use crate::rendering::imgui::state::{DebugState, GuiState};
 use crate::rendering::immediate::ImmediateGui;
 use font::COUSINE_REGULAR_UNCOMPRESSED_DATA;
 
 use rustyboi::storage::{FileStorage, Storage};
 use std::sync::Arc;
 
+use crate::communication::DebugMessage;
 use crate::rendering::imgui::interface::*;
-use sdl2::event::Event;
-use crate::communication::{DebugMessage};
 use crate::rendering::imgui::settings::render_settings;
+use sdl2::event::Event;
 
+mod animate;
 mod font;
 mod interface;
-mod state;
-mod animate;
 mod settings;
+mod state;
 
 const STATE_FILE_NAME: &str = "debug_config.json";
 
@@ -91,7 +91,7 @@ impl ImmediateGui for ImguiBoi {
         result
     }
 
-    fn fulfill_query(&mut self, debug_response: DebugMessage){
+    fn fulfill_query(&mut self, debug_response: DebugMessage) {
         match debug_response {
             DebugMessage::Palette(info) => self.debug_state.palette = info.unwrap_or_default(),
             DebugMessage::Mode(mode) => self.debug_state.current_emu_mode = mode.unwrap(),

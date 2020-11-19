@@ -1,46 +1,42 @@
-use std::cell::RefCell;
-use std::fs::{read, File};
+use std::fs::read;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use crossbeam::channel::*;
 use gumdrop::Options;
-use log::*;
 use log::LevelFilter;
+use log::*;
 use once_cell::sync::Lazy;
-use sdl2::audio::{AudioQueue, AudioSpecDesired};
+
 use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Keycode;
-use simplelog::{CombinedLogger, Config, ConfigBuilder, TerminalMode, TermLogger, WriteLogger};
+use simplelog::{CombinedLogger, Config, ConfigBuilder, TermLogger, TerminalMode, WriteLogger};
 
 use audio::AudioPlayer;
 use rustyboi::storage::{FileStorage, Storage};
 use rustyboi_core::{EmulatorOptionsBuilder, InputKey};
-use rustyboi_core::emulator::{CYCLES_PER_FRAME, Emulator};
-use rustyboi_core::emulator::GameBoyModel::CGB;
-use rustyboi_core::hardware::apu::SAMPLE_CYCLES;
-use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
-use rustyboi_core::hardware::ppu::palette::{DisplayColour, RGB};
 
-use crate::benchmarking::Benchmarking;
+use rustyboi_core::emulator::GameBoyModel::CGB;
+
+use rustyboi_core::hardware::ppu::palette::{DisplayColour, RGB};
+use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
+
 use crate::communication::{DebugMessage, EmulatorNotification, EmulatorResponse};
-use crate::communication::EmulatorNotification::Debug;
+
 use crate::gameboy::GameboyRunner;
 use crate::options::AppOptions;
 use crate::rendering::imgui::ImguiBoi;
 use crate::rendering::immediate::ImmediateGui;
 use crate::rendering::Renderer;
 use crate::state::{AppEmulatorState, AppState};
-use std::borrow::Borrow;
 
+mod audio;
+mod benchmarking;
 mod communication;
 mod gameboy;
+mod options;
 mod rendering;
 mod state;
-mod benchmarking;
-mod options;
-mod audio;
 
 const KIRBY_DISPLAY_COLOURS: DisplayColour = DisplayColour {
     black: RGB(44, 44, 150),
@@ -77,7 +73,6 @@ static GLOBAL_APP_STATE: Lazy<Mutex<AppState>> = Lazy::new(|| {
     Mutex::new(file_storage.get_value(CONFIG_FILENAME).unwrap_or_default())
 });
 
-
 fn main() {
     CombinedLogger::init(vec![
         TermLogger::new(LevelFilter::Debug, Config::default(), TerminalMode::Mixed),
@@ -101,7 +96,7 @@ fn main() {
     renderer.setup_immediate_gui("Rustyboi Debug");
     renderer.main_window.window_mut().raise();
 
-    let _bootrom_file_dmg = read("roms/DMG_ROM.bin").unwrap();
+    let bootrom_file_dmg = read("roms/DMG_ROM.bin").unwrap();
     let bootrom_file_cgb = read("roms\\cgb_bios.bin").unwrap();
 
     let cartridge = "roms/Zelda.gb";
@@ -143,11 +138,9 @@ fn main() {
 
         if let Some(requests) = renderer.render_immediate_gui(&event_pump) {
             if !emulation_state.awaiting_debug {
-                requests.into_iter()
-                    .map(DebugMessage::into)
-                    .for_each(|r| {
-                        gameboy_runner.request_sender.send(r);
-                    });
+                requests.into_iter().map(DebugMessage::into).for_each(|r| {
+                    gameboy_runner.request_sender.send(r);
+                });
                 emulation_state.awaiting_debug = true;
             }
         }
@@ -155,13 +148,22 @@ fn main() {
         let ticks = timer.ticks() as i32;
 
         for event in event_pump.poll_iter() {
-            if !handle_events(event, &mut gameboy_runner, &mut audio_player, &mut emulation_state, &mut renderer) {
+            if !handle_events(
+                event,
+                &mut gameboy_runner,
+                &mut audio_player,
+                &mut emulation_state,
+                &mut renderer,
+            ) {
                 break 'mainloop;
             }
         }
 
-        let mut frames_to_go = if emulation_state.fast_forward {
-            GLOBAL_APP_STATE.lock().expect("Failed to lock in fast forward").fast_forward_rate
+        let frames_to_go = if emulation_state.fast_forward {
+            GLOBAL_APP_STATE
+                .lock()
+                .expect("Failed to lock in fast forward")
+                .fast_forward_rate
         } else {
             1
         };
@@ -207,7 +209,9 @@ fn main() {
         // we sleep more than we should, leaving us at ~58 fps which causes audio stutters.
         let frame_time = timer.ticks() as i32 - ticks;
 
-        if (!emulation_state.unbounded || emulation_state.emulator_paused) && FRAME_DELAY.as_millis() as i32 > frame_time {
+        if (!emulation_state.unbounded || emulation_state.emulator_paused)
+            && FRAME_DELAY.as_millis() as i32 > frame_time
+        {
             let sleep_time = (FRAME_DELAY.as_millis() as i32 - frame_time) as u64;
             std::thread::sleep(Duration::from_millis(sleep_time));
         }
@@ -282,8 +286,12 @@ fn handle_events(
                     Keycode::F11 => renderer.toggle_main_window_fullscreen(),
                     Keycode::R => {
                         //TODO: Remove once we have UI interaction.
-                        gameboy_runner.request_sender.send(EmulatorNotification::ChangeDisplayColour(GLOBAL_APP_STATE.lock().unwrap().custom_display_colour));
-                    },
+                        gameboy_runner
+                            .request_sender
+                            .send(EmulatorNotification::ChangeDisplayColour(
+                                GLOBAL_APP_STATE.lock().unwrap().custom_display_colour,
+                            ));
+                    }
                     // Keycode::O => println!("{:#?}", notifier.oam()),
                     // Keycode::L => {
                     //     let mut true_image_buffer = vec![0u8; 768*8*8*3];

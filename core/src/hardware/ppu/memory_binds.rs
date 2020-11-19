@@ -1,6 +1,6 @@
 //! This module is purely used for providing access to PPU memory resources
 //! to the MMU.
-use crate::hardware::mmu::{INVALID_READ, OAM_ATTRIBUTE_START, OAM_ATTRIBUTE_END};
+use crate::hardware::mmu::{INVALID_READ, OAM_ATTRIBUTE_END, OAM_ATTRIBUTE_START};
 use crate::hardware::ppu::cgb_vram::CgbTileAttribute;
 use crate::hardware::ppu::PPU;
 use crate::print_array_raw;
@@ -55,7 +55,7 @@ impl PPU {
                 if self.lcd_control.contains(LcdControl::LCD_DISPLAY) {
                     self.ly_lyc_compare(interrupts);
                 }
-            },
+            }
             BG_PALETTE => self.set_bg_palette(value),
             OB_PALETTE_0 => self.set_oam_palette_0(value),
             OB_PALETTE_1 => self.set_oam_palette_1(value),
@@ -68,10 +68,9 @@ impl PPU {
             CGB_OBJECT_PALETTE_DATA if self.can_access_vram() => self.set_colour_obj_palette_data(value),
             CGB_OBJECT_PRIORITY_MODE => self.set_object_priority(value),
             // Ignore writes if they're not valid
-            _ => { },
+            _ => {}
         }
     }
-
 
     /// Can always access vram if PPU is disabled (then `Mode` == `Hblank`, so allowed).
     /// However, during `LcdTransfer` it's not allowed, nor is it allowed
@@ -266,7 +265,13 @@ impl PPU {
         self.request_stat_interrupt(interrupts);
     }
 
-    pub fn update_display_colours(&mut self, bg_palette: DisplayColour, sp0_palette: DisplayColour, sp1_palette: DisplayColour, emu_mode: GameBoyModel) {
+    pub fn update_display_colours(
+        &mut self,
+        bg_palette: DisplayColour,
+        sp0_palette: DisplayColour,
+        sp1_palette: DisplayColour,
+        emu_mode: GameBoyModel,
+    ) {
         // We don't want to overwrite CGB registers if we're actually running a CGB game.
         if emu_mode.is_dmg() {
             let (cgb_bg_palette, cgb_sprite_palette) = initialise_cgb_palette(bg_palette, sp0_palette, sp1_palette);
@@ -301,7 +306,10 @@ impl PPU {
 
         self.stat_irq_triggered = match self.get_current_mode() {
             HBlank => self.lcd_status.contains(LcdStatus::MODE_0_H_INTERRUPT),
-            VBlank if self.emulated_model.is_dmg() => self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT) || self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT),
+            VBlank if self.emulated_model.is_dmg() => {
+                self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT)
+                    || self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT)
+            }
             VBlank if self.emulated_model.is_cgb() => self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT),
             OamSearch => self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT),
             _ => false,

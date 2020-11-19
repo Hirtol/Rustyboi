@@ -153,7 +153,13 @@ impl Memory {
         let cartridge = Cartridge::new(rom_data, emu_opts.saved_ram);
         Memory {
             boot_rom: BootRom::new(emu_opts.boot_rom),
-            ppu: PPU::new(emu_opts.bg_display_colour, emu_opts.sp0_display_colour, emu_opts.sp1_display_colour, cartridge.cartridge_header().cgb_flag, emu_opts.emulator_mode),
+            ppu: PPU::new(
+                emu_opts.bg_display_colour,
+                emu_opts.sp0_display_colour,
+                emu_opts.sp1_display_colour,
+                cartridge.cartridge_header().cgb_flag,
+                emu_opts.emulator_mode,
+            ),
             cartridge,
             scheduler: Scheduler::new(),
             emulated_model: emu_opts.emulator_mode,
@@ -279,10 +285,13 @@ impl Memory {
             TIMER_MODULO => self.timers.set_tma(value),
             TIMER_CONTROL => self.timers.set_timer_control(value, &mut self.scheduler),
             INTERRUPTS_FLAG => self.interrupts.overwrite_if(value),
-            APU_MEM_START..=APU_MEM_END => {
-                self.apu
-                    .write_register(address, value, &mut self.scheduler, self.emulated_model, self.cgb_data.double_speed as u64)
-            }
+            APU_MEM_START..=APU_MEM_END => self.apu.write_register(
+                address,
+                value,
+                &mut self.scheduler,
+                self.emulated_model,
+                self.cgb_data.double_speed as u64,
+            ),
             WAVE_SAMPLE_START..=WAVE_SAMPLE_END => self.apu.write_wave_sample(address, value, &mut self.scheduler, self.cgb_data.double_speed as u64),
             DMA_TRANSFER => self.dma_transfer(value),
             CGB_PREPARE_SWITCH => self.cgb_data.write_prepare_switch(value),
@@ -392,8 +401,7 @@ impl Memory {
                 EventType::DMARequested => {
                     let address = (self.io_registers.read_byte(DMA_TRANSFER) as usize) << 8;
                     let shadow_oam = self.gather_shadow_oam(address);
-                    self.ppu
-                        .oam_dma_transfer(&shadow_oam, &mut self.scheduler);
+                    self.ppu.oam_dma_transfer(&shadow_oam, &mut self.scheduler);
                 }
                 EventType::DMATransferComplete => {
                     self.ppu.oam_dma_finished();

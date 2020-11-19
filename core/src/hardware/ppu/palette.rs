@@ -81,7 +81,7 @@ impl From<[RGB; 4]> for DisplayColour {
             white: colours[0],
             light_grey: colours[1],
             dark_grey: colours[2],
-            black: colours[3]
+            black: colours[3],
         }
     }
 }
@@ -101,13 +101,13 @@ impl Into<u8> for Palette {
     }
 }
 
-impl From<(u8,u8,u8)> for RGB {
+impl From<(u8, u8, u8)> for RGB {
     fn from(rgb_tuple: (u8, u8, u8)) -> Self {
         RGB(rgb_tuple.0, rgb_tuple.1, rgb_tuple.2)
     }
 }
 
-impl Into<(u8,u8,u8)> for RGB {
+impl Into<(u8, u8, u8)> for RGB {
     fn into(self) -> (u8, u8, u8) {
         (self.0, self.1, self.2)
     }

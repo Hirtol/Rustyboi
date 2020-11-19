@@ -3,8 +3,8 @@ use std::fmt;
 use bitflags::_core::fmt::{Debug, Formatter};
 
 use crate::hardware::cartridge::header::CartridgeHeader;
-use crate::hardware::cartridge::mbc::{MBC, MBC1State, ROM_BANK_SIZE, MBC5State, MBC3State};
-use crate::hardware::mmu::{INVALID_READ, EXTERNAL_RAM_START};
+use crate::hardware::cartridge::mbc::{MBC1State, MBC3State, MBC5State, MBC, ROM_BANK_SIZE};
+use crate::hardware::mmu::{EXTERNAL_RAM_START, INVALID_READ};
 
 pub mod header;
 pub mod mbc;
@@ -25,18 +25,28 @@ impl Cartridge {
     pub fn new(rom: &[u8], saved_ram: Option<Vec<u8>>) -> Self {
         let header = CartridgeHeader::new(rom);
         let (mbc, has_battery) = create_mbc(&header);
-        let mut ex_ram =  vec![INVALID_READ; header.ram_size.to_usize()];
+        let mut ex_ram = vec![INVALID_READ; header.ram_size.to_usize()];
 
         if let Some(mut ram) = saved_ram {
             if ram.len() < header.ram_size.to_usize() {
-                ram.extend_from_slice(&vec![INVALID_READ; header.ram_size.to_usize()-ram.len()]);
+                ram.extend_from_slice(&vec![INVALID_READ; header.ram_size.to_usize() - ram.len()]);
             }
             ex_ram = ram;
         }
-        
+
         log::info!("Loading ROM with header: {:#X?}", header);
 
-        Cartridge { header, has_battery, lower_bank_offset: 0, higher_bank_offset: 0x4000, ram_offset: 0, effective_rom_banks: rom.len() / ROM_BANK_SIZE, rom: rom.to_vec(), ram: ex_ram, mbc }
+        Cartridge {
+            header,
+            has_battery,
+            lower_bank_offset: 0,
+            higher_bank_offset: 0x4000,
+            ram_offset: 0,
+            effective_rom_banks: rom.len() / ROM_BANK_SIZE,
+            rom: rom.to_vec(),
+            ram: ex_ram,
+            mbc,
+        }
     }
 
     pub fn read_0000_3fff(&self, address: u16) -> u8 {
@@ -51,23 +61,15 @@ impl Cartridge {
     pub fn read_external_ram(&self, address: u16) -> u8 {
         let address = (address & 0x1FFF) as usize;
         match &self.mbc {
-            MBC::MBC0 if self.ram.len() > 0 => {
-                self.ram[address]
-            }
-            MBC::MBC1(state) if state.ram_enabled => {
-                self.ram[address | self.ram_offset]
-            }
-            MBC::MBC3(state) if state.ram_enabled => {
-                match state.ram_bank {
-                    0x0..=0x7 => self.ram[address + self.ram_offset],
-                    0x8..=0xC => state.read_rtc_register(),
-                    _ => unreachable!()
-                }
-            }
-            MBC::MBC5(state) if state.ram_enabled => {
-                self.ram[address + self.ram_offset]
-            }
-            _ => INVALID_READ
+            MBC::MBC0 if self.ram.len() > 0 => self.ram[address],
+            MBC::MBC1(state) if state.ram_enabled => self.ram[address | self.ram_offset],
+            MBC::MBC3(state) if state.ram_enabled => match state.ram_bank {
+                0x0..=0x7 => self.ram[address + self.ram_offset],
+                0x8..=0xC => state.read_rtc_register(),
+                _ => unreachable!(),
+            },
+            MBC::MBC5(state) if state.ram_enabled => self.ram[address + self.ram_offset],
+            _ => INVALID_READ,
         }
     }
 
@@ -80,13 +82,11 @@ impl Cartridge {
             MBC::MBC1(state) if state.ram_enabled => {
                 self.ram[address | self.ram_offset] = value;
             }
-            MBC::MBC3(state) if state.ram_enabled => {
-                match state.ram_bank {
-                    0x0..=0x7 => self.ram[address + self.ram_offset] = value,
-                    0x8..=0xC => state.write_rtc_register(value),
-                    _ => unreachable!()
-                }
-            }
+            MBC::MBC3(state) if state.ram_enabled => match state.ram_bank {
+                0x0..=0x7 => self.ram[address + self.ram_offset] = value,
+                0x8..=0xC => state.write_rtc_register(value),
+                _ => unreachable!(),
+            },
             MBC::MBC5(state) if state.ram_enabled => {
                 self.ram[address + self.ram_offset] = value;
             }
@@ -97,62 +97,56 @@ impl Cartridge {
     pub fn write_byte(&mut self, address: u16, value: u8) {
         match &mut self.mbc {
             MBC::MBC0 => {}
-            MBC::MBC1(state) => {
-                match address {
-                    0x0000..=0x1FFF => state.enable_ram(value),
-                    0x2000..=0x3FFF => {
-                        state.set_lower_rom_bank(value, self.effective_rom_banks);
-                        self.higher_bank_offset = state.get_7fff_offset();
-                    },
-                    0x4000..=0x5FFF => {
-                        state.set_higher_rom_bank(value, self.effective_rom_banks);
-                        self.lower_bank_offset = state.get_3fff_offset(self.effective_rom_banks);
-                        self.higher_bank_offset = state.get_7fff_offset();
-                        self.ram_offset = state.get_ram_offset(self.ram.len());
-                    },
-                    0x6000..=0x7FFF => {
-                        state.set_bank_mode_select(value);
-                        self.lower_bank_offset = state.get_3fff_offset(self.effective_rom_banks);
-                        self.ram_offset = state.get_ram_offset(self.ram.len());
-                    },
-                    _ => {},
+            MBC::MBC1(state) => match address {
+                0x0000..=0x1FFF => state.enable_ram(value),
+                0x2000..=0x3FFF => {
+                    state.set_lower_rom_bank(value, self.effective_rom_banks);
+                    self.higher_bank_offset = state.get_7fff_offset();
                 }
-            }
-            MBC::MBC3(state) => {
-                match address {
-                    0x0000..=0x1FFF => state.enable_ram(value),
-                    0x2000..=0x3FFF => {
-                        state.write_lower_rom_bank(value, self.effective_rom_banks);
-                        self.higher_bank_offset = state.get_7fff_offset();
-                    },
-                    0x4000..=0x5FFF => {
-                        state.write_ram_bank(value);
-                        self.ram_offset = state.get_ram_offset();
-                    },
-                    0x6000..=0x7FFF => {
-                        state.write_latch_data(value);
-                    }
-                    _ => {},
+                0x4000..=0x5FFF => {
+                    state.set_higher_rom_bank(value, self.effective_rom_banks);
+                    self.lower_bank_offset = state.get_3fff_offset(self.effective_rom_banks);
+                    self.higher_bank_offset = state.get_7fff_offset();
+                    self.ram_offset = state.get_ram_offset(self.ram.len());
                 }
-            }
-            MBC::MBC5(state) => {
-                match address {
-                    0x0000..=0x1FFF => state.enable_ram(value),
-                    0x2000..=0x2FFF => {
-                        state.write_lower_rom_bank(value, self.effective_rom_banks);
-                        self.higher_bank_offset = state.get_7fff_offset();
-                    },
-                    0x3000..=0x3FFF => {
-                        state.write_higher_rom_bank(value, self.effective_rom_banks);
-                        self.higher_bank_offset = state.get_7fff_offset();
-                    },
-                    0x4000..=0x5FFF => {
-                        state.write_ram_bank(value);
-                        self.ram_offset = state.get_ram_offset();
-                    },
-                    _ => {},
+                0x6000..=0x7FFF => {
+                    state.set_bank_mode_select(value);
+                    self.lower_bank_offset = state.get_3fff_offset(self.effective_rom_banks);
+                    self.ram_offset = state.get_ram_offset(self.ram.len());
                 }
-            }
+                _ => {}
+            },
+            MBC::MBC3(state) => match address {
+                0x0000..=0x1FFF => state.enable_ram(value),
+                0x2000..=0x3FFF => {
+                    state.write_lower_rom_bank(value, self.effective_rom_banks);
+                    self.higher_bank_offset = state.get_7fff_offset();
+                }
+                0x4000..=0x5FFF => {
+                    state.write_ram_bank(value);
+                    self.ram_offset = state.get_ram_offset();
+                }
+                0x6000..=0x7FFF => {
+                    state.write_latch_data(value);
+                }
+                _ => {}
+            },
+            MBC::MBC5(state) => match address {
+                0x0000..=0x1FFF => state.enable_ram(value),
+                0x2000..=0x2FFF => {
+                    state.write_lower_rom_bank(value, self.effective_rom_banks);
+                    self.higher_bank_offset = state.get_7fff_offset();
+                }
+                0x3000..=0x3FFF => {
+                    state.write_higher_rom_bank(value, self.effective_rom_banks);
+                    self.higher_bank_offset = state.get_7fff_offset();
+                }
+                0x4000..=0x5FFF => {
+                    state.write_ram_bank(value);
+                    self.ram_offset = state.get_ram_offset();
+                }
+                _ => {}
+            },
             _ => {}
         }
     }
@@ -182,10 +176,8 @@ impl Debug for Cartridge {
 fn create_mbc(header: &CartridgeHeader) -> (MBC, bool) {
     use MBC::*;
     let has_battery = match header.cartridge_type {
-        0x3 | 0x6 | 0x9 | 0xD | 0xF
-        | 0x10 | 0x13 | 0x1B | 0x1E
-        | 0x22 | 0xFF => true,
-        _ => false
+        0x3 | 0x6 | 0x9 | 0xD | 0xF | 0x10 | 0x13 | 0x1B | 0x1E | 0x22 | 0xFF => true,
+        _ => false,
     };
     let mbc = match header.cartridge_type {
         0x0 => MBC0,

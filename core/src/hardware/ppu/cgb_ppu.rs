@@ -220,7 +220,15 @@ impl PPU {
 
     /// Draw a tile in a way appropriate for both the window, as well as the background.
     /// `pixels_to_skip` will skip pixels so long as it's greater than 0
-    fn draw_cgb_background_window_line(&mut self, pixel_counter: &mut i16, pixels_to_skip: &mut u8, mut tile_address: usize, tile_relative_address: usize, tile_line_y: usize, tile_attributes: CgbTileAttribute) {
+    fn draw_cgb_background_window_line(
+        &mut self,
+        pixel_counter: &mut i16,
+        pixels_to_skip: &mut u8,
+        mut tile_address: usize,
+        tile_relative_address: usize,
+        tile_line_y: usize,
+        tile_attributes: CgbTileAttribute,
+    ) {
         // If we've selected the 8800-97FF mode we need to add a 256 offset, and then
         // add/subtract the relative address. (since we can then reach tiles 128-384)
         if !self.lcd_control.contains(LcdControl::BG_WINDOW_TILE_SELECT) {
@@ -281,7 +289,8 @@ impl PPU {
     fn draw_cgb_contiguous_bg_window_block(
         &mut self,
         pixel_counter: usize,
-        tile_address: usize, tile_line_y: usize,
+        tile_address: usize,
+        tile_line_y: usize,
         tile_attributes: CgbTileAttribute,
     ) {
         let tile = &self.tiles[tile_address];

@@ -3,16 +3,16 @@ use std::time::Instant;
 
 use sdl2::mouse::MouseState;
 use sdl2::render::{Canvas, Texture};
-use sdl2::video::{GLContext, GLProfile, Window, WindowPos, FullscreenType, SwapInterval};
+use sdl2::video::{FullscreenType, GLContext, GLProfile, SwapInterval, Window, WindowPos};
 use sdl2::{EventPump, VideoSubsystem};
 
 use rustyboi_core::hardware::ppu::palette::RGB;
 use rustyboi_core::hardware::ppu::{FRAMEBUFFER_SIZE, RESOLUTION_WIDTH};
 
-use crate::rendering::immediate::ImmediateGui;
-use sdl::{setup_sdl, transmute_framebuffer};
-use rustyboi::storage::FileStorage;
 use crate::communication::DebugMessage;
+use crate::rendering::immediate::ImmediateGui;
+use rustyboi::storage::FileStorage;
+use sdl::{setup_sdl, transmute_framebuffer};
 
 pub mod imgui;
 pub mod immediate;
@@ -90,7 +90,7 @@ where
             // only render at ~3/4ths of whatever refresh rate the monitor has due to our inconsistent
             // main loop time.
             if self.last_immediate_frame.elapsed().as_secs_f64()
-                >= 1.0 / (window.display_mode().unwrap().refresh_rate+10) as f64
+                >= 1.0 / (window.display_mode().unwrap().refresh_rate + 10) as f64
                 && window_flags & sdl2::sys::SDL_WindowFlags::SDL_WINDOW_HIDDEN as u32 != 1
             {
                 let delta_s = self.last_immediate_frame.elapsed().as_secs_f32();
@@ -108,7 +108,7 @@ where
 
                 window.gl_swap_window();
 
-                return Some(gui.query_emulator())
+                return Some(gui.query_emulator());
             }
         }
 

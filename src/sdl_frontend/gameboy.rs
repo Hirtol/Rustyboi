@@ -5,10 +5,10 @@ use std::thread::JoinHandle;
 use crossbeam::channel::*;
 
 use rustyboi::actions::{create_emulator, save_rom};
-use rustyboi_core::{EmulatorOptions, InputKey};
 use rustyboi_core::emulator::Emulator;
-use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
 use rustyboi_core::hardware::ppu::palette::RGB;
+use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
+use rustyboi_core::{EmulatorOptions, InputKey};
 
 use crate::communication::{DebugMessage, EmulatorNotification, EmulatorResponse};
 
@@ -25,13 +25,12 @@ impl GameboyRunner {
         let (request_sender, request_receiver) = unbounded::<EmulatorNotification>();
         let (response_sender, response_receiver) = unbounded::<EmulatorResponse>();
         let title = rom_path.as_ref().to_str().unwrap().to_string();
-        let emulator_thread =
-            std::thread::spawn(move || {
-                // Has to be allocated on this separate stack or else we get a stack overflow :D
-                let mut emulator = create_emulator(title, options);
-                run_emulator(&mut emulator, frame_sender, response_sender, request_receiver);
-                save_rom(&emulator);
-            });
+        let emulator_thread = std::thread::spawn(move || {
+            // Has to be allocated on this separate stack or else we get a stack overflow :D
+            let mut emulator = create_emulator(title, options);
+            run_emulator(&mut emulator, frame_sender, response_sender, request_receiver);
+            save_rom(&emulator);
+        });
         GameboyRunner {
             current_thread: Some(emulator_thread),
             frame_receiver,
@@ -103,12 +102,16 @@ fn run_emulator(
                     if !handle_debug_request(request, emulator, &response_sender) {
                         break 'emu_loop;
                     }
-                },
+                }
                 EmulatorNotification::ExitRequest => {
                     break 'emu_loop;
                 }
                 EmulatorNotification::ChangeDisplayColour(new_palette) => {
-                    emulator.set_dmg_display_colour(new_palette.dmg_bg_colour.into(), new_palette.dmg_sprite_colour_0.into(), new_palette.dmg_sprite_colour_1.into());
+                    emulator.set_dmg_display_colour(
+                        new_palette.dmg_bg_colour.into(),
+                        new_palette.dmg_sprite_colour_0.into(),
+                        new_palette.dmg_sprite_colour_1.into(),
+                    );
                 }
             }
         }
@@ -119,8 +122,11 @@ fn run_emulator(
     }
 }
 
-fn handle_debug_request(request: DebugMessage, emulator: &mut Emulator,
-                        response_sender: &Sender<EmulatorResponse>) -> bool {
+fn handle_debug_request(
+    request: DebugMessage,
+    emulator: &mut Emulator,
+    response_sender: &Sender<EmulatorResponse>,
+) -> bool {
     let response;
     match request {
         DebugMessage::Palette(_) => {

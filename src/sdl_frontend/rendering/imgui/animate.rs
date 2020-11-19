@@ -1,7 +1,7 @@
-use imgui::Ui;
-use std::time::Duration;
-use std::fmt::Debug;
 use crate::rendering::imgui::animate::formulas::TimeStepFormula;
+use imgui::Ui;
+use std::fmt::Debug;
+use std::time::Duration;
 
 #[derive(Copy, Clone, Debug, Default)]
 pub struct FadeAnimation<T: TimeStepFormula> {
@@ -42,7 +42,7 @@ impl<T: TimeStepFormula> FadeAnimation<T> {
 
     /// Reset the fade, but cut the animation duration in half.
     pub fn partial_reset(&mut self, ui: &Ui) {
-         self.reset(ui);
+        self.reset(ui);
         self.remaining_duration = self.duration / 2.0;
     }
 

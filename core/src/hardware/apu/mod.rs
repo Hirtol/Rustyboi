@@ -68,7 +68,7 @@ impl APU {
             global_sound_enable: true,
             frame_sequencer_step: 0,
             last_synchronise_time: 0,
-            last_frame_sequence_tick: 0
+            last_frame_sequence_tick: 0,
         }
     }
 
@@ -86,7 +86,10 @@ impl APU {
         self.tick_frame_sequencer(scheduler, speed_multiplier);
 
         let delta = (scheduler.current_time - self.last_synchronise_time) >> speed_multiplier;
-        let (mut samples, remainder) = (delta / self.audio_output.cycles_per_sample, delta % self.audio_output.cycles_per_sample);
+        let (mut samples, remainder) = (
+            delta / self.audio_output.cycles_per_sample,
+            delta % self.audio_output.cycles_per_sample,
+        );
 
         self.last_synchronise_time = scheduler.current_time;
         // We need to keep track of how many cycles we have left to get to the next sample via remainder
@@ -112,7 +115,13 @@ impl APU {
         }
 
         #[cfg(feature = "apu-logging")]
-        log::debug!("Voice 3, remaining timer: {} - cycles: {} - scheduler time: {} - load value: {}", self.voice3.timer, self.voice3.cycles_done, scheduler.current_time, self.voice3.timer_load_value);
+        log::debug!(
+            "Voice 3, remaining timer: {} - cycles: {} - scheduler time: {} - load value: {}",
+            self.voice3.timer,
+            self.voice3.cycles_done,
+            scheduler.current_time,
+            self.voice3.timer_load_value
+        );
     }
 
     /// Ticks, if it is required, the frame sequencer.
@@ -213,7 +222,14 @@ impl APU {
         }
     }
 
-    pub fn write_register(&mut self, address: u16, value: u8, scheduler: &mut Scheduler, model: GameBoyModel, speed_multiplier: u64) {
+    pub fn write_register(
+        &mut self,
+        address: u16,
+        value: u8,
+        scheduler: &mut Scheduler,
+        model: GameBoyModel,
+        speed_multiplier: u64,
+    ) {
         self.synchronise(scheduler, speed_multiplier);
         #[cfg(feature = "apu-logging")]
         log::trace!("APU Write on address: {:#X} with value: {:#X}", address, value);
@@ -280,7 +296,7 @@ impl APU {
         self.voice3.write_register(address & 0xFF, value, self.frame_sequencer_step)
     }
 
-    fn generate_audio(&mut self, voice_enables: [bool; 4], final_volume: f32) -> f32{
+    fn generate_audio(&mut self, voice_enables: [bool; 4], final_volume: f32) -> f32 {
         let mut result = 0f32;
         // Voice 1 (Square wave)
         if voice_enables[0] {
@@ -341,7 +357,7 @@ pub struct AudioOutput {
     remainder_cycles_sample: u64,
     cycles_per_sample: u64,
     highpass_rate: f32,
-    highpass_diff: (f32, f32)
+    highpass_diff: (f32, f32),
 }
 
 impl Default for AudioOutput {
@@ -350,7 +366,7 @@ impl Default for AudioOutput {
             remainder_cycles_sample: 0,
             cycles_per_sample: SAMPLE_CYCLES,
             highpass_rate: get_highpass_rate(SAMPLE_CYCLES),
-            highpass_diff: (0.0, 0.0)
+            highpass_diff: (0.0, 0.0),
         }
     }
 }
@@ -360,8 +376,11 @@ impl AudioOutput {
     pub fn apply_highpass_filter(&mut self, left_in: f32, right_in: f32) -> (f32, f32) {
         // Credits to SameBoy since I looked at their implementation for this.
         let (high_left, high_right) = self.highpass_diff;
-        let (filt_left, filt_right) = (left_in - high_left , right_in - high_right);
-        self.highpass_diff = (left_in - (filt_left * self.highpass_rate), right_in - (filt_right * self.highpass_rate));
+        let (filt_left, filt_right) = (left_in - high_left, right_in - high_right);
+        self.highpass_diff = (
+            left_in - (filt_left * self.highpass_rate),
+            right_in - (filt_right * self.highpass_rate),
+        );
         (filt_left, filt_right)
     }
 

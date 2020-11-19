@@ -100,7 +100,7 @@ impl Default for MBC3State {
             ram_enabled: false,
             rom_bank: 1,
             ram_bank: 0,
-            rtc_registers: RTCRegisters::default()
+            rtc_registers: RTCRegisters::default(),
         }
     }
 }
@@ -184,7 +184,7 @@ impl RTCRegisters {
             0xA => self.hours,
             0xB => self.day_counter_lower,
             0xC => self.day_counter_upper,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -197,7 +197,7 @@ impl RTCRegisters {
             0xA => self.hours = value,
             0xB => self.day_counter_lower = value,
             0xC => self.day_counter_upper = value,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -212,7 +212,6 @@ impl RTCRegisters {
     fn day_overflow(&self) -> bool {
         (self.day_counter_upper & 0b1000_0000) != 0
     }
-
 }
 
 #[derive(Debug, Clone)]
@@ -234,7 +233,7 @@ impl Default for MBC5State {
 
 impl MBC5State {
     pub fn get_3fff_offset(&self) -> usize {
-            0
+        0
     }
 
     pub fn get_7fff_offset(&self) -> usize {
