@@ -144,6 +144,7 @@ pub struct PPU {
     /// Whether to use the CGB scanline renderer
     cgb_rendering: bool,
     emulated_model: GameBoyModel,
+    latest_access: u64,
 }
 
 impl PPU {
@@ -195,6 +196,7 @@ impl PPU {
             stat_irq_triggered: false,
             cgb_rendering,
             emulated_model: gb_model,
+            latest_access: 0
         }
     }
 

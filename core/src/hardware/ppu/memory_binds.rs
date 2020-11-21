@@ -39,6 +39,10 @@ impl PPU {
 
     #[inline]
     pub fn write_vram(&mut self, address: u16, value: u8, scheduler: &mut Scheduler, interrupts: &mut Interrupts) {
+        // if address != LY_REGISTER && address != LYC_REGISTER {
+        //      log::warn!("Writing {:4X}, latest access: {}", address, scheduler.current_time - self.latest_access);
+        //      self.latest_access = scheduler.current_time;
+        // }
         match address {
             TILE_BLOCK_0_START..=TILE_BLOCK_2_END if self.can_access_vram() => self.set_tile_byte(address, value),
             TILEMAP_9800_START..=TILEMAP_9C00_END if self.can_access_vram() => self.set_tilemap_byte(address, value),

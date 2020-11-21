@@ -16,7 +16,7 @@ use audio::AudioPlayer;
 use rustyboi::storage::{FileStorage, Storage};
 use rustyboi_core::{EmulatorOptionsBuilder, InputKey};
 
-use rustyboi_core::emulator::GameBoyModel::CGB;
+use rustyboi_core::emulator::GameBoyModel::{CGB, DMG};
 
 use rustyboi_core::hardware::ppu::palette::{DisplayColour, RGB};
 use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
@@ -101,7 +101,7 @@ fn main() {
 
     let cartridge = "roms/Zelda.gb";
     let _yellow = "roms/Prehistorik Man (U).gb";
-    let _cpu_test = "test roms/auto-run/mooneye/tests/acceptance/ppu/stat_lyc_onoff.gb";
+    let _cpu_test = "test roms/auto-run/mooneye/tests/misc/ppu/vblank_stat_intr-C.gb";
     let _cpu_test2 = "test roms/auto-run/hdma_timing-C.gbc";
 
     //Things to do:
@@ -111,7 +111,7 @@ fn main() {
     let mut timer = sdl_context.timer().unwrap();
     let emu_opts = EmulatorOptionsBuilder::new()
         //.boot_rom(Some(bootrom_file_cgb))
-        .with_mode(CGB)
+        .with_mode(DMG)
         .with_display_colour(KIRBY_DISPLAY_COLOURS)
         .build();
 
