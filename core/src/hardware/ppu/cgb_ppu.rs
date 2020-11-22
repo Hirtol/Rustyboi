@@ -29,11 +29,6 @@ impl PPU {
         if self.lcd_control.contains(LcdControl::SPRITE_DISPLAY_ENABLE) {
             self.draw_cgb_sprite_scanline();
         }
-
-        let current_address: usize = self.current_y as usize * RESOLUTION_WIDTH;
-
-        // Copy the value of the current scanline to the framebuffer.
-        self.frame_buffer[current_address..current_address + RESOLUTION_WIDTH].copy_from_slice(&self.scanline_buffer);
     }
 
     fn draw_cgb_bg_scanline(&mut self) {
