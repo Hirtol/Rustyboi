@@ -1,6 +1,6 @@
 use crate::hardware::mmu::cgb_mem::HdmaMode::HDMA;
 use crate::hardware::mmu::{Memory, MemoryMapper};
-use crate::hardware::ppu::DMA_TRANSFER;
+use crate::hardware::ppu::memory_binds::DMA_TRANSFER;
 use crate::scheduler::EventType::{DMARequested, DMATransferComplete};
 
 impl Memory {

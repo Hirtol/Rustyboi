@@ -17,7 +17,7 @@ use crate::hardware::mmu::cgb_mem::HdmaMode::HDMA;
 use crate::hardware::mmu::cgb_mem::{CgbSpeedData, HdmaRegister};
 use crate::hardware::mmu::wram::Wram;
 use crate::hardware::ppu::tiledata::*;
-use crate::hardware::ppu::{DMA_TRANSFER, PPU};
+use crate::hardware::ppu::{PPU};
 use crate::io::bootrom::BootRom;
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::io::io_registers::*;
@@ -26,6 +26,8 @@ use crate::io::timer::*;
 use crate::scheduler::EventType::{DMARequested, DMATransferComplete};
 use crate::scheduler::{Event, EventType, Scheduler};
 use crate::EmulatorOptions;
+use crate::hardware::ppu::timing::{OAM_SEARCH_DURATION, SCANLINE_DURATION};
+use crate::hardware::ppu::memory_binds::DMA_TRANSFER;
 
 pub mod cgb_mem;
 mod dma;
@@ -349,7 +351,7 @@ impl Memory {
                 EventType::VBLANK => {
                     self.ppu.vblank(&mut self.interrupts);
                     self.scheduler
-                        .push_full_event(event.update_self(EventType::VblankWait, 456 << self.get_speed_shift()));
+                        .push_full_event(event.update_self(EventType::VblankWait, SCANLINE_DURATION << self.get_speed_shift()));
                     vblank_occurred = true;
                     // Used for APU syncing.
                     self.synchronise_state_for_vblank();
@@ -357,7 +359,7 @@ impl Memory {
                 EventType::OamSearch => {
                     self.ppu.oam_search(&mut self.interrupts);
                     self.scheduler
-                        .push_full_event(event.update_self(EventType::LcdTransfer, 80 << self.get_speed_shift()));
+                        .push_full_event(event.update_self(EventType::LcdTransfer, OAM_SEARCH_DURATION << self.get_speed_shift()));
                 }
                 EventType::LcdTransfer => {
                     self.ppu.lcd_transfer(&self.scheduler);
@@ -384,10 +386,10 @@ impl Memory {
 
                     if self.ppu.current_y != 153 {
                         self.scheduler
-                            .push_full_event(event.update_self(EventType::VblankWait, 456 << self.get_speed_shift()));
+                            .push_full_event(event.update_self(EventType::VblankWait, SCANLINE_DURATION << self.get_speed_shift()));
                     } else {
                         self.scheduler
-                            .push_full_event(event.update_self(EventType::OamSearch, 456 << self.get_speed_shift()));
+                            .push_full_event(event.update_self(EventType::OamSearch, SCANLINE_DURATION << self.get_speed_shift()));
                         self.scheduler.push_relative(EventType::Y153TickToZero, 4);
                     }
                 }

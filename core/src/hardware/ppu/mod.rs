@@ -15,75 +15,6 @@ pub const RESOLUTION_HEIGHT: usize = 144;
 pub const RGB_CHANNELS: usize = 3;
 pub const FRAMEBUFFER_SIZE: usize = RESOLUTION_HEIGHT * RESOLUTION_WIDTH;
 
-pub const LCD_CONTROL_REGISTER: u16 = 0xFF40;
-pub const LCD_STATUS_REGISTER: u16 = 0xFF41;
-/// Specifies the position in the 256x256 pixels BG map (32x32 tiles)
-/// which is to be displayed at the upper/left LCD display position.
-/// Values in range from 0-255 may be used for X/Y each,
-/// the video controller automatically wraps back to the upper (left)
-/// position in BG map when drawing exceeds the lower (right) border of the BG map area.
-pub const SCY_REGISTER: u16 = 0xFF42;
-pub const SCX_REGISTER: u16 = 0xFF43;
-/// LCDC Y-Coordinate (R)
-/// The LY indicates the vertical line to which the present data is transferred to the LCD Driver.
-/// The LY can take on any value between 0 through 153.
-/// The values between 144 and 153 indicate the V-Blank period.
-pub const LY_REGISTER: u16 = 0xFF44;
-/// LYC - LY Compare (R/W)
-/// The Game Boy permanently compares the value of the LYC and LY registers.
-/// When both values are identical, the coincident bit in the STAT register becomes set,
-/// and (if enabled) a STAT interrupt is requested.
-pub const LYC_REGISTER: u16 = 0xFF45;
-/// Window Y Position (R/W)
-///
-/// Specifies the upper/left positions of the Window area.
-/// (The window is an alternate background area which can be displayed above of the normal background.
-/// Sprites may be still displayed above or behind the window, just as for normal BG.)
-///
-/// The window becomes visible (if enabled) when positions are set in range WX=0..166, WY=0..143.
-/// A position of WX=7, WY=0 locates the window at upper left,
-/// it is then completely covering normal background.
-pub const WY_REGISTER: u16 = 0xFF4A;
-/// Window X Position minus 7 (R/W)
-pub const WX_REGISTER: u16 = 0xFF4B;
-/// BG Palette Data (R/W) - Non CGB Mode Only
-/// This register assigns gray shades to the color numbers of the BG and Window tiles.
-/// In CGB Mode the Color Palettes are taken from CGB Palette Memory instead.
-pub const BG_PALETTE: u16 = 0xFF47;
-/// Object Palette 0 Data (R/W) - Non CGB Mode Only.
-/// This register assigns gray shades for sprite palette 0.
-/// It works exactly as BGP (FF47), except that the lower
-/// two bits aren't used because sprite data 00 is transparent.
-pub const OB_PALETTE_0: u16 = 0xFF48;
-/// Object Palette 1 Data (R/W) - Non CGB Mode Only.
-///
-/// Same as [OB_PALETTE_0](const.OB_PALETTE_0.html)
-pub const OB_PALETTE_1: u16 = 0xFF49;
-pub const CGB_VRAM_BANK_REGISTER: u16 = 0xFF4F;
-/// DMA Transfer and Start Address (R/W).
-/// Writing to this register launches a DMA transfer from ROM or RAM to OAM memory (sprite attribute table).
-/// The written value specifies the transfer source address divided by 100h, ie. source & destination are:
-///
-/// ```text
-/// Source:      XX00-XX9F   ;XX in range from 00-F1h
-/// Destination: FE00-FE9F
-/// ```
-/// The transfer takes 160 machine cycles.
-pub const DMA_TRANSFER: u16 = 0xFF46;
-/// This register is used to address a byte in the CGBs Background Palette Memory.
-/// Each two byte in that memory define a color value. The first 8 bytes define Color 0-3 of Palette 0 (BGP0), and so on for BGP1-7.
-pub const CGB_BACKGROUND_COLOR_INDEX: u16 = 0xFF68;
-/// his register allows to read/write data to the CGBs Background Palette Memory, addressed through Register FF68.
-/// Each color is defined by two bytes (Bit 0-7 in first byte).
-pub const CGB_BACKGROUND_PALETTE_DATA: u16 = 0xFF69;
-/// These registers are used to initialize the Sprite Palettes OBP0-7
-pub const CGB_SPRITE_COLOR_INDEX: u16 = 0xFF6A;
-pub const CGB_OBJECT_PALETTE_DATA: u16 = 0xFF6B;
-///This register serves as a flag for which object priority mode to use. While the DMG prioritizes
-///objects by x-coordinate, the CGB prioritizes them by location in OAM.
-/// This flag is set by the CGB bios after checking the game's CGB compatibility.
-pub const CGB_OBJECT_PRIORITY_MODE: u16 = 0xFF6C;
-
 pub mod cgb_ppu;
 pub mod cgb_vram;
 pub mod debugging_features;
@@ -92,6 +23,7 @@ pub mod memory_binds;
 pub mod palette;
 pub mod register_flags;
 pub mod tiledata;
+pub mod timing;
 
 #[derive(Debug, PartialOrd, PartialEq, Copy, Clone)]
 pub enum Mode {
@@ -203,18 +135,6 @@ impl PPU {
         }
     }
 
-    #[inline]
-    pub fn get_lcd_transfer_duration(&mut self) -> u64 {
-        self.current_lcd_transfer_duration = self.calculate_lcd_transfer_duration();
-        self.current_lcd_transfer_duration
-    }
-
-    #[inline]
-    pub fn get_hblank_duration(&self) -> u64 {
-        // Hblank lasts at most 204 cycles.
-        376 - self.current_lcd_transfer_duration
-    }
-
     pub fn oam_search(&mut self, interrupts: &mut Interrupts) {
         // After V-Blank we don't want to trigger the interrupt immediately.
         if self.lcd_status.mode_flag() != VBlank {
@@ -281,7 +201,6 @@ impl PPU {
     #[inline]
     fn push_current_scanline_to_framebuffer(&mut self) {
         let current_address: usize = self.current_y as usize * RESOLUTION_WIDTH;
-
         // Copy the value of the current scanline to the framebuffer.
         self.frame_buffer[current_address..current_address + RESOLUTION_WIDTH].copy_from_slice(&self.scanline_buffer);
     }
@@ -596,45 +515,6 @@ impl PPU {
 
     pub fn frame_buffer(&self) -> &[RGB; FRAMEBUFFER_SIZE] {
         &self.frame_buffer
-    }
-
-    /// Roughly calculates the expected duration of LCD transfer (mode 3)
-    /// This is not entirely accurate yet, as I'm not sure about the sprite timings.
-    #[inline]
-    fn calculate_lcd_transfer_duration(&self) -> u64 {
-        // All cycles mentioned here are t-cycles
-        let mut base_cycles = 172;
-        // If we need to skip a few initial pixels this scanline.
-        base_cycles += (self.scroll_x % 8) as u64;
-
-        // If there's an active window the fifo pauses for *at least* 6 cycles.
-        if self.window_triggered && self.window_x < 168 && self.lcd_control.contains(LcdControl::WINDOW_DISPLAY) {
-            base_cycles += 6;
-        }
-
-        let tall_sprites = self.lcd_control.contains(LcdControl::SPRITE_SIZE);
-        let y_size: u8 = if tall_sprites { 16 } else { 8 };
-        // Every sprite will *usually* pause for `11 - min(5, (x + SCX) mod 8)` cycles.
-        // If drawn over the window will use 255 - WX instead of SCX.
-        base_cycles += self.oam.iter()
-            .filter(|sprite| {
-                let screen_y_pos = sprite.y_pos as i16 - 16;
-                is_sprite_on_scanline(self.current_y as i16, screen_y_pos, y_size as i16)
-            })
-            .take(10) // Max 10 sprites per scanline
-            .map(|s| {
-                let to_add = if self.window_triggered && self.window_x >= s.x_pos {
-                    255 - self.window_x
-                } else {
-                    self.scroll_x
-                };
-
-                11 - core::cmp::min(5, (s.x_pos + to_add) % 8)
-            })
-            .sum::<u8>() as u64;
-
-        //log::warn!("Calculated lcd duration: {} t-cycles", base_cycles);
-        base_cycles
     }
 }
 
