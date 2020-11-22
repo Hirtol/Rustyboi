@@ -362,7 +362,7 @@ impl Memory {
                 EventType::LcdTransfer => {
                     self.ppu.lcd_transfer();
                     self.scheduler
-                        .push_full_event(event.update_self(EventType::HBLANK, self.ppu.calculate_lcd_transfer_duration() << self.get_speed_shift()));
+                        .push_full_event(event.update_self(EventType::HBLANK, self.ppu.get_lcd_transfer_duration() << self.get_speed_shift()));
                 }
                 EventType::HBLANK => {
                     self.ppu.hblank(&mut self.interrupts);
@@ -370,10 +370,10 @@ impl Memory {
                     // First 144 lines
                     if self.ppu.current_y != 143 {
                         self.scheduler
-                            .push_full_event(event.update_self(EventType::OamSearch, (376 - self.ppu.calculate_lcd_transfer_duration()) << self.get_speed_shift()));
+                            .push_full_event(event.update_self(EventType::OamSearch, self.ppu.get_hblank_duration() << self.get_speed_shift()));
                     } else {
                         self.scheduler
-                            .push_full_event(event.update_self(EventType::VBLANK, (376 - self.ppu.calculate_lcd_transfer_duration()) << self.get_speed_shift()));
+                            .push_full_event(event.update_self(EventType::VBLANK, self.ppu.get_hblank_duration() << self.get_speed_shift()));
                     }
 
                     // HDMA transfers 16 bytes every HBLANK

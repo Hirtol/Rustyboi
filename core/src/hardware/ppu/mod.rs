@@ -144,7 +144,9 @@ pub struct PPU {
     /// Whether to use the CGB scanline renderer
     cgb_rendering: bool,
     emulated_model: GameBoyModel,
+    /// Advanced timing and synchronisation.
     latest_access: u64,
+    current_lcd_transfer_duration: u64,
 }
 
 impl PPU {
@@ -196,7 +198,8 @@ impl PPU {
             stat_irq_triggered: false,
             cgb_rendering,
             emulated_model: gb_model,
-            latest_access: 0
+            latest_access: 0,
+            current_lcd_transfer_duration: 0
         }
     }
 
@@ -213,7 +216,19 @@ impl PPU {
     }
 
     #[inline]
-    pub fn calculate_lcd_transfer_duration(&self) -> u64 {
+    pub fn get_lcd_transfer_duration(&mut self) -> u64 {
+        self.current_lcd_transfer_duration = self.calculate_lcd_transfer_duration();
+        self.current_lcd_transfer_duration
+    }
+
+    #[inline]
+    pub fn get_hblank_duration(&self) -> u64 {
+        // Hblank lasts at most 204 cycles.
+        376 - self.current_lcd_transfer_duration
+    }
+
+    #[inline]
+    fn calculate_lcd_transfer_duration(&self) -> u64 {
         // All cycles mentioned here are t-cycles
         let mut base_cycles = 172;
         // If we need to skip a few initial pixels this scanline.
