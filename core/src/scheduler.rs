@@ -112,16 +112,21 @@ impl Scheduler {
         self.event_queue.push(event);
     }
 
+    /// Update a specific event type to be scheduled at `current_time + relative_timestamp`
+    /// instead of whatever time it had before.
+    ///
+    /// Currently VERY inefficient due to lacking binary heap implementation
+    pub fn update_event_type(&mut self, event_type: EventType, relative_timestamp: u64) {
+        self.remove_event_type(event_type);
+        self.push_relative(event_type, relative_timestamp);
+    }
+
     pub fn remove_event_type(&mut self, event_type: EventType) {
         // Very inefficient way of doing this, but until we start needing to do more dynamic
         // removal of events it doesn't really matter.
-        self.event_queue = BinaryHeap::from_vec(
-            self.event_queue
-                .iter()
-                .filter(|e| e.event_type != event_type)
-                .map(|e| *e)
-                .collect(),
-        );
+        let mut current_vec = std::mem::replace(&mut self.event_queue, BinaryHeap::new_min()).into_vec();
+        current_vec.retain(|e| e.event_type != event_type);
+        self.event_queue = BinaryHeap::from_vec(current_vec);
     }
 
     #[inline]

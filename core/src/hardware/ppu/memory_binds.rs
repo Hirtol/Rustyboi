@@ -9,6 +9,10 @@ use crate::scheduler::EventType::{DMATransferComplete, HBLANK, VBLANK};
 use super::*;
 
 impl PPU {
+    pub fn synchronise(&mut self, scheduler: &mut Scheduler) {
+        unimplemented!()
+    }
+
     #[inline]
     pub fn read_vram(&self, address: u16) -> u8 {
         match address {
@@ -50,8 +54,8 @@ impl PPU {
             // *** I/O Registers ***
             LCD_CONTROL_REGISTER => self.set_lcd_control(value, scheduler, interrupts),
             LCD_STATUS_REGISTER => self.set_lcd_status(value, interrupts),
-            SCY_REGISTER => self.scroll_y = value,
-            SCX_REGISTER => self.scroll_x = value,
+            SCY_REGISTER => self.scroll_y = value, // No effect on current drawing scanline (if done mid scanline)
+            SCX_REGISTER => self.scroll_x = value, // No effect on current drawing scanline (if done mid scanline)
             LY_REGISTER => log::debug!("ROM tried to write to LY with value: {}", value),
             LYC_REGISTER => {
                 self.lyc_compare = value;
@@ -63,8 +67,8 @@ impl PPU {
             BG_PALETTE => self.set_bg_palette(value),
             OB_PALETTE_0 => self.set_oam_palette_0(value),
             OB_PALETTE_1 => self.set_oam_palette_1(value),
-            WY_REGISTER => self.window_y = value,
-            WX_REGISTER => self.window_x = value,
+            WY_REGISTER => self.window_y = value, // No effect on current drawing scanline (if done mid scanline)
+            WX_REGISTER => self.window_x = value, // No effect on current drawing scanline (if done mid scanline)
             CGB_VRAM_BANK_REGISTER => self.tile_bank_currently_used = value & 0x1,
             CGB_BACKGROUND_COLOR_INDEX => self.cgb_bg_palette_ind.set_value(value),
             CGB_BACKGROUND_PALETTE_DATA if self.can_access_vram() => self.set_colour_bg_palette_data(value),

@@ -362,7 +362,7 @@ impl Memory {
                 EventType::LcdTransfer => {
                     self.ppu.lcd_transfer();
                     self.scheduler
-                        .push_full_event(event.update_self(EventType::HBLANK, 172 << self.get_speed_shift()));
+                        .push_full_event(event.update_self(EventType::HBLANK, self.ppu.calculate_lcd_transfer_duration() << self.get_speed_shift()));
                 }
                 EventType::HBLANK => {
                     self.ppu.hblank(&mut self.interrupts);
