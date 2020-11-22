@@ -13,39 +13,6 @@ impl PPU {
         unimplemented!()
     }
 
-    /// Emulate a pixel FIFO by synchronising the state after a mid-scanline write.
-    /// If that happens we'll just rerender the scanline from the point we should've been at
-    /// in this clock-cycle, with the new palette in place.
-    ///
-    /// Since CGB palettes are locked during mode 3 we don't have to worry about those mid-scanline
-    /// writes.
-    pub fn handle_mid_scanline_palette(&mut self, scheduler: &mut Scheduler) {
-        if self.get_current_mode() != LcdTransfer || self.cgb_rendering {
-            return;
-        }
-        let cycles_passed = scheduler.current_time - self.latest_lcd_transfer_start;
-        // First 12 cycles are ignored.
-        if cycles_passed <= 12 {
-            self.draw_scanline();
-            return;
-        }
-        let mut current_scanline = self.scanline_buffer.clone();
-        let mut pixels_drawn = (cycles_passed - 12) as usize;
-        // If there are no special events (sprites or window) then it's safe to assume
-        // 1 cycle == 1 pixel.
-        // However, what we do below does not adhere to the above. Due to the way we derive the amount of
-        // pixels drawn by checking the time passed we don't know for sure how many pixels have *actually*
-        // been drawn, since many sprites/window *may* have been drawn. This hack gets around that
-        // by assuming that anything < 160 cycles *is* actually the amount of pixels drawn.
-        if pixels_drawn >= 160 {
-            pixels_drawn = 159;
-            //TODO: Implement proper support if any test cases present themselves.
-        }
-
-        self.draw_scanline();
-        self.scanline_buffer[..pixels_drawn].swap_with_slice(&mut current_scanline[..pixels_drawn]);
-    }
-
     #[inline]
     pub fn read_vram(&self, address: u16) -> u8 {
         match address {
@@ -120,6 +87,39 @@ impl PPU {
             // Ignore writes if they're not valid
             _ => {}
         }
+    }
+
+    /// Emulate a pixel FIFO by synchronising the state after a mid-scanline write.
+    /// If that happens we'll just rerender the scanline from the point we should've been at
+    /// in this clock-cycle, with the new palette in place.
+    ///
+    /// Since CGB palettes are locked during mode 3 we don't have to worry about those mid-scanline
+    /// writes.
+    pub fn handle_mid_scanline_palette(&mut self, scheduler: &mut Scheduler) {
+        if self.get_current_mode() != LcdTransfer || self.cgb_rendering {
+            return;
+        }
+        let cycles_passed = scheduler.current_time - self.latest_lcd_transfer_start;
+        // First 12 cycles are ignored.
+        if cycles_passed <= 12 {
+            self.draw_scanline();
+            return;
+        }
+        let mut current_scanline = self.scanline_buffer.clone();
+        let mut pixels_drawn = (cycles_passed - 12) as usize;
+        // If there are no special events (sprites or window) then it's safe to assume
+        // 1 cycle == 1 pixel.
+        // However, what we do below does not adhere to the above. Due to the way we derive the amount of
+        // pixels drawn by checking the time passed we don't know for sure how many pixels have *actually*
+        // been drawn, since many sprites/window *may* have been drawn. This hack gets around that
+        // by assuming that anything < 160 cycles *is* actually the amount of pixels drawn.
+        if pixels_drawn >= 160 {
+            pixels_drawn = 159;
+            //TODO: Implement proper support if any test cases present themselves.
+        }
+
+        self.draw_scanline();
+        self.scanline_buffer[..pixels_drawn].swap_with_slice(&mut current_scanline[..pixels_drawn]);
     }
 
     /// Can always access vram if PPU is disabled (then `Mode` == `Hblank`, so allowed).
