@@ -174,21 +174,52 @@ impl PPU {
             self.draw_scanline();
             return;
         }
+        let to_skip = (self.scroll_x % 8) as u64;
         let mut current_scanline = self.scanline_buffer.clone();
-        let mut pixels_drawn = (cycles_passed - 12) as usize;
+        let mut pixels_drawn = (cycles_passed.saturating_sub(12 + to_skip)) as usize;
+
         // If there are no special events (sprites or window) then it's safe to assume
-        // 1 cycle == 1 pixel.
-        // However, what we do below does not adhere to the above. Due to the way we derive the amount of
-        // pixels drawn by checking the time passed we don't know for sure how many pixels have *actually*
-        // been drawn, since many sprites/window *may* have been drawn. This hack gets around that
-        // by assuming that anything < 160 cycles *is* actually the amount of pixels drawn.
-        if pixels_drawn >= 160 {
-            pixels_drawn = 159;
-            //TODO: Implement proper support if any test cases present themselves.
+        // 1 cycle == 1 pixel. Otherwise we do everything down below.
+        if self.current_lcd_transfer_duration-to_skip != 172 {
+            let mut actual_pixels_drawn = 0;
+            let mut cycles_to_go = pixels_drawn;
+            let window_trigger = self.window_triggered && self.window_x < 168 && self.lcd_control.contains(LcdControl::WINDOW_DISPLAY);
+            let window_x = if window_trigger { self.window_x.saturating_sub(8) } else { 255 };
+            let mut sprites_to_draw = self.get_drawable_sprites().collect_vec();
+
+            while cycles_to_go > 0 {
+                if actual_pixels_drawn == window_x {
+                    cycles_to_go = cycles_to_go.saturating_sub(6);
+                }
+                if let Some(sprite) = sprites_to_draw.last() {
+                    if sprite.x_pos >= actual_pixels_drawn {
+                        cycles_to_go = cycles_to_go.saturating_sub(6);
+                        sprites_to_draw.pop();
+                    }
+                }
+
+                actual_pixels_drawn += 1;
+                cycles_to_go = cycles_to_go.saturating_sub(1);
+            }
+            pixels_drawn = actual_pixels_drawn as usize;
         }
 
         self.draw_scanline();
         self.scanline_buffer[..pixels_drawn].swap_with_slice(&mut current_scanline[..pixels_drawn]);
+    }
+
+    fn get_drawable_sprites(&self) -> impl Iterator<Item=&SpriteAttribute> {
+        let y_size: u8 = if self.lcd_control.contains(LcdControl::SPRITE_SIZE) { 16 } else { 8 };
+        self
+            .oam
+            .iter()
+            .filter(|sprite| {
+                let screen_y_pos = sprite.y_pos as i16 - 16;
+                is_sprite_on_scanline(self.current_y as i16, screen_y_pos, y_size as i16)
+            })
+            .take(10) // Max 10 sprites per scanline
+            .sorted_by_key(|x| x.x_pos)
+            .rev()
     }
 
     /// Can always access vram if PPU is disabled (then `Mode` == `Hblank`, so allowed).

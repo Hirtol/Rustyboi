@@ -38,28 +38,16 @@ impl PPU {
             base_cycles += 6;
         }
 
-        let tall_sprites = self.lcd_control.contains(LcdControl::SPRITE_SIZE);
-        let y_size: u8 = if tall_sprites { 16 } else { 8 };
-        // Every sprite will *usually* pause for `11 - min(5, (x + SCX) mod 8)` cycles.
-        // If drawn over the window will use 255 - WX instead of SCX.
+        let y_size: u8 = if self.lcd_control.contains(LcdControl::SPRITE_SIZE) { 16 } else { 8 };
+
         base_cycles += self.oam.iter()
             .filter(|sprite| {
                 let screen_y_pos = sprite.y_pos as i16 - 16;
                 is_sprite_on_scanline(self.current_y as i16, screen_y_pos, y_size as i16)
             })
-            .take(10) // Max 10 sprites per scanline
-            .map(|s| {
-                let to_add = if self.window_triggered && self.window_x >= s.x_pos {
-                    255 - self.window_x
-                } else {
-                    self.scroll_x
-                };
+            .take(10)
+            .count() as u64 * 6;
 
-                11 - core::cmp::min(5, (s.x_pos + to_add) % 8)
-            })
-            .sum::<u8>() as u64;
-
-        //log::warn!("Calculated lcd duration: {} t-cycles", base_cycles);
         base_cycles
     }
 
