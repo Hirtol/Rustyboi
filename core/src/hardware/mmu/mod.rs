@@ -360,7 +360,7 @@ impl Memory {
                         .push_full_event(event.update_self(EventType::LcdTransfer, 80 << self.get_speed_shift()));
                 }
                 EventType::LcdTransfer => {
-                    self.ppu.lcd_transfer();
+                    self.ppu.lcd_transfer(&self.scheduler);
                     self.scheduler
                         .push_full_event(event.update_self(EventType::HBLANK, self.ppu.get_lcd_transfer_duration() << self.get_speed_shift()));
                 }

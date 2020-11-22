@@ -13,6 +13,32 @@ impl PPU {
         unimplemented!()
     }
 
+    /// Emulate a pixel FIFO by synchronising the state after a mid-scanline write.
+    /// If that happens we'll just rerender the scanline from the point we should've been at
+    /// in this clock-cycle, with the new palette in place.
+    pub fn handle_mid_scanline_palette(&mut self, scheduler: &mut Scheduler) {
+        if self.get_current_mode() != LcdTransfer {
+            return;
+        }
+        let cycles_passed = scheduler.current_time - self.latest_lcd_transfer_start;
+        // First 12 cycles are ignored as the first tile fetch is garbage, and then a second
+        // has to occur to actually start drawing.
+        // For our purposes we'll just redraw the currently cached scanline.
+        if cycles_passed <= 12 {
+            self.draw_scanline();
+            return;
+        }
+        let mut current_scanline = self.scanline_buffer.clone();
+        // If there are no special events (sprites or window) then it's safe to assume
+        // 1 cycle == 1 pixel.
+        if self.current_lcd_transfer_duration == 172 {
+            let pixels_drawn = (cycles_passed - 12) as usize;
+            self.draw_scanline();
+            self.scanline_buffer[..pixels_drawn].swap_with_slice(&mut current_scanline[..pixels_drawn]);
+        }
+        //TODO: implement cases if the duration > 172.
+    }
+
     #[inline]
     pub fn read_vram(&self, address: u16) -> u8 {
         match address {
@@ -44,8 +70,8 @@ impl PPU {
     #[inline]
     pub fn write_vram(&mut self, address: u16, value: u8, scheduler: &mut Scheduler, interrupts: &mut Interrupts) {
         // if address != LY_REGISTER && address != LYC_REGISTER {
-        //      log::warn!("Writing {:4X}, latest access: {}", address, scheduler.current_time - self.latest_access);
-        //      self.latest_access = scheduler.current_time;
+        //      log::warn!("Writing {:4X}, latest access: {}", address, scheduler.current_time - self.latest_lcd_transfer_start);
+        //      self.latest_lcd_transfer_start = scheduler.current_time;
         // }
         match address {
             TILE_BLOCK_0_START..=TILE_BLOCK_2_END if self.can_access_vram() => self.set_tile_byte(address, value),
@@ -64,9 +90,18 @@ impl PPU {
                     self.ly_lyc_compare(interrupts);
                 }
             }
-            BG_PALETTE => self.set_bg_palette(value),
-            OB_PALETTE_0 => self.set_oam_palette_0(value),
-            OB_PALETTE_1 => self.set_oam_palette_1(value),
+            BG_PALETTE => {
+                self.set_bg_palette(value);
+                self.handle_mid_scanline_palette(scheduler);
+            },
+            OB_PALETTE_0 => {
+                self.set_oam_palette_0(value);
+                self.handle_mid_scanline_palette(scheduler);
+            },
+            OB_PALETTE_1 => {
+                self.set_oam_palette_1(value);
+                self.handle_mid_scanline_palette(scheduler);
+            },
             WY_REGISTER => self.window_y = value, // No effect on current drawing scanline (if done mid scanline)
             WX_REGISTER => self.window_x = value, // No effect on current drawing scanline (if done mid scanline)
             CGB_VRAM_BANK_REGISTER => self.tile_bank_currently_used = value & 0x1,

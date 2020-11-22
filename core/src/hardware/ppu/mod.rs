@@ -145,7 +145,7 @@ pub struct PPU {
     cgb_rendering: bool,
     emulated_model: GameBoyModel,
     /// Advanced timing and synchronisation.
-    latest_access: u64,
+    latest_lcd_transfer_start: u64,
     current_lcd_transfer_duration: u64,
 }
 
@@ -198,21 +198,9 @@ impl PPU {
             stat_irq_triggered: false,
             cgb_rendering,
             emulated_model: gb_model,
-            latest_access: 0,
-            current_lcd_transfer_duration: 0
+            latest_lcd_transfer_start: 0,
+            current_lcd_transfer_duration: 0,
         }
-    }
-
-    pub fn oam_search(&mut self, interrupts: &mut Interrupts) {
-        // After V-Blank we don't want to trigger the interrupt immediately.
-        if self.lcd_status.mode_flag() != VBlank {
-            self.current_y = self.current_y.wrapping_add(1);
-            self.ly_lyc_compare(interrupts);
-        }
-
-        self.lcd_status.set_mode_flag(Mode::OamSearch);
-        // OAM Interrupt
-        self.request_stat_interrupt(interrupts);
     }
 
     #[inline]
@@ -265,8 +253,21 @@ impl PPU {
         base_cycles
     }
 
-    pub fn lcd_transfer(&mut self) {
+    pub fn oam_search(&mut self, interrupts: &mut Interrupts) {
+        // After V-Blank we don't want to trigger the interrupt immediately.
+        if self.lcd_status.mode_flag() != VBlank {
+            self.current_y = self.current_y.wrapping_add(1);
+            self.ly_lyc_compare(interrupts);
+        }
+
+        self.lcd_status.set_mode_flag(Mode::OamSearch);
+        // OAM Interrupt
+        self.request_stat_interrupt(interrupts);
+    }
+
+    pub fn lcd_transfer(&mut self, scheduler: &Scheduler) {
         // Drawing (Mode 3)
+        self.latest_lcd_transfer_start = scheduler.current_time;
         self.lcd_status.set_mode_flag(LcdTransfer);
 
         // Draw our actual line once we enter Drawing mode.
@@ -278,6 +279,9 @@ impl PPU {
     }
 
     pub fn hblank(&mut self, interrupts: &mut Interrupts) {
+        // Since mid scanline palette writes are possible we'll only push the palette
+        // pixels after Mode 3.
+        self.push_current_scanline_to_framebuffer();
         self.lcd_status.set_mode_flag(HBlank);
 
         self.request_stat_interrupt(interrupts);
@@ -310,6 +314,16 @@ impl PPU {
         self.ly_lyc_compare(interrupts);
     }
 
+    /// Since multiple scan-lines might be drawn in a LCD_Transfer mode cycle we'll
+    /// only want to copy it to the framebuffer after we're done.
+    #[inline]
+    fn push_current_scanline_to_framebuffer(&mut self) {
+        let current_address: usize = self.current_y as usize * RESOLUTION_WIDTH;
+
+        // Copy the value of the current scanline to the framebuffer.
+        self.frame_buffer[current_address..current_address + RESOLUTION_WIDTH].copy_from_slice(&self.scanline_buffer);
+    }
+
     pub fn draw_scanline(&mut self) {
         // As soon as wy == ly ANYWHERE in the frame, the window will be considered
         // triggered for the remainder of the frame, and thus can only be disabled
@@ -338,11 +352,6 @@ impl PPU {
         if self.lcd_control.contains(LcdControl::SPRITE_DISPLAY_ENABLE) {
             self.draw_sprite_scanline();
         }
-
-        let current_address: usize = self.current_y as usize * RESOLUTION_WIDTH;
-
-        // Copy the value of the current scanline to the framebuffer.
-        self.frame_buffer[current_address..current_address + RESOLUTION_WIDTH].copy_from_slice(&self.scanline_buffer);
     }
 
     fn draw_bg_scanline(&mut self) {
