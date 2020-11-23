@@ -264,7 +264,7 @@ fn handle_events(
                 gameboy_runner.stop();
                 let options = GLOBAL_APP_STATE.lock().unwrap();
                 let emu_opts = EmulatorOptionsBuilder::new()
-                    .with_mode(CGB)
+                    .with_mode(DMG)
                     .with_bg_display_colour(options.custom_display_colour.dmg_bg_colour.into())
                     .with_sp0_display_colour(options.custom_display_colour.dmg_sprite_colour_0.into())
                     .with_sp1_display_colour(options.custom_display_colour.dmg_sprite_colour_1.into())

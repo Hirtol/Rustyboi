@@ -409,10 +409,21 @@ impl PPU {
     fn set_lcd_status(&mut self, value: u8, interrupts: &mut Interrupts) {
         // Mask the 3 lower bits, which are read only and must therefore be preserved.
         let read_only_bits = self.lcd_status.bits() & 0x7;
-        // Mask bit 3..=6 in case a game tries to write to the three lower bits as well.
-        self.lcd_status = LcdStatus::from_bits_truncate(0x80 | (value & 0x78) | read_only_bits);
 
-        self.request_stat_interrupt(interrupts);
+        // Hardware quirk in DMG causes, for one cycle, the effect as if 0x78 was written
+        // to lcd_status, and thus lcd_stat can trigger.
+        if self.emulated_model.is_dmg() {
+            // Enable all interrupt flags.
+            self.lcd_status = LcdStatus::from_bits_truncate(0xF8 | read_only_bits);
+            self.request_stat_interrupt(interrupts);
+            // Mask bit 3..=6 in case a game tries to write to the three lower bits as well.
+            self.lcd_status = LcdStatus::from_bits_truncate(0x80 | (value & 0x78) | read_only_bits);
+        } else {
+            // Mask bit 3..=6 in case a game tries to write to the three lower bits as well.
+            self.lcd_status = LcdStatus::from_bits_truncate(0x80 | (value & 0x78) | read_only_bits);
+
+            self.request_stat_interrupt(interrupts);
+        }
     }
 
     pub fn update_display_colours(
