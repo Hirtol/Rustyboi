@@ -4,11 +4,11 @@ use bitflags::_core::cmp::Ordering;
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Eq)]
 #[repr(u8)]
 pub enum EventType {
-    NONE = 255,
-    VBLANK = 0,
+    None = 255,
+    Vblank = 0,
     OamSearch = 1,
     LcdTransfer = 2,
-    HBLANK = 3,
+    Hblank = 3,
     VblankWait = 4,
     TimerOverflow = 7,
     TimerPostOverflow = 8,
@@ -70,7 +70,7 @@ impl Scheduler {
         };
         result.event_queue.push(Event {
             timestamp: 0,
-            event_type: EventType::NONE,
+            event_type: EventType::None,
         });
         result
     }

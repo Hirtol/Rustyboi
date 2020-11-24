@@ -306,7 +306,7 @@ impl Memory {
             CGB_HDMA_5 => {
                 self.hdma.write_hdma5(value, &mut self.scheduler);
                 // If a HDMA is started during HBlank one copy occurs right away.
-                if self.ppu.get_current_mode() == Mode::HBlank {
+                if self.ppu.get_current_mode() == Mode::Hblank {
                     self.hdma_check_and_transfer()
                 }
             }
@@ -343,12 +343,12 @@ impl Memory {
 
         while let Some(mut event) = self.scheduler.pop_closest() {
             match event.event_type {
-                EventType::NONE => {
+                EventType::None => {
                     // On startup we should add OAM
                     self.scheduler.push_event(EventType::OamSearch, 0);
                     self.scheduler.push_event(EventType::TimerTick, self.timers.timer_control.get_clock_interval());
                 }
-                EventType::VBLANK => {
+                EventType::Vblank => {
                     self.ppu.vblank(&mut self.interrupts);
                     self.scheduler
                         .push_full_event(event.update_self(EventType::VblankWait, SCANLINE_DURATION << self.get_speed_shift()));
@@ -364,9 +364,9 @@ impl Memory {
                 EventType::LcdTransfer => {
                     self.ppu.lcd_transfer(&self.scheduler);
                     self.scheduler
-                        .push_full_event(event.update_self(EventType::HBLANK, self.ppu.get_lcd_transfer_duration() << self.get_speed_shift()));
+                        .push_full_event(event.update_self(EventType::Hblank, self.ppu.get_lcd_transfer_duration() << self.get_speed_shift()));
                 }
-                EventType::HBLANK => {
+                EventType::Hblank => {
                     self.ppu.hblank(&mut self.interrupts);
 
                     // First 144 lines
@@ -375,7 +375,7 @@ impl Memory {
                             .push_full_event(event.update_self(EventType::OamSearch, self.ppu.get_hblank_duration() << self.get_speed_shift()));
                     } else {
                         self.scheduler
-                            .push_full_event(event.update_self(EventType::VBLANK, self.ppu.get_hblank_duration() << self.get_speed_shift()));
+                            .push_full_event(event.update_self(EventType::Vblank, self.ppu.get_hblank_duration() << self.get_speed_shift()));
                     }
 
                     // HDMA transfers 16 bytes every HBLANK

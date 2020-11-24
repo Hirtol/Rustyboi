@@ -8,14 +8,14 @@ pub const JOYPAD_REGISTER: u16 = 0xFF00;
 
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
 pub enum InputKey {
-    START,
-    SELECT,
+    Start,
+    Select,
     A,
     B,
-    UP,
-    DOWN,
-    LEFT,
-    RIGHT,
+    Up,
+    Down,
+    Left,
+    Right,
 }
 
 #[derive(Debug, Clone)]
@@ -51,8 +51,8 @@ impl JoyPad {
     pub fn press_key(&mut self, input: InputKey) {
         use InputKey::*;
         match input {
-            DOWN | UP | LEFT | RIGHT => self.pressed_directions.insert(input.get_flag_value()),
-            A | B | SELECT | START => self.pressed_buttons.insert(input.get_flag_value()),
+            Down | Up | Left | Right => self.pressed_directions.insert(input.get_flag_value()),
+            A | B | Select | Start => self.pressed_buttons.insert(input.get_flag_value()),
         }
         self.update_flags();
     }
@@ -61,8 +61,8 @@ impl JoyPad {
     pub fn release_key(&mut self, input: InputKey) {
         use InputKey::*;
         match input {
-            DOWN | UP | LEFT | RIGHT => self.pressed_directions.remove(input.get_flag_value()),
-            A | B | SELECT | START => self.pressed_buttons.remove(input.get_flag_value()),
+            Down | Up | Left | Right => self.pressed_directions.remove(input.get_flag_value()),
+            A | B | Select | Start => self.pressed_buttons.remove(input.get_flag_value()),
         }
         self.update_flags()
     }
@@ -82,10 +82,10 @@ impl JoyPad {
 impl InputKey {
     fn get_flag_value(&self) -> JoypadFlags {
         match self {
-            InputKey::START | InputKey::DOWN => JoypadFlags::DOWN_START,
-            InputKey::SELECT | InputKey::UP => JoypadFlags::UP_SELECT,
-            InputKey::B | InputKey::LEFT => JoypadFlags::LEFT_B,
-            InputKey::A | InputKey::RIGHT => JoypadFlags::RIGHT_A,
+            InputKey::Start | InputKey::Down => JoypadFlags::DOWN_START,
+            InputKey::Select | InputKey::Up => JoypadFlags::UP_SELECT,
+            InputKey::B | InputKey::Left => JoypadFlags::LEFT_B,
+            InputKey::A | InputKey::Right => JoypadFlags::RIGHT_A,
         }
     }
 }

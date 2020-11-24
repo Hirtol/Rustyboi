@@ -26,7 +26,7 @@ fn test_load_16bit() {
     cpu.registers.pc = 1;
     set_short(&mut cpu, 1, 0x0105);
 
-    cpu.load_16(BC, DIRECT);
+    cpu.load_16(BC, Direct);
 
     assert_eq!(cpu.registers.bc(), 0x0105);
 

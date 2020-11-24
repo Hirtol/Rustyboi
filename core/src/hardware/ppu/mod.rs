@@ -6,7 +6,7 @@ use crate::hardware::ppu::cgb_vram::{CgbPalette, CgbPaletteIndex, CgbTileMap};
 use crate::hardware::ppu::palette::{DisplayColour, Palette, RGB};
 use crate::hardware::ppu::register_flags::*;
 use crate::hardware::ppu::tiledata::*;
-use crate::hardware::ppu::Mode::{HBlank, LcdTransfer, OamSearch, VBlank};
+use crate::hardware::ppu::Mode::{Hblank, LcdTransfer, OamSearch, Vblank};
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::scheduler::{Event, EventType, Scheduler};
 
@@ -27,8 +27,8 @@ pub mod timing;
 
 #[derive(Debug, PartialOrd, PartialEq, Copy, Clone)]
 pub enum Mode {
-    HBlank = 0x0,
-    VBlank = 0x1,
+    Hblank = 0x0,
+    Vblank = 0x1,
     OamSearch = 0x2,
     LcdTransfer = 0x3,
 }
@@ -137,7 +137,7 @@ impl PPU {
 
     pub fn oam_search(&mut self, interrupts: &mut Interrupts) {
         // After V-Blank we don't want to trigger the interrupt immediately.
-        if self.lcd_status.mode_flag() != VBlank {
+        if self.lcd_status.mode_flag() != Vblank {
             self.current_y = self.current_y.wrapping_add(1);
             self.ly_lyc_compare(interrupts);
         }
@@ -164,13 +164,13 @@ impl PPU {
         // Since mid scanline palette writes are possible we'll only push the palette
         // pixels after Mode 3.
         self.push_current_scanline_to_framebuffer();
-        self.lcd_status.set_mode_flag(HBlank);
+        self.lcd_status.set_mode_flag(Hblank);
 
         self.request_stat_interrupt(interrupts);
     }
 
     pub fn vblank(&mut self, interrupts: &mut Interrupts) {
-        self.lcd_status.set_mode_flag(VBlank);
+        self.lcd_status.set_mode_flag(Vblank);
 
         // Check for line 144 lyc.
         self.current_y = self.current_y.wrapping_add(1);

@@ -343,14 +343,14 @@ fn handle_debug_window_events(event: &Event, renderer: &mut Renderer<ImguiBoi>) 
 
 fn keycode_to_input(key: Keycode) -> Option<InputKey> {
     match key {
-        Keycode::Up => Some(InputKey::UP),
-        Keycode::Down => Some(InputKey::DOWN),
-        Keycode::Left => Some(InputKey::LEFT),
-        Keycode::Right => Some(InputKey::RIGHT),
+        Keycode::Up => Some(InputKey::Up),
+        Keycode::Down => Some(InputKey::Down),
+        Keycode::Left => Some(InputKey::Left),
+        Keycode::Right => Some(InputKey::Right),
         Keycode::A => Some(InputKey::A),
         Keycode::B => Some(InputKey::B),
-        Keycode::S => Some(InputKey::SELECT),
-        Keycode::T => Some(InputKey::START),
+        Keycode::S => Some(InputKey::Select),
+        Keycode::T => Some(InputKey::Start),
         _ => None,
     }
 }

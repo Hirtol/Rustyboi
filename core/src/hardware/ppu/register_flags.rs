@@ -132,8 +132,8 @@ impl LcdControl {
 impl LcdStatus {
     pub fn mode_flag(&self) -> Mode {
         match self.bits & 0x3 {
-            0 => Mode::HBlank,
-            1 => Mode::VBlank,
+            0 => Mode::Hblank,
+            1 => Mode::Vblank,
             2 => Mode::OamSearch,
             3 => Mode::LcdTransfer,
             _ => unreachable!("Invalid value entered for mode flag"),
@@ -143,8 +143,8 @@ impl LcdStatus {
     pub fn set_mode_flag(&mut self, value: Mode) {
         self.bits = (self.bits & 0xFC)
             | match value {
-                Mode::HBlank => 0,
-                Mode::VBlank => 1,
+                Mode::Hblank => 0,
+                Mode::Vblank => 1,
                 Mode::OamSearch => 2,
                 Mode::LcdTransfer => 3,
             }
@@ -154,17 +154,17 @@ impl LcdStatus {
 #[cfg(test)]
 mod tests {
     use crate::hardware::ppu::register_flags::LcdStatus;
-    use crate::hardware::ppu::Mode::{HBlank, OamSearch};
+    use crate::hardware::ppu::Mode::{Hblank, OamSearch};
 
     #[test]
     fn status_tests() {
         let mut test = LcdStatus::default();
 
-        assert_eq!(test.mode_flag(), HBlank);
+        assert_eq!(test.mode_flag(), Hblank);
         test.set_mode_flag(OamSearch);
         assert_eq!(test.mode_flag(), OamSearch);
-        assert_ne!(test.mode_flag(), HBlank);
-        test.set_mode_flag(HBlank);
-        assert_eq!(test.mode_flag(), HBlank);
+        assert_ne!(test.mode_flag(), Hblank);
+        test.set_mode_flag(Hblank);
+        assert_eq!(test.mode_flag(), Hblank);
     }
 }

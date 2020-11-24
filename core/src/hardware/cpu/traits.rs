@@ -76,7 +76,7 @@ impl<T: MemoryMapper> ToU8<InstructionAddress> for CPU<T> {
                 self.registers.set_hl(self.registers.hl().wrapping_sub(1));
                 result
             }
-            DIRECT => self.get_instr_u8(),
+            Direct => self.get_instr_u8(),
             DirectMem => {
                 let address = self.get_instr_u16();
                 self.read_byte_cycle(address)
@@ -109,7 +109,7 @@ impl<T: MemoryMapper> SetU8<InstructionAddress> for CPU<T> {
                 self.set_u8_value(HLI, value);
                 self.registers.set_hl(self.registers.hl().wrapping_sub(1));
             }
-            DIRECT | DirectMem => {
+            Direct | DirectMem => {
                 let address = self.get_instr_u16();
                 #[cfg(feature = "cpu-logging")]
                 log::trace!(
@@ -173,7 +173,7 @@ impl<T: MemoryMapper> ToU16<InstructionAddress> for CPU<T> {
         use InstructionAddress::*;
 
         match target {
-            DIRECT => self.get_instr_u16(),
+            Direct => self.get_instr_u16(),
             _ => unreachable!(),
         }
     }
@@ -184,7 +184,7 @@ impl<T: MemoryMapper> SetU16<InstructionAddress> for CPU<T> {
         use InstructionAddress::*;
 
         match target {
-            DIRECT | DirectMem => {
+            Direct | DirectMem => {
                 let address = self.get_instr_u16();
                 self.write_short_cycle(address, value);
             }

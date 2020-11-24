@@ -4,7 +4,7 @@ use crate::hardware::mmu::{INVALID_READ, OAM_ATTRIBUTE_END, OAM_ATTRIBUTE_START}
 use crate::hardware::ppu::cgb_vram::CgbTileAttribute;
 use crate::hardware::ppu::PPU;
 use crate::print_array_raw;
-use crate::scheduler::EventType::{DMATransferComplete, HBLANK, VBLANK};
+use crate::scheduler::EventType::{DMATransferComplete, Hblank, Vblank};
 
 use super::*;
 use crate::hardware::ppu::timing::BASE_LCD_TRANSFER_DURATION;
@@ -325,11 +325,11 @@ impl PPU {
         log::debug!("Turning off LCD");
         self.current_y = 0;
         self.window_counter = 0;
-        self.lcd_status.set_mode_flag(Mode::HBlank);
+        self.lcd_status.set_mode_flag(Mode::Hblank);
         // Turn PPU off by removing all scheduled events. TODO: Find cleaner way to do this.
-        scheduler.remove_event_type(EventType::HBLANK);
+        scheduler.remove_event_type(EventType::Hblank);
         scheduler.remove_event_type(EventType::VblankWait);
-        scheduler.remove_event_type(EventType::VBLANK);
+        scheduler.remove_event_type(EventType::Vblank);
         scheduler.remove_event_type(EventType::LcdTransfer);
         scheduler.remove_event_type(EventType::OamSearch);
     }
@@ -363,24 +363,6 @@ impl PPU {
         }
     }
 
-    pub fn update_display_colours(
-        &mut self,
-        bg_palette: DisplayColour,
-        sp0_palette: DisplayColour,
-        sp1_palette: DisplayColour,
-        emu_mode: GameBoyModel,
-    ) {
-        // We don't want to overwrite CGB registers if we're actually running a CGB game.
-        if emu_mode.is_dmg() {
-            let (cgb_bg_palette, cgb_sprite_palette) = initialise_cgb_palette(bg_palette, sp0_palette, sp1_palette);
-            self.cgb_bg_palette = cgb_bg_palette;
-            self.cgb_sprite_palette = cgb_sprite_palette;
-            self.set_bg_palette(self.bg_window_palette.into());
-            self.set_oam_palette_0(self.oam_palette_0.into());
-            self.set_oam_palette_1(self.oam_palette_1.into());
-        }
-    }
-
     fn set_bg_palette(&mut self, value: u8) {
         self.bg_window_palette = Palette::new(value, DisplayColour::from(self.cgb_bg_palette[0].rgb()))
     }
@@ -403,12 +385,12 @@ impl PPU {
         let old_stat_irq = self.stat_irq_triggered;
 
         self.stat_irq_triggered = match self.get_current_mode() {
-            HBlank => self.lcd_status.contains(LcdStatus::MODE_0_H_INTERRUPT),
-            VBlank if self.emulated_model.is_dmg() => {
+            Hblank => self.lcd_status.contains(LcdStatus::MODE_0_H_INTERRUPT),
+            Vblank if self.emulated_model.is_dmg() => {
                 self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT)
                     || self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT)
             }
-            VBlank if self.emulated_model.is_cgb() => self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT),
+            Vblank if self.emulated_model.is_cgb() => self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT),
             OamSearch => self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT),
             _ => false,
         };
@@ -420,6 +402,24 @@ impl PPU {
         // Only on a rising edge do we want to trigger the LCD interrupts.
         if !old_stat_irq && self.stat_irq_triggered {
             interrupts.insert_interrupt(InterruptFlags::LCD);
+        }
+    }
+
+    pub fn update_display_colours(
+        &mut self,
+        bg_palette: DisplayColour,
+        sp0_palette: DisplayColour,
+        sp1_palette: DisplayColour,
+        emu_mode: GameBoyModel,
+    ) {
+        // We don't want to overwrite CGB registers if we're actually running a CGB game.
+        if emu_mode.is_dmg() {
+            let (cgb_bg_palette, cgb_sprite_palette) = initialise_cgb_palette(bg_palette, sp0_palette, sp1_palette);
+            self.cgb_bg_palette = cgb_bg_palette;
+            self.cgb_sprite_palette = cgb_sprite_palette;
+            self.set_bg_palette(self.bg_window_palette.into());
+            self.set_oam_palette_0(self.oam_palette_0.into());
+            self.set_oam_palette_1(self.oam_palette_1.into());
         }
     }
 }
