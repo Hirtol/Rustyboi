@@ -104,10 +104,6 @@ fn main() {
     let _cpu_test = "test roms/auto-run/mooneye/tests/misc/ppu/vblank_stat_intr-C.gb";
     let _cpu_test2 = "test roms/auto-run/hdma_timing-C.gbc";
 
-    //Things to do:
-    // 1: APU improvements to use a proper sampler so that we can re-architect the way we do ticking
-    // by doing more lazy evaluation (thus being able to move everything to the scheduler for speed)
-    // 2: Render GB games when running in GBC with GBC renderer, since bootrom sets custom palettes!
     let mut timer = sdl_context.timer().unwrap();
     let emu_opts = EmulatorOptionsBuilder::new()
         //.boot_rom(Some(bootrom_file_cgb))

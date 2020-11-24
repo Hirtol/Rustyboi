@@ -8,13 +8,11 @@ use std::time::Duration;
 
 use crate::state::{DisplayColourConfigurable, DisplayColourDTO};
 
-const SUB_MENUS: [&str; 2] = ["General", "Display"];
+const SUB_MENUS: [&str; 3] = ["General", "Audio", "Display"];
 
 #[derive(Default, Debug, Clone, DeJson, SerJson)]
 pub struct SettingScreenState {
     current_item: String,
-    general_selected: bool,
-    display_selected: bool,
 }
 
 pub fn render_settings(state: &mut GuiState, ui: &Ui, debug_state: &mut DebugState) {
@@ -72,6 +70,24 @@ fn create_settings(ui: &Ui, state: &mut GuiState, debug_state: &mut DebugState) 
                 } else {
                     debug_state.notification = Notification::new("Only integers are valid!", ui);
                 }
+            }
+        }
+        "Audio" => {
+            let mut global_state = GLOBAL_APP_STATE.lock().unwrap();
+            let mut slider_result = (global_state.audio_volume * 100.0) as i32;
+            ui.text("Mute:");
+            ui.same_line(0.0);
+            right_align(ui, 2.0);
+            ui.checkbox(im_str!("##hidelabel AudioMute"), &mut global_state.audio_mute);
+            ui.text("Volume:");
+            ui.same_line(0.0);
+            right_align(ui, 13.0);
+            if Slider::new(im_str!("##hidelabel AudioVolume"))
+                .range((0..=100))
+                .flags(SliderFlags::CLAMP_ON_INPUT)
+                .build(ui, &mut slider_result)
+            {
+                global_state.audio_volume = slider_result as f32 / 100.0;
             }
         }
         "Display" => {
@@ -133,6 +149,10 @@ fn create_selectables(ui: &Ui, state: &mut GuiState) {
             state.setting_state.current_item = menu.to_string();
         }
     }
+}
+
+fn right_align(ui: &Ui, next_element_size: f32) {
+    ui.set_cursor_pos([ui.window_size()[0] - size(ui, next_element_size), ui.cursor_pos()[1]]);
 }
 
 fn f32_to_rgb(input: [f32; 4]) -> (u8, u8, u8) {

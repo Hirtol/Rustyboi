@@ -5,6 +5,11 @@ use rustyboi::storage::FileStorage;
 use sdl2::event::Event;
 use std::sync::Arc;
 
+pub enum UiEvent {
+    EmulatorUpdate,
+    GeneralUpdate,
+}
+
 pub trait ImmediateGui {
     /// Create a new instance of the type implementing `ImmediateGui`.
     fn new(
@@ -28,3 +33,4 @@ pub trait ImmediateGui {
     /// Handles `SDL` events for things like keypresses/mouse movement
     fn handle_event(&mut self, event: &Event);
 }
+
