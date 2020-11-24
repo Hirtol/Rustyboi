@@ -237,21 +237,14 @@ impl PPU {
 
     fn draw_bg_scanline(&mut self) {
         let scanline_to_be_rendered = self.current_y.wrapping_add(self.scroll_y);
-        // scanline_to_be_rendered can be in range 0-255, where each tile is 8 in length.
-        // As we'll want to use this variable to index on the TileMap (1 byte pointer to tile)
-        // We need to first divide by 8, to then multiply by 32 for our array (32*32) with a 1d representation.
         let tile_lower_bound = ((scanline_to_be_rendered / 8) as u16 * 32) + (self.scroll_x / 8) as u16;
-        // 20 since 20*8 = 160 pixels
         let mut tile_higher_bound = (tile_lower_bound + 20);
 
         // Which particular y coordinate to use from an 8x8 tile.
         let tile_pixel_y = (scanline_to_be_rendered as usize % 8) * 8;
         let tile_pixel_y_offset = (tile_pixel_y + 7);
-        // How many pixels we've drawn so far on this scanline.
-        let mut pixel_counter: i16 = 0;
-        // The amount of pixels to skip from the first tile in the sequence, and partially render
-        // the remainder of that tile.
-        // (for cases where self.scroll_x % 8 != 0, and thus not nicely aligned on tile boundaries)
+        let mut pixels_drawn: i16 = 0;
+        // For cases where the scroll x is not nicely aligned on tile boundries.
         let mut pixels_to_skip = self.scroll_x % 8;
         // If the tile is not nicely aligned on % 8 boundaries we'll need an additional tile for the
         // last 8-pixels_to_skip pixels of the scanline.
@@ -264,7 +257,7 @@ impl PPU {
             // Since we have a 1d representation of the tile map we have to subtract 32 to 'negate'
             // the effect of the x wraparound (since this wraparound
             // would have us go to the next y-tile line in the tile map)
-            if (self.scroll_x as u16 + pixel_counter as u16) > 255 {
+            if (self.scroll_x as u16 + pixels_drawn as u16) > 255 {
                 i -= 32;
             }
             // Modulo for the y-wraparound if scroll_y > 111
@@ -278,7 +271,7 @@ impl PPU {
             }
 
             self.draw_background_window_line(
-                &mut pixel_counter,
+                &mut pixels_drawn,
                 &mut pixels_to_skip,
                 tile_address,
                 tile_pixel_y,
@@ -308,7 +301,7 @@ impl PPU {
 
         // If window is less than 0 we want to skip those amount of pixels, otherwise we render as normal.
         // This means that we must take the absolute value of window_x for the pixels_skip, therefore the -
-        let (mut pixel_counter, mut pixels_to_skip) = if window_x >= 0 {
+        let (mut pixels_drawn, mut pixels_to_skip) = if window_x >= 0 {
             (window_x, 0)
         } else {
             (0, (-window_x) as u8)
@@ -327,7 +320,7 @@ impl PPU {
             }
 
             self.draw_background_window_line(
-                &mut pixel_counter,
+                &mut pixels_drawn,
                 &mut pixels_to_skip,
                 tile_address,
                 tile_pixel_y,
@@ -371,14 +364,9 @@ impl PPU {
             let tile = if !tall_sprites {
                 self.tiles[tile_index]
             } else {
-                // If we're on the lower 8x8 block of the 16 pixel tall sprite
                 if line < 8 {
-                    // Ignore lower bit one
                     self.tiles[tile_index & 0xFE]
                 } else {
-                    // Add one, if appropriate.
-                    // To me an unconditional +1 would make more sense here, however PanDocs
-                    // references an OR operation here, so I'll keep it like this for now.
                     self.tiles[tile_index | 0x01]
                 }
             };
@@ -387,8 +375,6 @@ impl PPU {
             let pixels = tile.get_true_pixel_line(tile_pixel_y);
 
             for j in 0..=7 {
-                // If x is flipped then we want the pixels to go in order to the screen buffer,
-                // otherwise it's the reverse.
                 let pixel = if x_flip {
                     screen_x_pos + j
                 } else {
@@ -408,7 +394,7 @@ impl PPU {
 
                 let colour = pixels[j as usize];
 
-                // The colour 0 should be transparent for sprites, therefore we don't draw it.
+                // The colour 0 should be transparent for sprites.
                 if colour != 0x0 {
                     self.scanline_buffer[pixel as usize] = self.get_sprite_palette(sprite).colour(colour);
                     self.scanline_buffer_unpalette[pixel as usize] = (colour, false);
