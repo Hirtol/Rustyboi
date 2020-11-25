@@ -79,12 +79,11 @@ impl Scheduler {
     /// which is at or below the `current_time` for the `Scheduler`
     #[inline(always)]
     pub fn pop_closest(&mut self) -> Option<Event> {
-        if let Some(event) = self.event_queue.peek() {
-            if event.timestamp <= self.current_time {
-                return self.event_queue.pop();
-            }
+        if self.event_queue.peek().map_or(false, |ev| ev.timestamp < self.current_time) {
+            self.event_queue.pop()
+        } else {
+            None
         }
-        None
     }
 
     /// Add a new event to the `Scheduler`.
