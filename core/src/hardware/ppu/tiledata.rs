@@ -4,22 +4,7 @@ use bitflags::_core::fmt::Formatter;
 use std::fmt;
 use std::fmt::Debug;
 
-// 128 tiles each of 16 bytes each.
-pub const TILE_BLOCK_0_START: u16 = 0x8000;
-pub const TILE_BLOCK_0_END: u16 = 0x87FF;
-
-pub const TILE_BLOCK_1_START: u16 = 0x8800;
-pub const TILE_BLOCK_1_END: u16 = 0x8FFF;
-
-pub const TILE_BLOCK_2_START: u16 = 0x9000;
-pub const TILE_BLOCK_2_END: u16 = 0x97FF;
-
 pub const BACKGROUND_TILE_SIZE: usize = 32 * 32;
-
-pub const TILEMAP_9800_START: u16 = 0x9800;
-pub const TILEMAP_9800_END: u16 = 0x9BFF;
-pub const TILEMAP_9C00_START: u16 = 0x9C00;
-pub const TILEMAP_9C00_END: u16 = 0x9FFF;
 
 /// 8x8 pixels of 2 bits p.p => 16 bytes
 /// Each Tile occupies 16 bytes, where each 2 bytes represent a line.

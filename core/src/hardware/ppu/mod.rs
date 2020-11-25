@@ -224,7 +224,7 @@ impl PPU {
                 self.draw_bg_scanline()
             }
         } else {
-            let bg_colour = self.bg_window_palette.color_0();
+            let bg_colour = self.bg_window_palette.colours[0];
             for pixel in self.scanline_buffer.iter_mut() {
                 *pixel = bg_colour;
             }

@@ -40,24 +40,6 @@ impl Palette {
             ],
         }
     }
-    /// Return the color designation located at bit 0-1
-    /// In Object (Sprite) palettes this particular color should be ignored, as it will always
-    /// be transparent.
-    pub fn color_0(&self) -> RGB {
-        self.colours[0]
-    }
-
-    pub fn color_1(&self) -> RGB {
-        self.colours[1]
-    }
-
-    pub fn color_2(&self) -> RGB {
-        self.colours[2]
-    }
-
-    pub fn color_3(&self) -> RGB {
-        self.colours[3]
-    }
 
     /// Retrieve the appropriate colour for the provided pixel value.
     ///
@@ -82,15 +64,6 @@ impl From<[RGB; 4]> for DisplayColour {
             light_grey: colours[1],
             dark_grey: colours[2],
             black: colours[3],
-        }
-    }
-}
-
-impl Default for Palette {
-    fn default() -> Self {
-        Palette {
-            palette_byte: 0b1110_0100,
-            colours: [RGB::default(); 4],
         }
     }
 }

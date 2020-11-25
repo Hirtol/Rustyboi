@@ -1,7 +1,7 @@
-use crate::hardware::ppu::tiledata::{TILE_BLOCK_0_START, TILE_BLOCK_1_START};
 use crate::hardware::ppu::Mode;
 
 use bitflags::*;
+use crate::hardware::ppu::memory_binds::{TILE_BLOCK_0_START, TILE_BLOCK_1_START};
 
 // # PPU FLAGS #
 
@@ -148,23 +148,5 @@ impl LcdStatus {
                 Mode::OamSearch => 2,
                 Mode::LcdTransfer => 3,
             }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::hardware::ppu::register_flags::LcdStatus;
-    use crate::hardware::ppu::Mode::{Hblank, OamSearch};
-
-    #[test]
-    fn status_tests() {
-        let mut test = LcdStatus::default();
-
-        assert_eq!(test.mode_flag(), Hblank);
-        test.set_mode_flag(OamSearch);
-        assert_eq!(test.mode_flag(), OamSearch);
-        assert_ne!(test.mode_flag(), Hblank);
-        test.set_mode_flag(Hblank);
-        assert_eq!(test.mode_flag(), Hblank);
     }
 }

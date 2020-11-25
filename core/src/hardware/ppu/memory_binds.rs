@@ -9,6 +9,18 @@ use crate::scheduler::EventType::{DMATransferComplete, Hblank, Vblank};
 use super::*;
 use crate::hardware::ppu::timing::BASE_LCD_TRANSFER_DURATION;
 
+pub const TILE_BLOCK_0_START: u16 = 0x8000;
+pub const TILE_BLOCK_0_END: u16 = 0x87FF;
+pub const TILE_BLOCK_1_START: u16 = 0x8800;
+pub const TILE_BLOCK_1_END: u16 = 0x8FFF;
+pub const TILE_BLOCK_2_START: u16 = 0x9000;
+pub const TILE_BLOCK_2_END: u16 = 0x97FF;
+
+pub const TILEMAP_9800_START: u16 = 0x9800;
+pub const TILEMAP_9800_END: u16 = 0x9BFF;
+pub const TILEMAP_9C00_START: u16 = 0x9C00;
+pub const TILEMAP_9C00_END: u16 = 0x9FFF;
+
 pub const LCD_CONTROL_REGISTER: u16 = 0xFF40;
 pub const LCD_STATUS_REGISTER: u16 = 0xFF41;
 /// Specifies the position in the 256x256 pixels BG map (32x32 tiles)
@@ -385,13 +397,13 @@ impl PPU {
         let old_stat_irq = self.stat_irq_triggered;
 
         self.stat_irq_triggered = match self.get_current_mode() {
-            Hblank => self.lcd_status.contains(LcdStatus::MODE_0_H_INTERRUPT),
-            Vblank if self.emulated_model.is_dmg() => {
+            Mode::Hblank => self.lcd_status.contains(LcdStatus::MODE_0_H_INTERRUPT),
+            Mode::Vblank if self.emulated_model.is_dmg() => {
                 self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT)
                     || self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT)
             }
-            Vblank if self.emulated_model.is_cgb() => self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT),
-            OamSearch => self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT),
+            Mode::Vblank if self.emulated_model.is_cgb() => self.lcd_status.contains(LcdStatus::MODE_1_V_INTERRUPT),
+            Mode::OamSearch => self.lcd_status.contains(LcdStatus::MODE_2_OAM_INTERRUPT),
             _ => false,
         };
 
