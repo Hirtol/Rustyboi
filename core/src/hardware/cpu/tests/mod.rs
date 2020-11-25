@@ -74,6 +74,10 @@ impl MemoryMapper for TestMemory {
     fn do_m_cycle(&mut self) -> bool {
         false
     }
+
+    fn execute_next_event(&mut self) -> bool {
+        unimplemented!()
+    }
 }
 
 impl Debug for TestMemory {

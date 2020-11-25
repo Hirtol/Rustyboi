@@ -26,6 +26,15 @@ pub struct Event {
     pub event_type: EventType,
 }
 
+impl Default for Event {
+    fn default() -> Self {
+        Event {
+            timestamp: 0,
+            event_type: EventType::None
+        }
+    }
+}
+
 impl PartialEq for Event {
     fn eq(&self, other: &Self) -> bool {
         self.timestamp == other.timestamp
@@ -65,13 +74,10 @@ pub struct Scheduler {
 impl Scheduler {
     pub fn new() -> Self {
         let mut result = Self {
-            event_queue: BinaryHeap::with_capacity_min(64),
+            event_queue: BinaryHeap::with_capacity_min(32),
             current_time: 0,
         };
-        result.event_queue.push(Event {
-            timestamp: 0,
-            event_type: EventType::None,
-        });
+        result.event_queue.push(Event::default());
         result
     }
 
@@ -79,10 +85,20 @@ impl Scheduler {
     /// which is at or below the `current_time` for the `Scheduler`
     #[inline(always)]
     pub fn pop_closest(&mut self) -> Option<Event> {
-        if self.event_queue.peek().map_or(false, |ev| ev.timestamp < self.current_time) {
+        if self.event_queue.peek().map_or(false, |ev| ev.timestamp <= self.current_time) {
             self.event_queue.pop()
         } else {
             None
+        }
+    }
+
+    /// Set the current time to the next closest event.
+    #[inline]
+    pub fn skip_to_next_event(&mut self) {
+        if let Some(ev) = self.event_queue.peek() {
+            // Subtract 4 since we would tick the scheduler right after this, adding 4.
+            // Not pretty separation, should refactor.
+            self.current_time = ev.timestamp-4;
         }
     }
 
@@ -109,15 +125,6 @@ impl Scheduler {
     #[inline(always)]
     fn add_event(&mut self, event: Event) {
         self.event_queue.push(event);
-    }
-
-    /// Update a specific event type to be scheduled at `current_time + relative_timestamp`
-    /// instead of whatever time it had before.
-    ///
-    /// Currently VERY inefficient due to lacking binary heap implementation
-    pub fn update_event_type(&mut self, event_type: EventType, relative_timestamp: u64) {
-        self.remove_event_type(event_type);
-        self.push_relative(event_type, relative_timestamp);
     }
 
     pub fn remove_event_type(&mut self, event_type: EventType) {

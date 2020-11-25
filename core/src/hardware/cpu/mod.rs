@@ -73,7 +73,11 @@ impl<M: MemoryMapper> CPU<M> {
     /// Fetches the next instruction and executes it as well.
     pub fn step_cycle(&mut self) {
         if self.halted {
-            self.add_cycles();
+            // We know only interrupts can affect halt, and all interrupts are on the scheduler.
+            // It's therefore safe to just skip to the next event until an interrupt occurs.
+            if self.mmu.execute_next_event() {
+                self.had_vblank = true;
+            }
             // Since we don't call for an opcode we'll have to handle interrupts here.
             self.handle_interrupts();
             return;

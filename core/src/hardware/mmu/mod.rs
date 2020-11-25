@@ -129,6 +129,9 @@ pub trait MemoryMapper: Debug {
     /// Perform one M-cycle (4 cycles) on all components of the system.
     /// Returns `true` if V-blank occurred
     fn do_m_cycle(&mut self) -> bool;
+    /// Skip ahead to the next event, whenever that may be.
+    /// Useful for halt skipping.
+    fn execute_next_event(&mut self) -> bool;
 }
 
 pub struct Memory {
@@ -493,6 +496,11 @@ impl MemoryMapper for Memory {
     }
 
     fn do_m_cycle(&mut self) -> bool {
+        self.tick_scheduler()
+    }
+
+    fn execute_next_event(&mut self) -> bool {
+        self.scheduler.skip_to_next_event();
         self.tick_scheduler()
     }
 }
