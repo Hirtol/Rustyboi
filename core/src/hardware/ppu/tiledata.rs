@@ -55,7 +55,7 @@ impl SpriteAttribute {
             1 => self.x_pos,
             2 => self.tile_number,
             3 => self.attribute_flags.bits(),
-            _ => panic!("Out of range byte number specified!"),
+            _ => unreachable!("Out of range byte number specified!"),
         }
     }
 
@@ -66,7 +66,7 @@ impl SpriteAttribute {
             1 => self.x_pos = value,
             2 => self.tile_number = value,
             3 => self.attribute_flags = AttributeFlags::from_bits_truncate(value),
-            _ => panic!("Out of range byte number specified!"),
+            _ => unreachable!("Out of range byte number specified!"),
         }
     }
 }

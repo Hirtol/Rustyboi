@@ -17,7 +17,7 @@ use crate::hardware::mmu::cgb_mem::HdmaMode::HDMA;
 use crate::hardware::mmu::cgb_mem::{CgbSpeedData, HdmaRegister};
 use crate::hardware::mmu::wram::Wram;
 use crate::hardware::ppu::tiledata::*;
-use crate::hardware::ppu::{PPU};
+use crate::hardware::ppu::{PPU, Mode};
 use crate::io::bootrom::BootRom;
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::io::io_registers::*;
@@ -224,7 +224,6 @@ impl Memory {
 
     /// Specific method for all calls to the IO registers.
     fn read_io_byte(&mut self, address: u16) -> u8 {
-        use crate::hardware::ppu::*;
         match address {
             JOYPAD_REGISTER => self.joypad_register.get_register(),
             SIO_DATA => self.io_registers.read_byte(address),
@@ -273,7 +272,6 @@ impl Memory {
     }
 
     fn write_io_byte(&mut self, address: u16, value: u8) {
-        use crate::hardware::ppu::*;
         // Temporary for BLARG's tests without visual aid, this writes to the Serial port
         if address == 0xFF02 && value == 0x81 {
             println!("Output: {}", self.read_byte(0xFF01) as char);
