@@ -20,31 +20,26 @@ use crate::hardware::ppu::tiledata::*;
 use crate::hardware::ppu::{PPU, Mode};
 use crate::io::bootrom::BootRom;
 use crate::io::interrupts::{InterruptFlags, Interrupts};
-use crate::io::io_registers::*;
-use crate::io::joypad::*;
-use crate::io::timer::*;
 use crate::scheduler::EventType::{DMARequested, DMATransferComplete};
 use crate::scheduler::{Event, EventType, Scheduler};
 use crate::EmulatorOptions;
 use crate::hardware::ppu::timing::{OAM_SEARCH_DURATION, SCANLINE_DURATION};
 use crate::hardware::ppu::memory_binds::DMA_TRANSFER;
+use crate::io::joypad::JoyPad;
+use crate::io::timer::TimerRegisters;
+use crate::io::io_registers::IORegisters;
 
 pub mod cgb_mem;
 mod dma;
 mod hram;
 mod wram;
 
-pub const MEMORY_SIZE: usize = 0x10000;
 /// 16 KB ROM bank, usually 00. From Cartridge, read-only
 pub const ROM_BANK_00_START: u16 = 0x0000;
 pub const ROM_BANK_00_END: u16 = 0x03FFF;
 /// 16 KB Rom Bank 01~NN. From cartridge, switchable bank via Memory Bank. Read-only.
 pub const ROM_BANK_NN_START: u16 = 0x4000;
 pub const ROM_BANK_NN_END: u16 = 0x7FFF;
-/// This area contains information about the program,
-/// its entry point, checksums, information about the used MBC chip, the ROM and RAM sizes, etc.
-pub const CARTRIDGE_HEADER_START: u16 = 0x0100;
-pub const CARTRIDGE_HEADER_END: u16 = 0x014F;
 /// 8 KB of VRAM, only bank 0 in Non-CGB mode. Switchable bank 0/1 in CGB mode.
 pub const VRAM_START: u16 = 0x8000;
 pub const VRAM_END: u16 = 0x9FFF;
@@ -63,12 +58,32 @@ pub const ECHO_RAM_END: u16 = 0xFDFF;
 /// Sprite attribute table (OAM)
 pub const OAM_ATTRIBUTE_START: u16 = 0xFE00;
 pub const OAM_ATTRIBUTE_END: u16 = 0xFE9F;
-/// Not usable
+
 pub const NOT_USABLE_START: u16 = 0xFEA0;
 pub const NOT_USABLE_END: u16 = 0xFEFF;
 /// I/O Registers
 pub const IO_START: u16 = 0xFF00;
 pub const IO_END: u16 = 0xFF7F;
+
+pub const JOYPAD_REGISTER: u16 = 0xFF00;
+pub const SIO_DATA: u16 = 0xFF01;
+/// FF02 -- SIOCONT [RW] Serial I/O Control       | when set to 1 | when set to 0
+/// Bit7  Transfer start flag                     | START         | NO TRANSFER
+/// Bit0  Serial I/O clock select                 | INTERNAL      | EXTERNAL
+pub const SIO_CONT: u16 = 0xFF02;
+/// This register is incremented at rate of 16384Hz (~16779Hz on SGB).
+/// Writing any value to this register resets it to 00h.
+///
+/// Note: The divider is affected by CGB double speed mode, and will increment at 32768Hz in double speed.
+pub const DIVIDER_REGISTER: u16 = 0xFF04;
+/// This timer is incremented by a clock frequency specified by the TAC register ($FF07).
+/// When the value overflows (gets bigger than FFh) then it will be reset to the value
+/// specified in TMA (FF06), and an interrupt will be requested, as described below.
+pub const TIMER_COUNTER: u16 = 0xFF05;
+/// When the TIMA overflows, this data will be loaded.
+pub const TIMER_MODULO: u16 = 0xFF06;
+/// Several flags to indicate incrementing rate of the timer.
+pub const TIMER_CONTROL: u16 = 0xFF07;
 
 pub const PPU_IO_START: u16 = 0xF40;
 pub const PPU_IO_END: u16 = 0xFF4F;

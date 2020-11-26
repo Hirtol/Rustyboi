@@ -18,7 +18,7 @@ impl BootRom {
             },
             None => Self {
                 is_finished: true,
-                data: vec![],
+                data: Vec::new(),
             },
         }
     }

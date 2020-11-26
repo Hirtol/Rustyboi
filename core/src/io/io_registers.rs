@@ -2,12 +2,6 @@ use crate::hardware::mmu::{INVALID_READ, IO_START};
 
 pub const IO_SIZE: usize = 0x80;
 
-pub const SIO_DATA: u16 = 0xFF01;
-/// FF02 -- SIOCONT [RW] Serial I/O Control       | when set to 1 | when set to 0
-/// Bit7  Transfer start flag                     | START         | NO TRANSFER
-/// Bit0  Serial I/O clock select                 | INTERNAL      | EXTERNAL
-pub const SIO_CONT: u16 = 0xFF02;
-
 /// A struct for the miscellaneous I/O registers
 #[derive(Debug)]
 pub struct IORegisters {

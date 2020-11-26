@@ -2,20 +2,6 @@ use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::io::timer::InputClock::C256;
 use crate::scheduler::{EventType, Scheduler};
 
-/// This register is incremented at rate of 16384Hz (~16779Hz on SGB).
-/// Writing any value to this register resets it to 00h.
-///
-/// Note: The divider is affected by CGB double speed mode, and will increment at 32768Hz in double speed.
-pub const DIVIDER_REGISTER: u16 = 0xFF04;
-/// This timer is incremented by a clock frequency specified by the TAC register ($FF07).
-/// When the value overflows (gets bigger than FFh) then it will be reset to the value
-/// specified in TMA (FF06), and an interrupt will be requested, as described below.
-pub const TIMER_COUNTER: u16 = 0xFF05;
-/// When the TIMA overflows, this data will be loaded.
-pub const TIMER_MODULO: u16 = 0xFF06;
-/// Several flags to indicate incrementing rate of the timer.
-pub const TIMER_CONTROL: u16 = 0xFF07;
-
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, Hash)]
 enum InputClock {
     C16 = 0x1,

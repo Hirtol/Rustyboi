@@ -4,8 +4,6 @@
 
 use bitflags::*;
 
-pub const JOYPAD_REGISTER: u16 = 0xFF00;
-
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
 pub enum InputKey {
     Start,
@@ -18,7 +16,7 @@ pub enum InputKey {
     Right,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct JoyPad {
     pressed_buttons: JoypadFlags,
     pressed_directions: JoypadFlags,
