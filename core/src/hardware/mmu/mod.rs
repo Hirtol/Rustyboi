@@ -212,10 +212,7 @@ impl Memory {
             NOT_USABLE_START..=NOT_USABLE_END => self.non_usable_call(address),
             IO_START..=IO_END => self.read_io_byte(address),
             HRAM_START..=HRAM_END => self.hram.read_byte(address),
-            INTERRUPTS_ENABLE => {
-                //log::info!("Reading interrupt enable {:?}", self.interrupts_enable);
-                self.interrupts.interrupt_enable.bits()
-            }
+            INTERRUPTS_ENABLE => self.interrupts.interrupt_enable.bits(),
             _ => panic!("Reading memory that is out of bounds: 0x{:04X}", address),
         }
     }
@@ -232,10 +229,7 @@ impl Memory {
             NOT_USABLE_START..=NOT_USABLE_END => log::trace!("ROM Writing to Non-usable memory: {:04X}", address),
             IO_START..=IO_END => self.write_io_byte(address, value),
             HRAM_START..=HRAM_END => self.hram.set_byte(address, value),
-            INTERRUPTS_ENABLE => {
-                //log::info!("Writing Interrupt Enable: {:?}", InterruptFlags::from_bits_truncate(value));
-                self.interrupts.overwrite_ie(value);
-            }
+            INTERRUPTS_ENABLE => self.interrupts.overwrite_ie(value),
             _ => panic!("Writing to memory that is not in bounds: 0x{:04X}", address),
         }
     }
