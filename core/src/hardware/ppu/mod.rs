@@ -86,9 +86,8 @@ impl PPU {
     /// The PPU will output a framebuffer with RGB24 values based on the `DisplayColour`
     /// if the emulator is running in `DMG` mode.
     ///
-    /// Otherwise, the PPU will use CGB registers. In addition we proceed to load
-    /// `DisplayColour` into the CGB palette registries (BG0, OBJ0, OBJ1) and we'll
-    /// *always* use those three registries as our source of `RGB` colour (Both in `DMG` and `CGB`).
+    /// In addition we proceed to load `DisplayColour` into the CGB palette registries (BG0, OBJ0, OBJ1),
+    /// and we'll *always* use those three registries as our source of `RGB` colour (Both in `DMG` and `CGB` mode).
     pub fn new(
         bg_display_colour: DisplayColour,
         sp0_display: DisplayColour,
@@ -96,7 +95,11 @@ impl PPU {
         cgb_rendering: bool,
         gb_model: GameBoyModel,
     ) -> Self {
-        let (cgb_bg_palette, cgb_sprite_palette) = initialise_cgb_palette(bg_display_colour, sp0_display, sp1_display);
+        let (cgb_bg_palette, cgb_sprite_palette) = if !cgb_rendering {
+            initialise_cgb_palette(bg_display_colour, sp0_display, sp1_display)
+        } else {
+            ([CgbPalette::default(); 8], [CgbPalette::default(); 8])
+        };
         PPU {
             frame_buffer: [RGB::default(); FRAMEBUFFER_SIZE],
             scanline_buffer: [RGB::default(); RESOLUTION_WIDTH],
