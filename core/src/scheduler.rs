@@ -98,7 +98,9 @@ impl Scheduler {
         if let Some(ev) = self.event_queue.peek() {
             // Subtract 4 since we would tick the scheduler right after this, adding 4.
             // Not pretty separation, should refactor.
-            self.current_time = ev.timestamp-4;
+            // We need the modulo 4, since events could be scheduled at times when they're
+            // not aligned on proper t-cycle boundaries.
+            self.current_time = ev.timestamp - 4 + (ev.timestamp % 4);
         }
     }
 
