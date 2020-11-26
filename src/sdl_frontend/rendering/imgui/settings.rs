@@ -83,7 +83,7 @@ fn create_settings(ui: &Ui, state: &mut GuiState, debug_state: &mut DebugState) 
             ui.same_line(0.0);
             right_align(ui, 13.0);
             if Slider::new(im_str!("##hidelabel AudioVolume"))
-                .range((0..=100))
+                .range(0..=100)
                 .flags(SliderFlags::CLAMP_ON_INPUT)
                 .build(ui, &mut slider_result)
             {

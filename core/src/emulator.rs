@@ -1,17 +1,13 @@
-use std::rc::Rc;
-
 use bitflags::_core::cell::RefCell;
 
+use crate::EmulatorOptions;
 use crate::hardware::cpu::CPU;
-
 use crate::hardware::mmu::{Memory, MemoryMapper};
-use crate::hardware::ppu::palette::{DisplayColour, RGB};
 use crate::hardware::ppu::{FRAMEBUFFER_SIZE, PPU};
-
+use crate::hardware::ppu::palette::{DisplayColour, RGB};
 use crate::hardware::ppu::tiledata::SpriteAttribute;
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::io::joypad::*;
-use crate::EmulatorOptions;
 
 /// A DMG runs at `4.194304 MHz` with a Vsync of `59.7275 Hz`, so that would be
 /// `4194304 / 59.7275 = 70224 cycles/frame`
