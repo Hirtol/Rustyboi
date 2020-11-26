@@ -404,9 +404,10 @@ impl Memory {
                         (self.hdma.transfer_size / 16) as u64 * if self.cgb_data.double_speed { 64 } else { 32 };
                     self.scheduler.push_relative(EventType::GDMATransferComplete, clocks_to_wait);
                     self.gdma_transfer();
-                    //TODO: Skip to next event if next_event < current_time+clocks_to_wait?
                     while clocks_to_wait > 0 {
-                        self.do_m_cycle();
+                        if self.do_m_cycle() {
+                            vblank_occurred = true;
+                        }
                         clocks_to_wait -= 4;
                     }
                 }
