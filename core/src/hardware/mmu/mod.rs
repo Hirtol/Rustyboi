@@ -235,20 +235,9 @@ impl Memory {
             TIMER_COUNTER => self.timers.timer_counter,
             TIMER_MODULO => self.timers.timer_modulo,
             TIMER_CONTROL => self.timers.timer_control.to_bits(),
-            INTERRUPTS_FLAG => {
-                //log::info!("Reading interrupt flag {:?}", self.interrupts.interrupt_flag);
-                self.interrupts.interrupt_flag.bits()
-            }
-            APU_MEM_START..=APU_MEM_END => {
-                let result = self.apu.read_register(address, &mut self.scheduler, self.cgb_data.double_speed as u64);
-                //log::info!("APU Read on address: 0x{:02X} with return value: 0x{:02X}", address, result);
-                result
-            }
-            WAVE_SAMPLE_START..=WAVE_SAMPLE_END => {
-                let result = self.apu.read_wave_sample(address, &mut self.scheduler, self.cgb_data.double_speed as u64);
-                //log::info!("APU Wave_Read on address: 0x{:02X} with return value: 0x{:02X}", address, result);
-                result
-            }
+            INTERRUPTS_FLAG => self.interrupts.interrupt_flag.bits(),
+            APU_MEM_START..=APU_MEM_END => self.apu.read_register(address, &mut self.scheduler, self.cgb_data.double_speed as u64),
+            WAVE_SAMPLE_START..=WAVE_SAMPLE_END => self.apu.read_wave_sample(address, &mut self.scheduler, self.cgb_data.double_speed as u64),
             DMA_TRANSFER => self.io_registers.read_byte(address),
             CGB_PREPARE_SWITCH => {
                 if self.emulated_model.is_cgb() {
@@ -338,9 +327,9 @@ impl Memory {
 
     /// Ticks the scheduler by 4 cycles, executes any events if they come up.
     /// Returns true if a vblank interrupt happened.
+    #[inline(always)]
     fn tick_scheduler(&mut self) -> bool {
         let mut vblank_occurred = false;
-        self.scheduler.add_cycles(4);
 
         while let Some(mut event) = self.scheduler.pop_closest() {
             match event.event_type {
@@ -415,7 +404,7 @@ impl Memory {
                         (self.hdma.transfer_size / 16) as u64 * if self.cgb_data.double_speed { 64 } else { 32 };
                     self.scheduler.push_relative(EventType::GDMATransferComplete, clocks_to_wait);
                     self.gdma_transfer();
-
+                    //TODO: Skip to next event if next_event < current_time+clocks_to_wait?
                     while clocks_to_wait > 0 {
                         self.do_m_cycle();
                         clocks_to_wait -= 4;
@@ -496,6 +485,7 @@ impl MemoryMapper for Memory {
     }
 
     fn do_m_cycle(&mut self) -> bool {
+        self.scheduler.add_cycles(4);
         self.tick_scheduler()
     }
 

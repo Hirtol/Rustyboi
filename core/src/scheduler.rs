@@ -96,11 +96,9 @@ impl Scheduler {
     #[inline]
     pub fn skip_to_next_event(&mut self) {
         if let Some(ev) = self.event_queue.peek() {
-            // Subtract 4 since we would tick the scheduler right after this, adding 4.
-            // Not pretty separation, should refactor.
             // We need the modulo 4, since events could be scheduled at times when they're
             // not aligned on proper t-cycle boundaries.
-            self.current_time = ev.timestamp - 4 + (ev.timestamp % 4);
+            self.current_time = ev.timestamp + (ev.timestamp % 4);
         }
     }
 
@@ -140,5 +138,10 @@ impl Scheduler {
     #[inline]
     pub fn add_cycles(&mut self, delta_cycles: u64) {
         self.current_time += delta_cycles;
+    }
+
+    #[inline]
+    pub fn next_event_timestamp(&self) -> u64 {
+        self.event_queue.peek().map_or(u64::MAX, |ev| ev.timestamp)
     }
 }
