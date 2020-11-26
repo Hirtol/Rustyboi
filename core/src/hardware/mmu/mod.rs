@@ -328,7 +328,7 @@ impl Memory {
     /// Ticks the scheduler by 4 cycles, executes any events if they come up.
     /// Returns true if a vblank interrupt happened.
     #[inline(always)]
-    fn tick_scheduler(&mut self) -> bool {
+    fn execute_scheduled_events(&mut self) -> bool {
         let mut vblank_occurred = false;
 
         while let Some(mut event) = self.scheduler.pop_closest() {
@@ -487,12 +487,12 @@ impl MemoryMapper for Memory {
 
     fn do_m_cycle(&mut self) -> bool {
         self.scheduler.add_cycles(4);
-        self.tick_scheduler()
+        self.execute_scheduled_events()
     }
 
     fn execute_next_event(&mut self) -> bool {
         self.scheduler.skip_to_next_event();
-        self.tick_scheduler()
+        self.execute_scheduled_events()
     }
 }
 
