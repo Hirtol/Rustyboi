@@ -3,8 +3,8 @@ use crate::rendering::immediate::ImmediateGui;
 use crate::rendering::Renderer;
 use crate::DEFAULT_DISPLAY_COLOURS;
 use crossbeam::channel::*;
-use rustyboi_core::emulator::Emulator;
-use rustyboi_core::emulator::GameBoyModel::CGB;
+use rustyboi_core::gb_emu::GameBoyEmulator;
+use rustyboi_core::gb_emu::GameBoyModel::CGB;
 use rustyboi_core::hardware::ppu::palette::RGB;
 use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
 use rustyboi_core::{EmulatorOptions, EmulatorOptionsBuilder};
@@ -49,7 +49,7 @@ impl Benchmarking {
 
     #[inline(always)]
     pub fn benchmark_without_render(cartridge: impl AsRef<Path>, emu_opts: EmulatorOptions) {
-        let mut emulator = Emulator::new(&read(cartridge).unwrap(), emu_opts);
+        let mut emulator = GameBoyEmulator::new(&read(cartridge).unwrap(), emu_opts);
 
         'mainloop: loop {
             let mut frame_count = 0;
@@ -74,7 +74,7 @@ impl Benchmarking {
 }
 
 fn run_with_send(cartridge: &Vec<u8>, sender: Sender<[RGB; FRAMEBUFFER_SIZE]>, emu_opts: EmulatorOptions) {
-    let mut emulator = Emulator::new(cartridge, emu_opts);
+    let mut emulator = GameBoyEmulator::new(cartridge, emu_opts);
 
     'mainloop: loop {
         let mut frame_count = 0;

@@ -1,9 +1,9 @@
-use crate::emulator::{Emulator, GameBoyModel};
+use crate::gb_emu::{GameBoyEmulator, GameBoyModel};
 use crate::hardware::ppu::debugging_features::PaletteDebugInfo;
 use crate::hardware::ppu::palette::RGB;
 use crate::hardware::ppu::tiledata::SpriteAttribute;
 
-impl Emulator {
+impl GameBoyEmulator {
     /// Retrieves and returns all palette info from the `PPU`
     /// Strips out all unnecessary information, only leaving colour info.
     pub fn get_palette_info(&self) -> PaletteDebugInfo {

@@ -1,4 +1,4 @@
-use crate::emulator::GameBoyModel;
+use crate::gb_emu::GameBoyModel;
 use crate::hardware::apu::channel_features::{EnvelopeFeature, LengthFeature, SweepFeature};
 use crate::hardware::apu::{no_length_tick_next_step, test_bit};
 use crate::hardware::mmu::INVALID_READ;

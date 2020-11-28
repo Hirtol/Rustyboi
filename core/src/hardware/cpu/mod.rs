@@ -8,7 +8,7 @@ use log::*;
 use registers::Reg8::A;
 use registers::{Flags, Reg16, Registers};
 
-use crate::emulator::*;
+use crate::gb_emu::*;
 use crate::hardware::cpu::execute::JumpModifier::Always;
 use crate::hardware::cpu::execute::{InstructionAddress, JumpModifier, WrapperEnum};
 use crate::hardware::cpu::instructions::get_assembly_from_opcode;

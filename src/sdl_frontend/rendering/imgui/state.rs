@@ -1,7 +1,7 @@
 use crate::rendering::imgui::animate::{formulas::Quadratic, FadeAnimation};
 use imgui::Ui;
 use nanoserde::{DeJson, SerJson};
-use rustyboi_core::emulator::GameBoyModel;
+use rustyboi_core::gb_emu::GameBoyModel;
 use rustyboi_core::hardware::ppu::debugging_features::PaletteDebugInfo;
 use std::time::Duration;
 

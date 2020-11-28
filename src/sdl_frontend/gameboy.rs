@@ -5,7 +5,7 @@ use std::thread::JoinHandle;
 use crossbeam::channel::*;
 
 use rustyboi::actions::{create_emulator, save_rom};
-use rustyboi_core::emulator::Emulator;
+use rustyboi_core::gb_emu::GameBoyEmulator;
 use rustyboi_core::hardware::ppu::palette::RGB;
 use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
 use rustyboi_core::{EmulatorOptions, InputKey};
@@ -66,7 +66,7 @@ impl GameboyRunner {
 }
 
 fn run_emulator(
-    emulator: &mut Emulator,
+    emulator: &mut GameBoyEmulator,
     frame_sender: Sender<[RGB; FRAMEBUFFER_SIZE]>,
     response_sender: Sender<EmulatorResponse>,
     notification_receiver: Receiver<EmulatorNotification>,
@@ -124,7 +124,7 @@ fn run_emulator(
 
 fn handle_debug_request(
     request: DebugMessage,
-    emulator: &mut Emulator,
+    emulator: &mut GameBoyEmulator,
     response_sender: &Sender<EmulatorResponse>,
 ) -> bool {
     let response;

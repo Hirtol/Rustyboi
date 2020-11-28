@@ -16,7 +16,7 @@ use audio::AudioPlayer;
 use rustyboi::storage::{FileStorage, Storage};
 use rustyboi_core::{EmulatorOptionsBuilder, InputKey};
 
-use rustyboi_core::emulator::GameBoyModel::{CGB, DMG};
+use rustyboi_core::gb_emu::GameBoyModel::{CGB, DMG};
 
 use rustyboi_core::hardware::ppu::palette::{DisplayColour, RGB};
 use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;

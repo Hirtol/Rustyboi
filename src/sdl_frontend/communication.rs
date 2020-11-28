@@ -1,5 +1,5 @@
 use crate::state::DisplayColourConfigurable;
-use rustyboi_core::emulator::GameBoyModel;
+use rustyboi_core::gb_emu::GameBoyModel;
 use rustyboi_core::hardware::ppu::debugging_features::PaletteDebugInfo;
 use rustyboi_core::InputKey;
 

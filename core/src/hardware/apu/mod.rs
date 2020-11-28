@@ -4,7 +4,7 @@
 //! only running to the cycle it *should* be at when a memory access/vblank occurs to one of the APU
 //! registers.
 
-use crate::emulator::{GameBoyModel, DMG_CLOCK_SPEED};
+use crate::gb_emu::{GameBoyModel, DMG_CLOCK_SPEED};
 use crate::hardware::apu::noise_channel::NoiseChannel;
 use crate::hardware::apu::square_channel::SquareWaveChannel;
 use crate::hardware::apu::wave_channel::WaveformChannel;

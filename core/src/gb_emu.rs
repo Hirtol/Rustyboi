@@ -14,9 +14,6 @@ use crate::io::joypad::*;
 pub const CYCLES_PER_FRAME: u64 = 70224;
 pub const DMG_CLOCK_SPEED: u64 = 4194304;
 
-/// Describes the `Emulator`'s mode.
-///
-/// If DMG is chosen no CGB features will be used.
 #[derive(Debug, Clone, Copy, PartialOrd, PartialEq)]
 pub enum GameBoyModel {
     DMG,
@@ -39,13 +36,13 @@ impl GameBoyModel {
     }
 }
 
-pub struct Emulator {
+pub struct GameBoyEmulator {
     pub(super) cpu: CPU<Memory>,
 }
 
-impl Emulator {
+impl GameBoyEmulator {
     pub fn new(cartridge: &[u8], options: EmulatorOptions) -> Self {
-        Emulator {
+        GameBoyEmulator {
             cpu: CPU::new(Memory::new(cartridge, options)),
         }
     }

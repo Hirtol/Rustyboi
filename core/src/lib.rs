@@ -1,6 +1,6 @@
-pub mod emulator;
+pub mod gb_emu;
 mod scheduler;
-use crate::emulator::GameBoyModel;
+use crate::gb_emu::GameBoyModel;
 use crate::hardware::mmu::INVALID_READ;
 use crate::hardware::ppu::palette::DisplayColour;
 pub use crate::io::joypad::InputKey;
@@ -8,7 +8,7 @@ use bitflags::_core::ops::Deref;
 use std::fmt::Debug;
 use std::ops::DerefMut;
 
-mod emulator_debug;
+mod gb_emu_debug;
 pub mod hardware;
 mod io;
 

@@ -1,5 +1,5 @@
 use directories::ProjectDirs;
-use rustyboi_core::emulator::Emulator;
+use rustyboi_core::gb_emu::GameBoyEmulator;
 use rustyboi_core::hardware::cartridge::header::CartridgeHeader;
 
 use rustyboi_core::{EmulatorOptions, EmulatorOptionsBuilder};
@@ -9,7 +9,7 @@ use std::path::Path;
 
 /// Function to call in order to save external ram (in case it's present)
 /// as well as any additional cleanup as required.
-pub fn save_rom(emulator: &Emulator) {
+pub fn save_rom(emulator: &GameBoyEmulator) {
     if let Some(ram) = emulator.battery_ram() {
         let save_dir = ProjectDirs::from("", "Hirtol", "Rustyboi")
             .expect("Could not get access to data dir for saving!")
@@ -34,7 +34,7 @@ pub fn save_rom(emulator: &Emulator) {
 /// In case the file provided is not a rom the program will *probably* crash.
 ///
 /// Any external ram will also automatically be loaded if present.
-pub fn create_emulator(rom_path: impl AsRef<Path>, options: EmulatorOptions) -> Emulator {
+pub fn create_emulator(rom_path: impl AsRef<Path>, options: EmulatorOptions) -> GameBoyEmulator {
     let rom = read(rom_path.as_ref()).expect(&format!("Could not open ROM file {:?}!", rom_path.as_ref()));
     let saved_ram = find_saved_ram(find_rom_name(&rom));
 
@@ -46,7 +46,7 @@ pub fn create_emulator(rom_path: impl AsRef<Path>, options: EmulatorOptions) -> 
 
     let emu_options = EmulatorOptionsBuilder::from(options).saved_ram(saved_ram).build();
 
-    Emulator::new(&rom, emu_options)
+    GameBoyEmulator::new(&rom, emu_options)
 }
 
 pub fn find_saved_ram(name: impl AsRef<str>) -> Option<Vec<u8>> {

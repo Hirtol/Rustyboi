@@ -16,7 +16,7 @@ use std::ffi::{OsStr, OsString};
 use crate::options::AppOptions;
 use blake2::{Blake2s, Digest};
 use image::ImageBuffer;
-use rustyboi_core::emulator::{Emulator, GameBoyModel};
+use rustyboi_core::gb_emu::{GameBoyEmulator, GameBoyModel};
 use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
 use std::thread::spawn;
 use std::time::Instant;
@@ -26,7 +26,7 @@ use std::collections::{HashMap, HashSet};
 
 use gumdrop::Options;
 use image::imageops::FilterType;
-use rustyboi_core::emulator::GameBoyModel::{CGB, DMG};
+use rustyboi_core::gb_emu::GameBoyModel::{CGB, DMG};
 use rustyboi_core::hardware::ppu::palette::RGB;
 use std::sync::Arc;
 
@@ -126,7 +126,7 @@ fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>, emulator_mode:
             };
 
             let emu_opts = options_builder.build();
-            let mut emu = Emulator::new(&read(path).unwrap(), emu_opts);
+            let mut emu = GameBoyEmulator::new(&read(path).unwrap(), emu_opts);
 
             if let Some(frames) = list_copy.get(file_stem.to_str().unwrap_or_default()) {
                 frames_to_render = *frames;

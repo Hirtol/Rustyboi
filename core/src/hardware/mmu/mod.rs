@@ -7,8 +7,8 @@ use log::*;
 
 use hram::Hram;
 
-use crate::emulator::GameBoyModel;
-use crate::emulator::GameBoyModel::DMG;
+use crate::gb_emu::GameBoyModel;
+use crate::gb_emu::GameBoyModel::DMG;
 use crate::hardware::apu::{
     APU, APU_MEM_END, APU_MEM_START, FRAME_SEQUENCE_CYCLES, SAMPLE_CYCLES, WAVE_SAMPLE_END, WAVE_SAMPLE_START,
 };

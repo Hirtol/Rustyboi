@@ -5,16 +5,16 @@ use criterion::measurement::WallTime;
 use criterion::{criterion_group, criterion_main, BenchmarkGroup, Criterion};
 use criterion_cycles_per_byte::CyclesPerByte;
 
-use rustyboi_core::emulator::Emulator;
-use rustyboi_core::emulator::GameBoyModel::CGB;
+use rustyboi_core::gb_emu::GameBoyEmulator;
+use rustyboi_core::gb_emu::GameBoyModel::CGB;
 use rustyboi_core::EmulatorOptionsBuilder;
 
 fn emulator_benchmark(c: &mut Criterion) {
     let rom_data = read("..\\roms\\Zelda.gb").unwrap();
 
-    let mut emulator = Emulator::new(&rom_data, EmulatorOptionsBuilder::new().build());
+    let mut emulator = GameBoyEmulator::new(&rom_data, EmulatorOptionsBuilder::new().build());
     c.bench_function("Emulate to Vblank", |b| b.iter(|| emulator.run_to_vblank()));
-    let mut emulator = Emulator::new(&rom_data, EmulatorOptionsBuilder::new().build());
+    let mut emulator = GameBoyEmulator::new(&rom_data, EmulatorOptionsBuilder::new().build());
     c.bench_function("Emulate Cycle", |b| b.iter(|| emulator.emulate_cycle()));
 }
 
@@ -40,9 +40,9 @@ fn run_scanline_benchmark(path: impl AsRef<Path>, group: &mut BenchmarkGroup<Wal
     let is_cgb_rom = path.as_ref().extension().unwrap_or_default() == "gbc";
 
     let mut emulator = if is_cgb_rom {
-        Emulator::new(&rom_data, EmulatorOptionsBuilder::new().with_mode(CGB).build())
+        GameBoyEmulator::new(&rom_data, EmulatorOptionsBuilder::new().with_mode(CGB).build())
     } else {
-        Emulator::new(&rom_data, EmulatorOptionsBuilder::new().build())
+        GameBoyEmulator::new(&rom_data, EmulatorOptionsBuilder::new().build())
     };
 
     for _ in 0..40 {

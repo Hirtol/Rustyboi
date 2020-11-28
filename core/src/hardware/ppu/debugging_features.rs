@@ -1,4 +1,4 @@
-use crate::emulator::GameBoyModel;
+use crate::gb_emu::GameBoyModel;
 use crate::hardware::ppu::cgb_vram::CgbPalette;
 use crate::hardware::ppu::palette::{DisplayColour, Palette, RGB};
 use crate::hardware::ppu::tiledata::Tile;

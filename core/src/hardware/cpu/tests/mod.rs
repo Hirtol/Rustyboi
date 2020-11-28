@@ -1,5 +1,5 @@
-use crate::emulator::GameBoyModel;
-use crate::emulator::GameBoyModel::DMG;
+use crate::gb_emu::GameBoyModel;
+use crate::gb_emu::GameBoyModel::DMG;
 use crate::hardware::apu::APU;
 use crate::hardware::cartridge::Cartridge;
 use crate::hardware::cpu::registers::Registers;
