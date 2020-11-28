@@ -139,8 +139,6 @@ impl TimerRegisters {
             self.tick_timer(scheduler)
         }
 
-        //TODO: Currently we seem to be out by one cycle with our new implementation compared
-        // to our old one, check with games.
         if old_control.input_select != self.timer_control.input_select {
             scheduler.remove_event_type(EventType::TimerTick);
             self.push_timer_tick_scheduler(scheduler);

@@ -175,18 +175,18 @@ impl Debug for Cartridge {
 
 fn create_mbc(header: &CartridgeHeader) -> (MBC, bool) {
     use MBC::*;
-    let has_battery = match header.cartridge_type {
+    let has_battery = match header.cartridge_type as u8 {
         0x3 | 0x6 | 0x9 | 0xD | 0xF | 0x10 | 0x13 | 0x1B | 0x1E | 0x22 | 0xFF => true,
         _ => false,
     };
-    let mbc = match header.cartridge_type {
+    let mbc = match header.cartridge_type as u8 {
         0x0 => MBC0,
         0x1..=0x3 => MBC1(MBC1State::default()),
         0xF..=0x13 => MBC3(MBC3State::default()),
         // 1C..=1E technically contain a rumble feature, to be implemented.
         0x19..=0x1E => MBC5(MBC5State::default()),
         _ => panic!(
-            "Unsupported cartridge type, please add support for: 0x{:02X}",
+            "Unsupported cartridge type, please add support for: {:#?}",
             header.cartridge_type
         ),
     };

@@ -185,7 +185,7 @@ impl APU {
     pub fn read_register(&mut self, address: u16, scheduler: &mut Scheduler, speed_multiplier: u64) -> u8 {
         self.synchronise(scheduler, speed_multiplier);
         let address = address & 0xFF;
-        //TODO: No read if disabled?
+
         match address {
             0x10..=0x14 => self.voice1.read_register(address),
             0x15..=0x19 => self.voice2.read_register(address),

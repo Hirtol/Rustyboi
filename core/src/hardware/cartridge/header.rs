@@ -1,18 +1,11 @@
-use crate::hardware::cartridge::header::RamSizes::{KB128, KB2, KB32, KB64, KB8, NONE};
+use std::convert::TryFrom;
+
 use bitflags::_core::str::from_utf8;
+
+use crate::hardware::cartridge::header::RamSizes::{KB128, KB2, KB32, KB64, KB8, NONE};
 
 pub const HEADER_START: u16 = 0x0100;
 pub const HEADER_END: u16 = 0x014F;
-
-#[derive(Debug, Copy, Clone)]
-pub enum RamSizes {
-    NONE = 0x0,
-    KB2 = 0x1,
-    KB8 = 0x2,
-    KB32 = 0x3,
-    KB64 = 0x5,
-    KB128 = 0x4,
-}
 
 #[derive(Debug)]
 pub struct CartridgeHeader {
@@ -28,7 +21,7 @@ pub struct CartridgeHeader {
     pub sgb_flag: bool,
     /// Specifies which Memory Bank Controller (if any) is used in the cartridge,
     /// and if further external hardware exists in the cartridge.
-    pub cartridge_type: u8,
+    pub cartridge_type: CartridgeType,
     /// Specifies the ROM Size of the cartridge. Typically calculated as "32KB shl N".
     pub rom_size: u8,
     /// Specifies the size of the external RAM in the cartridge (if any).
@@ -103,15 +96,16 @@ fn read_sgb_flag(rom: &[u8]) -> bool {
     sgb_flag == 0x03
 }
 
-fn read_cartridge_type(rom: &[u8]) -> u8 {
+fn read_cartridge_type(rom: &[u8]) -> CartridgeType {
     let c_type = rom[0x147];
-    //TODO: Make properly functional.
-    c_type
+
+    CartridgeType::try_from(c_type)
+        .expect(&format!("Invalid Cartridge Type supplied by ROM: {:#X}", c_type))
 }
 
 fn read_rom_size(rom: &[u8]) -> u8 {
     let r_size = rom[0x148];
-    //TODO: Make properly functional.
+
     r_size
 }
 
@@ -153,6 +147,16 @@ fn read_global_checksum(rom: &[u8]) -> u16 {
     ((rom[0x14E] as u16) << 8) | rom[0x14F] as u16
 }
 
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
+pub enum RamSizes {
+    NONE = 0x0,
+    KB2 = 0x1,
+    KB8 = 0x2,
+    KB32 = 0x3,
+    KB64 = 0x5,
+    KB128 = 0x4,
+}
+
 impl RamSizes {
     pub fn to_usize(&self) -> usize {
         match self {
@@ -168,9 +172,68 @@ impl RamSizes {
     }
 }
 
+/// Lazy programming TryFrom
+macro_rules! back_to_enum {
+    ($(#[$meta:meta])* $vis:vis enum $name:ident {
+        $($(#[$vmeta:meta])* $vname:ident $(= $val:expr)?,)*
+    }) => {
+        $(#[$meta])*
+        $vis enum $name {
+            $($(#[$vmeta])* $vname $(= $val)?,)*
+        }
+
+        impl std::convert::TryFrom<u8> for $name {
+            type Error = ();
+
+            fn try_from(v: u8) -> Result<Self, Self::Error> {
+                match v {
+                    $(x if x == $name::$vname as u8 => Ok($name::$vname),)*
+                    _ => Err(()),
+                }
+            }
+        }
+    }
+}
+
+
+back_to_enum! {
+    #[repr(u8)]
+    #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
+    pub enum CartridgeType {
+        RomOnly = 0x0,
+        MBC1 = 0x1,
+        MBC1Ram = 0x2,
+        MBC1RamBattery = 0x3,
+        MBC2 = 0x5,
+        MBC2Battery = 0x6,
+        RomRam = 0x8,
+        RomRamBattery = 0x9,
+        MMM01 = 0xB,
+        MMM01Ram = 0xC,
+        MMM01RamBattery = 0xD,
+        MBC3TimerBattery = 0x0F,
+        MBC3TimerRamBattery = 0x10,
+        MBC3 = 0x11,
+        MBC3Ram = 0x12,
+        MBC3RamBattery = 0x13,
+        MBC5 = 0x19,
+        MBC5Ram = 0x1A,
+        MBC5RamBattery = 0x1B,
+        MBC5Rumble = 0x1C,
+        MBC5RumbleRam = 0x1D,
+        MBC5RumbleRamBattery = 0x1E,
+        MBC6 = 0x20,
+        MBC7SensorRumbleRamBattery = 0x22,
+        PocketCamera = 0xFC,
+        BANDAITama5 = 0xFD,
+        HuC3 = 0xFE,
+        HuC1RamBattery = 0xFF,
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::hardware::cartridge::header::{read_cgb_flag, read_title, CartridgeHeader};
+    use crate::hardware::cartridge::header::{CartridgeHeader, read_cgb_flag, read_title};
 
     #[test]
     fn test_read_title() {
