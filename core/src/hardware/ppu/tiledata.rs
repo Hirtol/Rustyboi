@@ -122,14 +122,14 @@ impl Tile {
     }
 
     fn bulk_set_pixels(&mut self, top_pixel_data: u8, bottom_pixel_data: u8, pixel_array_address: usize) {
-        self.unpaletted_pixels[pixel_array_address] = top_pixel_data & 1 | ((bottom_pixel_data & 1) << 1);
-        self.unpaletted_pixels[pixel_array_address + 1] = (top_pixel_data & 2) >> 1 | (bottom_pixel_data & 2);
-        self.unpaletted_pixels[pixel_array_address + 2] = (top_pixel_data & 4) >> 2 | ((bottom_pixel_data & 4) >> 1);
-        self.unpaletted_pixels[pixel_array_address + 3] = (top_pixel_data & 8) >> 3 | ((bottom_pixel_data & 8) >> 2);
-        self.unpaletted_pixels[pixel_array_address + 4] = (top_pixel_data & 16) >> 4 | ((bottom_pixel_data & 16) >> 3);
-        self.unpaletted_pixels[pixel_array_address + 5] = (top_pixel_data & 32) >> 5 | ((bottom_pixel_data & 32) >> 4);
-        self.unpaletted_pixels[pixel_array_address + 6] = (top_pixel_data & 64) >> 6 | ((bottom_pixel_data & 64) >> 5);
-        self.unpaletted_pixels[pixel_array_address + 7] = (top_pixel_data & 128) >> 7 | ((bottom_pixel_data & 128) >> 6);
+        self.unpaletted_pixels[pixel_array_address] = top_pixel_data & 0b1 | ((bottom_pixel_data & 0b1) << 1);
+        self.unpaletted_pixels[pixel_array_address + 1] = top_pixel_data >> 1 & 0b1 | bottom_pixel_data & 0b10;
+        self.unpaletted_pixels[pixel_array_address + 2] = top_pixel_data >> 2 & 0b1 | bottom_pixel_data >> 1 & 0b10;
+        self.unpaletted_pixels[pixel_array_address + 3] = top_pixel_data >> 3 & 0b1 | bottom_pixel_data >> 2 & 0b10;
+        self.unpaletted_pixels[pixel_array_address + 4] = top_pixel_data >> 4 & 0b1 | bottom_pixel_data >> 3 & 0b10;
+        self.unpaletted_pixels[pixel_array_address + 5] = top_pixel_data >> 5 & 0b1 | bottom_pixel_data >> 4 & 0b10;
+        self.unpaletted_pixels[pixel_array_address + 6] = top_pixel_data >> 6 & 0b1 | bottom_pixel_data >> 5 & 0b10;
+        self.unpaletted_pixels[pixel_array_address + 7] = top_pixel_data >> 7 & 0b1 | bottom_pixel_data >> 6 & 0b10;
     }
 }
 
