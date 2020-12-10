@@ -4,17 +4,21 @@ use bitflags::*;
 pub struct Interrupts {
     pub interrupt_enable: InterruptFlags,
     pub interrupt_flag: InterruptFlags,
+
+    pub should_check: bool,
 }
 
 impl Interrupts {
     #[inline(always)]
     pub fn insert_interrupt(&mut self, interrupt: InterruptFlags) {
         self.interrupt_flag.insert(interrupt);
+        self.should_check = self.interrupts_pending();
     }
 
     #[inline(always)]
     pub fn remove_interrupt(&mut self, interrupt: InterruptFlags) {
         self.interrupt_flag.remove(interrupt);
+        self.should_check = self.interrupts_pending();
     }
 
     #[inline(always)]
@@ -23,12 +27,13 @@ impl Interrupts {
         // pass halt_bug otherwise so I'm assuming they're supposed to be unmodifiable
         // by the user after all, and instead are set to 1.
         self.interrupt_flag = InterruptFlags::from_bits_truncate(0xE0 | value);
-        //log::info!("Writing interrupt flag {:?} from value: {:02x}", self.interrupts.interrupt_flag, value);
+        self.should_check = self.interrupts_pending();
     }
 
     #[inline(always)]
     pub fn overwrite_ie(&mut self, value: u8) {
         self.interrupt_enable = InterruptFlags::from_bits_truncate(value);
+        self.should_check = self.interrupts_pending();
     }
 
     /// Check if `IF != 0` and that the corresponding bit is also set in `IE`

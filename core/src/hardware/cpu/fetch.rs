@@ -34,8 +34,10 @@ impl<M: MemoryMapper> CPU<M> {
     pub fn get_next_opcode(&mut self) -> u8 {
         let mut opcode = self.read_byte_cycle(self.registers.pc);
 
-        if self.handle_interrupts() {
-            opcode = self.read_byte_cycle(self.registers.pc);
+        if self.mmu.interrupts().should_check {
+            if self.handle_interrupts() {
+                opcode = self.read_byte_cycle(self.registers.pc);
+            }
         }
 
         self.registers.pc = self.registers.pc.wrapping_add(1);
@@ -44,18 +46,17 @@ impl<M: MemoryMapper> CPU<M> {
     }
 
     pub fn handle_interrupts(&mut self) -> bool {
-        if !self.ime {
-            if self.mmu.interrupts().interrupts_pending() {
+        if self.mmu.interrupts().interrupts_pending() {
+            if !self.ime {
                 self.halted = false;
+            } else {
+                let interrupt = self.mmu.interrupts().get_highest_priority();
+                #[cfg(feature = "cpu-logging")]
+                log::debug!("Firing {:?} interrupt", interrupt);
+
+                self.interrupts_routine(interrupt);
+                return true;
             }
-        } else if self.mmu.interrupts().interrupts_pending() {
-            let interrupt = self.mmu.interrupts().get_highest_priority();
-            #[cfg(feature = "cpu-logging")]
-            log::debug!("Firing {:?} interrupt", interrupt);
-
-            self.interrupts_routine(interrupt);
-
-            return true;
         }
         false
     }
