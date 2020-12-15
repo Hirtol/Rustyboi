@@ -2,6 +2,15 @@ use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::io::timer::InputClock::C256;
 use crate::scheduler::{EventType, Scheduler};
 
+/// This timer is incremented by a clock frequency specified by the TAC register ($FF07).
+/// When the value overflows (gets bigger than FFh) then it will be reset to the value
+/// specified in TMA (FF06), and an interrupt will be requested, as described below.
+pub const TIMER_COUNTER: u16 = 0xFF05;
+/// When the TIMA overflows, this data will be loaded.
+pub const TIMER_MODULO: u16 = 0xFF06;
+/// Several flags to indicate incrementing rate of the timer.
+pub const TIMER_CONTROL: u16 = 0xFF07;
+
 #[derive(Debug, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, Hash)]
 enum InputClock {
     C16 = 0x1,
@@ -27,6 +36,24 @@ pub struct TimerRegisters {
 }
 
 impl TimerRegisters {
+    pub fn read_register(&mut self, address: u16, scheduler: &mut Scheduler) -> u8 {
+        match address {
+            TIMER_COUNTER => self.timer_counter,
+            TIMER_MODULO => self.timer_modulo,
+            TIMER_CONTROL => self.timer_control.to_bits(),
+            _ => unreachable!()
+        }
+    }
+
+    pub fn write_register(&mut self, address: u16, value: u8, scheduler: &mut Scheduler) {
+        match address {
+            TIMER_COUNTER => self.set_timer_counter(value, scheduler),
+            TIMER_MODULO => self.set_tma(value),
+            TIMER_CONTROL => self.set_timer_control(value, scheduler),
+            _ => unreachable!()
+        }
+    }
+
     pub fn divider_register(&self, scheduler: &Scheduler) -> u8 {
         (self.get_time_passed(scheduler) >> 8) as u8
     }

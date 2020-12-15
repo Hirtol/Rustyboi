@@ -26,7 +26,7 @@ use crate::EmulatorOptions;
 use crate::hardware::ppu::timing::{OAM_SEARCH_DURATION, SCANLINE_DURATION};
 use crate::hardware::ppu::memory_binds::DMA_TRANSFER;
 use crate::io::joypad::JoyPad;
-use crate::io::timer::TimerRegisters;
+use crate::io::timer::{TimerRegisters, TIMER_COUNTER, TIMER_CONTROL, TIMER_MODULO};
 use crate::io::io_registers::IORegisters;
 
 pub mod cgb_mem;
@@ -76,14 +76,6 @@ pub const SIO_CONT: u16 = 0xFF02;
 ///
 /// Note: The divider is affected by CGB double speed mode, and will increment at 32768Hz in double speed.
 pub const DIVIDER_REGISTER: u16 = 0xFF04;
-/// This timer is incremented by a clock frequency specified by the TAC register ($FF07).
-/// When the value overflows (gets bigger than FFh) then it will be reset to the value
-/// specified in TMA (FF06), and an interrupt will be requested, as described below.
-pub const TIMER_COUNTER: u16 = 0xFF05;
-/// When the TIMA overflows, this data will be loaded.
-pub const TIMER_MODULO: u16 = 0xFF06;
-/// Several flags to indicate incrementing rate of the timer.
-pub const TIMER_CONTROL: u16 = 0xFF07;
 
 pub const PPU_IO_START: u16 = 0xF40;
 pub const PPU_IO_END: u16 = 0xFF4F;
@@ -241,9 +233,7 @@ impl Memory {
             SIO_DATA => self.io_registers.read_byte(address),
             SIO_CONT => self.io_registers.read_byte(address),
             DIVIDER_REGISTER => self.timers.divider_register(&self.scheduler),
-            TIMER_COUNTER => self.timers.timer_counter,
-            TIMER_MODULO => self.timers.timer_modulo,
-            TIMER_CONTROL => self.timers.timer_control.to_bits(),
+            TIMER_COUNTER..=TIMER_CONTROL => self.timers.read_register(address, &mut self.scheduler),
             INTERRUPTS_FLAG => self.interrupts.interrupt_flag.bits(),
             APU_MEM_START..=APU_MEM_END => self.apu.read_register(address, &mut self.scheduler, self.cgb_data.double_speed as u64),
             WAVE_SAMPLE_START..=WAVE_SAMPLE_END => self.apu.read_wave_sample(address, &mut self.scheduler, self.cgb_data.double_speed as u64),
@@ -282,9 +272,7 @@ impl Memory {
             SIO_DATA => self.io_registers.write_byte(address, value),
             SIO_CONT => self.io_registers.write_byte(address, value),
             DIVIDER_REGISTER => self.timers.set_divider(&mut self.scheduler),
-            TIMER_COUNTER => self.timers.set_timer_counter(value, &mut self.scheduler),
-            TIMER_MODULO => self.timers.set_tma(value),
-            TIMER_CONTROL => self.timers.set_timer_control(value, &mut self.scheduler),
+            TIMER_COUNTER..=TIMER_CONTROL => self.timers.write_register(address, value, &mut self.scheduler),
             INTERRUPTS_FLAG => self.interrupts.overwrite_if(value),
             APU_MEM_START..=APU_MEM_END => self.apu.write_register(
                 address,
