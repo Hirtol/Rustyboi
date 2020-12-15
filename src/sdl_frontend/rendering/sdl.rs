@@ -11,8 +11,8 @@ pub fn setup_sdl(canvas: &mut WindowCanvas) -> Texture {
 
     // Ensure aspect ratio is kept, in the future we could change this if we want more GUI elements.
     // Or just render ImGui on top ㄟ( ▔, ▔ )ㄏ
-    canvas.set_logical_size(160, 144);
-    canvas.set_scale(1.0, 1.0);
+    canvas.set_logical_size(160, 144).unwrap();
+    canvas.set_scale(1.0, 1.0).unwrap();
 
     canvas.present();
     canvas.create_texture_streaming(RGB24, 160, 144).unwrap()

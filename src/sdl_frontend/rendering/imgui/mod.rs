@@ -132,6 +132,6 @@ impl ImmediateGui for ImguiBoi {
 
 impl Drop for ImguiBoi {
     fn drop(&mut self) {
-        self.storage.save_value(STATE_FILE_NAME, &self.gui_state);
+        self.storage.save_value(STATE_FILE_NAME, &self.gui_state).unwrap();
     }
 }
