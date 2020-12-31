@@ -447,31 +447,13 @@ impl PPU {
     #[inline(always)]
     fn draw_contiguous_bg_window_block(&mut self, pixel_counter: usize, tile_address: usize, tile_line_y: usize) {
         let tile = &self.tiles[tile_address];
-        let colour0 = tile.get_pixel(tile_line_y);
-        let colour1 = tile.get_pixel(tile_line_y + 1);
-        let colour2 = tile.get_pixel(tile_line_y + 2);
-        let colour3 = tile.get_pixel(tile_line_y + 3);
-        let colour4 = tile.get_pixel(tile_line_y + 4);
-        let colour5 = tile.get_pixel(tile_line_y + 5);
-        let colour6 = tile.get_pixel(tile_line_y + 6);
-        let colour7 = tile.get_pixel(tile_line_y + 7);
-        self.scanline_buffer[pixel_counter + 7] = self.bg_window_palette.colour(colour0);
-        self.scanline_buffer[pixel_counter + 6] = self.bg_window_palette.colour(colour1);
-        self.scanline_buffer[pixel_counter + 5] = self.bg_window_palette.colour(colour2);
-        self.scanline_buffer[pixel_counter + 4] = self.bg_window_palette.colour(colour3);
-        self.scanline_buffer[pixel_counter + 3] = self.bg_window_palette.colour(colour4);
-        self.scanline_buffer[pixel_counter + 2] = self.bg_window_palette.colour(colour5);
-        self.scanline_buffer[pixel_counter + 1] = self.bg_window_palette.colour(colour6);
-        self.scanline_buffer[pixel_counter] = self.bg_window_palette.colour(colour7);
+        let pixel_line = tile.get_true_pixel_line(tile_line_y);
 
-        self.scanline_buffer_unpalette[pixel_counter + 7] = (colour0, false);
-        self.scanline_buffer_unpalette[pixel_counter + 6] = (colour1, false);
-        self.scanline_buffer_unpalette[pixel_counter + 5] = (colour2, false);
-        self.scanline_buffer_unpalette[pixel_counter + 4] = (colour3, false);
-        self.scanline_buffer_unpalette[pixel_counter + 3] = (colour4, false);
-        self.scanline_buffer_unpalette[pixel_counter + 2] = (colour5, false);
-        self.scanline_buffer_unpalette[pixel_counter + 1] = (colour6, false);
-        self.scanline_buffer_unpalette[pixel_counter] = (colour7, false);
+        for (i, colour) in pixel_line.iter().rev().copied().enumerate() {
+            let index = pixel_counter + i;
+            self.scanline_buffer[index] = self.bg_window_palette.colour(colour);
+            self.scanline_buffer_unpalette[index] = (colour, false);
+        }
     }
 
     fn get_sprite_palette(&self, sprite: &SpriteAttribute) -> Palette {

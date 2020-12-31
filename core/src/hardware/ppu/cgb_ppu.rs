@@ -218,29 +218,40 @@ impl PPU {
             let bg_priority = tile_attributes.contains(CgbTileAttribute::BG_TO_OAM_PRIORITY);
             let tile_pixel_y_offset = tile_pixel_y + 7;
             let tile = &self.tiles[tile_address];
-            // Yes this is ugly, yes this means a vtable call, yes I'd like to do it differently.
-            // Only other way is to duplicate the for loop since the .rev() is a different iterator.
-            let iterator: Box<dyn Iterator<Item = usize>> = if x_flip {
-                Box::new(tile_pixel_y..=tile_pixel_y_offset)
+
+            // Ugly code duplication, but boxing the iterator costs a significant amount of performance.
+            if x_flip {
+                for j in tile_pixel_y..=tile_pixel_y_offset {
+                    // We have to render a partial tile, so skip the first pixels_to_skip and render the rest.
+                    if *pixels_to_skip > 0 {
+                        *pixels_to_skip -= 1;
+                        continue;
+                    }
+                    // We've exceeded the amount we need to draw, no need to do anything more.
+                    if *pixels_drawn > 159 {
+                        break;
+                    }
+
+                    let colour = tile.get_pixel(j);
+                    self.scanline_buffer[*pixels_drawn as usize] = self.cgb_bg_palette[tile_attributes.bg_palette_numb()].colour(colour);
+                    self.scanline_buffer_unpalette[*pixels_drawn as usize] = (colour, bg_priority);
+                    *pixels_drawn += 1;
+                }
             } else {
-                Box::new((tile_pixel_y..=tile_pixel_y_offset).rev())
-            };
+                for j in (tile_pixel_y..=tile_pixel_y_offset).rev() {
+                    if *pixels_to_skip > 0 {
+                        *pixels_to_skip -= 1;
+                        continue;
+                    }
+                    if *pixels_drawn > 159 {
+                        break;
+                    }
 
-            for j in iterator {
-                // We have to render a partial tile, so skip the first pixels_to_skip and render the rest.
-                if *pixels_to_skip > 0 {
-                    *pixels_to_skip -= 1;
-                    continue;
+                    let colour = tile.get_pixel(j);
+                    self.scanline_buffer[*pixels_drawn as usize] = self.cgb_bg_palette[tile_attributes.bg_palette_numb()].colour(colour);
+                    self.scanline_buffer_unpalette[*pixels_drawn as usize] = (colour, bg_priority);
+                    *pixels_drawn += 1;
                 }
-                // We've exceeded the amount we need to draw, no need to do anything more.
-                if *pixels_drawn > 159 {
-                    break;
-                }
-
-                let colour = tile.get_pixel(j);
-                self.scanline_buffer[*pixels_drawn as usize] = self.cgb_bg_palette[tile_attributes.bg_palette_numb()].colour(colour);
-                self.scanline_buffer_unpalette[*pixels_drawn as usize] = (colour, bg_priority);
-                *pixels_drawn += 1;
             }
         }
     }
@@ -258,50 +269,20 @@ impl PPU {
         let tile = &self.tiles[tile_address];
         let palette = self.cgb_bg_palette[tile_attributes.bg_palette_numb()];
         let bg_priority = tile_attributes.contains(CgbTileAttribute::BG_TO_OAM_PRIORITY);
-
-        let colour0 = tile.get_pixel(tile_line_y);
-        let colour1 = tile.get_pixel(tile_line_y + 1);
-        let colour2 = tile.get_pixel(tile_line_y + 2);
-        let colour3 = tile.get_pixel(tile_line_y + 3);
-        let colour4 = tile.get_pixel(tile_line_y + 4);
-        let colour5 = tile.get_pixel(tile_line_y + 5);
-        let colour6 = tile.get_pixel(tile_line_y + 6);
-        let colour7 = tile.get_pixel(tile_line_y + 7);
+        let pixel_line = tile.get_true_pixel_line(tile_line_y);
 
         if tile_attributes.contains(CgbTileAttribute::X_FLIP) {
-            self.scanline_buffer[pixels_drawn] = palette.colour(colour0);
-            self.scanline_buffer[pixels_drawn + 1] = palette.colour(colour1);
-            self.scanline_buffer[pixels_drawn + 2] = palette.colour(colour2);
-            self.scanline_buffer[pixels_drawn + 3] = palette.colour(colour3);
-            self.scanline_buffer[pixels_drawn + 4] = palette.colour(colour4);
-            self.scanline_buffer[pixels_drawn + 5] = palette.colour(colour5);
-            self.scanline_buffer[pixels_drawn + 6] = palette.colour(colour6);
-            self.scanline_buffer[pixels_drawn + 7] = palette.colour(colour7);
-            self.scanline_buffer_unpalette[pixels_drawn] = (colour0, bg_priority);
-            self.scanline_buffer_unpalette[pixels_drawn + 1] = (colour1, bg_priority);
-            self.scanline_buffer_unpalette[pixels_drawn + 2] = (colour2, bg_priority);
-            self.scanline_buffer_unpalette[pixels_drawn + 3] = (colour3, bg_priority);
-            self.scanline_buffer_unpalette[pixels_drawn + 4] = (colour4, bg_priority);
-            self.scanline_buffer_unpalette[pixels_drawn + 5] = (colour5, bg_priority);
-            self.scanline_buffer_unpalette[pixels_drawn + 6] = (colour6, bg_priority);
-            self.scanline_buffer_unpalette[pixels_drawn + 7] = (colour7, bg_priority);
+            for (i, colour) in pixel_line.iter().copied().enumerate() {
+                let index = pixels_drawn + i;
+                self.scanline_buffer[index] = palette.colour(colour);
+                self.scanline_buffer_unpalette[index] = (colour, bg_priority);
+            }
         } else {
-            self.scanline_buffer[pixels_drawn + 7] = palette.colour(colour0);
-            self.scanline_buffer[pixels_drawn + 6] = palette.colour(colour1);
-            self.scanline_buffer[pixels_drawn + 5] = palette.colour(colour2);
-            self.scanline_buffer[pixels_drawn + 4] = palette.colour(colour3);
-            self.scanline_buffer[pixels_drawn + 3] = palette.colour(colour4);
-            self.scanline_buffer[pixels_drawn + 2] = palette.colour(colour5);
-            self.scanline_buffer[pixels_drawn + 1] = palette.colour(colour6);
-            self.scanline_buffer[pixels_drawn] = palette.colour(colour7);
-            self.scanline_buffer_unpalette[pixels_drawn + 7] = (colour0, bg_priority);
-            self.scanline_buffer_unpalette[pixels_drawn + 6] = (colour1, bg_priority);
-            self.scanline_buffer_unpalette[pixels_drawn + 5] = (colour2, bg_priority);
-            self.scanline_buffer_unpalette[pixels_drawn + 4] = (colour3, bg_priority);
-            self.scanline_buffer_unpalette[pixels_drawn + 3] = (colour4, bg_priority);
-            self.scanline_buffer_unpalette[pixels_drawn + 2] = (colour5, bg_priority);
-            self.scanline_buffer_unpalette[pixels_drawn + 1] = (colour6, bg_priority);
-            self.scanline_buffer_unpalette[pixels_drawn] = (colour7, bg_priority);
+            for (i, colour) in pixel_line.iter().rev().copied().enumerate() {
+                let index = pixels_drawn + i;
+                self.scanline_buffer[index] = palette.colour(colour);
+                self.scanline_buffer_unpalette[index] = (colour, bg_priority);
+            }
         }
     }
 
