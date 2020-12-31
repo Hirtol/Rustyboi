@@ -3,11 +3,8 @@
 use crate::hardware::mmu::{INVALID_READ, OAM_ATTRIBUTE_END, OAM_ATTRIBUTE_START};
 use crate::hardware::ppu::cgb_vram::CgbTileAttribute;
 use crate::hardware::ppu::PPU;
-use crate::print_array_raw;
-use crate::scheduler::EventType::{DMATransferComplete, Hblank, Vblank};
 
 use super::*;
-use crate::hardware::ppu::timing::BASE_LCD_TRANSFER_DURATION;
 
 pub const TILE_BLOCK_0_START: u16 = 0x8000;
 pub const TILE_BLOCK_0_END: u16 = 0x87FF;

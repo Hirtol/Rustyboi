@@ -1,6 +1,3 @@
-use crate::hardware::cartridge::header::RamSizes;
-use crate::hardware::mmu::*;
-
 pub const EXTERNAL_RAM_SIZE: usize = 8192;
 pub const ROM_BANK_SIZE: usize = 16384;
 
@@ -50,7 +47,7 @@ impl MBC1State {
 
     pub fn get_ram_offset(&self, ram_length: usize) -> usize {
         if self.banking_mode_select && ram_length > 8192 {
-            ((self.bank2 as usize) << 8)
+            (self.bank2 as usize) << 8
         } else {
             0
         }

@@ -1,7 +1,6 @@
 use crate::hardware::ppu::palette::RGB;
 use crate::hardware::ppu::tiledata::BACKGROUND_TILE_SIZE;
 use bitflags::*;
-use std::ops::Index;
 
 #[derive(Debug)]
 pub struct CgbTileMap {

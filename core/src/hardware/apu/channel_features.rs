@@ -207,7 +207,7 @@ impl SweepFeature {
     }
 
     fn sweep_calculations(&mut self, channel_enable: &mut bool) -> u16 {
-        let mut temp_shadow = (self.sweep_frequency_shadow >> self.sweep_shift);
+        let mut temp_shadow = self.sweep_frequency_shadow >> self.sweep_shift;
         if self.sweep_negate {
             self.done_negate_calc = true;
             // Take the 2's complement value

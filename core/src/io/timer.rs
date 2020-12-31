@@ -36,7 +36,7 @@ pub struct TimerRegisters {
 }
 
 impl TimerRegisters {
-    pub fn read_register(&mut self, address: u16, scheduler: &mut Scheduler) -> u8 {
+    pub fn read_register(&mut self, address: u16) -> u8 {
         match address {
             TIMER_COUNTER => self.timer_counter,
             TIMER_MODULO => self.timer_modulo,

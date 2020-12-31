@@ -1,7 +1,5 @@
-use num_integer::Integer;
-
-use crate::hardware::apu::channel_features::LengthFeature;
 use crate::hardware::apu::{no_length_tick_next_step, test_bit};
+use crate::hardware::apu::channel_features::LengthFeature;
 use crate::hardware::mmu::INVALID_READ;
 
 /// Relevant for voice 3 for the DMG.
@@ -78,14 +76,14 @@ impl WaveformChannel {
 
         self.update_sample();
         #[cfg(feature = "apu-logging")]
-        {
-            self.cycles_done += 1;
-        }
+            {
+                self.cycles_done += 1;
+            }
     }
 
     #[inline]
     pub fn update_sample(&mut self) {
-        self.output_volume = (self.sample_buffer[self.sample_pointer] >> self.volume);
+        self.output_volume = self.sample_buffer[self.sample_pointer] >> self.volume;
     }
 
     pub fn tick_length(&mut self) {

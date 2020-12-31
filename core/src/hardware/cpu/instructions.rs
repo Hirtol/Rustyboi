@@ -156,6 +156,5 @@ pub fn get_assembly_from_opcode(opcode: u8) -> String {
         0xFC | 0xFD => "unknown".to_string(),
         0xFE => format!("compare {:?}", InstructionAddress::Direct),
         0xFF => format!("rst {:?}", 0x38),
-        _ => panic!("Unknown instruction code encountered: {:X}", opcode),
     }
 }

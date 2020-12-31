@@ -1,9 +1,10 @@
+use bitflags::_core::iter::FromIterator;
+
 use crate::gb_emu::GameBoyModel;
 use crate::hardware::ppu::cgb_vram::CgbPalette;
-use crate::hardware::ppu::palette::{DisplayColour, Palette, RGB};
-use crate::hardware::ppu::tiledata::Tile;
+use crate::hardware::ppu::palette::RGB;
 use crate::hardware::ppu::PPU;
-use bitflags::_core::iter::FromIterator;
+use crate::hardware::ppu::tiledata::Tile;
 
 impl PPU {
     /// Returns an array of the full 768 tiles rendered next to each other in a
@@ -102,7 +103,7 @@ impl Default for PaletteDebugInfo {
 }
 
 impl FromIterator<RGB> for [RGB; 4] {
-    fn from_iter<T: IntoIterator<Item = RGB>>(iter: T) -> Self {
+    fn from_iter<T: IntoIterator<Item=RGB>>(iter: T) -> Self {
         let mut result = [RGB::default(); 4];
         for (i, rgb) in iter.into_iter().enumerate() {
             result[i] = rgb;

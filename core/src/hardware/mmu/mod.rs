@@ -1,33 +1,27 @@
 use std::fmt;
+use std::fmt::{Debug, Formatter};
 
-use bitflags::_core::fmt::{Debug, Formatter};
-use bitflags::_core::ops::{Add, Mul, Sub};
-use itertools::Itertools;
 use log::*;
 
 use hram::Hram;
 
+use crate::EmulatorOptions;
 use crate::gb_emu::GameBoyModel;
-use crate::gb_emu::GameBoyModel::DMG;
 use crate::hardware::apu::{
-    APU, APU_MEM_END, APU_MEM_START, FRAME_SEQUENCE_CYCLES, SAMPLE_CYCLES, WAVE_SAMPLE_END, WAVE_SAMPLE_START,
+    APU, APU_MEM_END, APU_MEM_START, WAVE_SAMPLE_END, WAVE_SAMPLE_START,
 };
 use crate::hardware::cartridge::Cartridge;
-use crate::hardware::mmu::cgb_mem::HdmaMode::HDMA;
 use crate::hardware::mmu::cgb_mem::{CgbSpeedData, HdmaRegister};
 use crate::hardware::mmu::wram::Wram;
-use crate::hardware::ppu::tiledata::*;
-use crate::hardware::ppu::{PPU, Mode};
+use crate::hardware::ppu::{Mode, PPU};
+use crate::hardware::ppu::memory_binds::DMA_TRANSFER;
+use crate::hardware::ppu::timing::{OAM_SEARCH_DURATION, SCANLINE_DURATION};
 use crate::io::bootrom::BootRom;
 use crate::io::interrupts::{InterruptFlags, Interrupts};
-use crate::scheduler::EventType::{DMARequested, DMATransferComplete};
-use crate::scheduler::{Event, EventType, Scheduler};
-use crate::EmulatorOptions;
-use crate::hardware::ppu::timing::{OAM_SEARCH_DURATION, SCANLINE_DURATION};
-use crate::hardware::ppu::memory_binds::DMA_TRANSFER;
-use crate::io::joypad::JoyPad;
-use crate::io::timer::{TimerRegisters, TIMER_COUNTER, TIMER_CONTROL, TIMER_MODULO};
 use crate::io::io_registers::IORegisters;
+use crate::io::joypad::JoyPad;
+use crate::io::timer::{TIMER_CONTROL, TIMER_COUNTER, TimerRegisters};
+use crate::scheduler::{EventType, Scheduler};
 
 pub mod cgb_mem;
 mod dma;
@@ -205,7 +199,7 @@ impl Memory {
             IO_START..=IO_END => self.read_io_byte(address),
             HRAM_START..=HRAM_END => self.hram.read_byte(address),
             INTERRUPTS_ENABLE => self.interrupts.interrupt_enable.bits(),
-            _ => panic!("Reading memory that is out of bounds: 0x{:04X}", address),
+            _ => unreachable!("Reading memory that is out of bounds: 0x{:04X}", address),
         }
     }
 
@@ -222,7 +216,7 @@ impl Memory {
             IO_START..=IO_END => self.write_io_byte(address, value),
             HRAM_START..=HRAM_END => self.hram.set_byte(address, value),
             INTERRUPTS_ENABLE => self.interrupts.overwrite_ie(value),
-            _ => panic!("Writing to memory that is not in bounds: 0x{:04X}", address),
+            _ => unreachable!("Writing to memory that is not in bounds: 0x{:04X}", address),
         }
     }
 
@@ -233,7 +227,7 @@ impl Memory {
             SIO_DATA => self.io_registers.read_byte(address),
             SIO_CONT => self.io_registers.read_byte(address),
             DIVIDER_REGISTER => self.timers.divider_register(&self.scheduler),
-            TIMER_COUNTER..=TIMER_CONTROL => self.timers.read_register(address, &mut self.scheduler),
+            TIMER_COUNTER..=TIMER_CONTROL => self.timers.read_register(address),
             INTERRUPTS_FLAG => self.interrupts.interrupt_flag.bits(),
             APU_MEM_START..=APU_MEM_END => self.apu.read_register(address, &mut self.scheduler, self.cgb_data.double_speed as u64),
             WAVE_SAMPLE_START..=WAVE_SAMPLE_END => self.apu.read_wave_sample(address, &mut self.scheduler, self.cgb_data.double_speed as u64),
@@ -328,7 +322,7 @@ impl Memory {
     fn execute_scheduled_events(&mut self) -> bool {
         let mut vblank_occurred = false;
 
-        while let Some(mut event) = self.scheduler.pop_closest() {
+        while let Some(event) = self.scheduler.pop_closest() {
             match event.event_type {
                 EventType::None => {
                     // On startup we should add OAM

@@ -1,14 +1,10 @@
-use std::env::Args;
-
 use itertools::Itertools;
 
-use crate::hardware::mmu::Memory;
 use crate::hardware::ppu::{is_sprite_on_scanline, PPU};
 use crate::hardware::ppu::Mode::LcdTransfer;
 use crate::hardware::ppu::register_flags::LcdControl;
 use crate::hardware::ppu::tiledata::SpriteAttribute;
-use crate::io::interrupts::Interrupts;
-use crate::scheduler::{Event, EventType, Scheduler};
+use crate::scheduler::Scheduler;
 
 pub const SCANLINE_DURATION: u64 = 456;
 pub const BASE_LCD_TRANSFER_DURATION: u64 = 172;

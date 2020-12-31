@@ -1,5 +1,4 @@
 use crate::hardware::cpu::execute::InstructionAddress::HLI;
-use crate::hardware::cpu::registers::Reg16::HL;
 use crate::hardware::cpu::registers::Reg8;
 use crate::hardware::cpu::registers::Reg8::{A, B, C, D, E, H, L};
 use crate::hardware::cpu::CPU;
@@ -262,7 +261,6 @@ impl<M: MemoryMapper> CPU<M> {
             0xFC | 0xFD => self.unknown(),
             0xFE => self.compare(InstructionAddress::Direct),
             0xFF => self.rst(0x38),
-            _ => panic!("Unknown instruction code encountered: {:X}", opcode),
         }
     }
 
@@ -524,7 +522,6 @@ impl<M: MemoryMapper> CPU<M> {
             0xFD => self.set(7, L),
             0xFE => self.set(7, HLI),
             0xFF => self.set(7, A),
-            _ => panic!("Unknown prefix instruction code encountered: {:X}", opcode),
         }
     }
 }

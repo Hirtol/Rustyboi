@@ -1,10 +1,8 @@
 pub mod gb_emu;
 mod scheduler;
 use crate::gb_emu::GameBoyModel;
-use crate::hardware::mmu::INVALID_READ;
 use crate::hardware::ppu::palette::DisplayColour;
 pub use crate::io::joypad::InputKey;
-use bitflags::_core::ops::Deref;
 use std::fmt::Debug;
 use std::ops::DerefMut;
 
@@ -115,15 +113,4 @@ impl From<EmulatorOptions> for EmulatorOptionsBuilder {
             sp1_display_colour: from.sp1_display_colour,
         }
     }
-}
-
-fn print_array_raw<T: Sized>(array: T) {
-    let view = &array as *const _ as *const u8;
-    for i in 0..(4 * 40) {
-        if i % 16 == 0 {
-            println!();
-        }
-        print!("{:02X} ", unsafe { *view.offset(i) });
-    }
-    println!();
 }

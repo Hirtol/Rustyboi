@@ -1,4 +1,4 @@
-use std::fs::{read, File};
+use std::fs::{read};
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -96,10 +96,10 @@ fn main() {
     renderer.setup_immediate_gui("Rustyboi Debug");
     renderer.main_window.window_mut().raise();
 
-    let bootrom_file_dmg = read("roms/DMG_ROM.bin").unwrap();
-    let bootrom_file_cgb = read("roms\\cgb_bios.bin").unwrap();
+    let _bootrom_file_dmg = read("roms/DMG_ROM.bin").unwrap();
+    let _bootrom_file_cgb = read("roms\\cgb_bios.bin").unwrap();
 
-    let cartridge = "roms/Zelda.gb";
+    let _cartridge = "roms/Zelda.gb";
     let _yellow = "roms/Prehistorik Man (U).gb";
     let _cpu_test = "test roms/auto-run/mooneye/tests/misc/ppu/vblank_stat_intr-C.gb";
     let _cpu_test2 = "test roms/auto-run/hdma_timing-C.gbc";

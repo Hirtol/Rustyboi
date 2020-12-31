@@ -4,17 +4,18 @@
 //! only running to the cycle it *should* be at when a memory access/vblank occurs to one of the APU
 //! registers.
 
-use crate::gb_emu::{GameBoyModel, DMG_CLOCK_SPEED};
+use crate::gb_emu::{DMG_CLOCK_SPEED, GameBoyModel};
 use crate::hardware::apu::noise_channel::NoiseChannel;
 use crate::hardware::apu::square_channel::SquareWaveChannel;
 use crate::hardware::apu::wave_channel::WaveformChannel;
 use crate::hardware::mmu::INVALID_READ;
-use crate::scheduler::{EventType, Scheduler};
+use crate::scheduler::Scheduler;
 
 mod channel_features;
 mod noise_channel;
 mod square_channel;
 mod wave_channel;
+
 // Currently assumes 44100 Hz
 pub const SAMPLE_SIZE_BUFFER: usize = 1480;
 pub const FRAME_SEQUENCE_CYCLES: u64 = 8192;
@@ -269,7 +270,7 @@ impl APU {
                 let previous_enable = self.global_sound_enable;
                 self.global_sound_enable = test_bit(value, 7);
                 if !self.global_sound_enable {
-                    self.reset(scheduler, model);
+                    self.reset(model);
                 } else if !previous_enable {
                     // After a re-enable of the APU the next frame sequence tick will once again
                     // be 8192 t-cycles out
@@ -300,19 +301,19 @@ impl APU {
         let mut result = 0f32;
         // Voice 1 (Square wave)
         if voice_enables[0] {
-            result += (self.voice1.output_volume() as f32);
+            result += self.voice1.output_volume() as f32;
         }
         // Voice 2 (Square wave)
         if voice_enables[1] {
-            result += (self.voice2.output_volume() as f32);
+            result += self.voice2.output_volume() as f32;
         }
         // Voice 3 (Wave)
         if voice_enables[2] {
-            result += (self.voice3.output_volume() as f32);
+            result += self.voice3.output_volume() as f32;
         }
         // Voice 4 (Noise)
         if voice_enables[3] {
-            result += (self.voice4.output_volume() as f32);
+            result += self.voice4.output_volume() as f32;
         }
         //TODO: Move / 100.0 after high pass.
         (result / 100.0) * final_volume
@@ -337,7 +338,7 @@ impl APU {
         self.voice1.tick_sweep();
     }
 
-    fn reset(&mut self, scheduler: &mut Scheduler, mode: GameBoyModel) {
+    fn reset(&mut self, mode: GameBoyModel) {
         self.voice1.reset(mode);
         self.voice2.reset(mode);
         self.voice3.reset();

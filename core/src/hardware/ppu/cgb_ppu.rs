@@ -1,11 +1,11 @@
-use crate::hardware::ppu::cgb_vram::CgbTileAttribute;
-use crate::hardware::ppu::palette::{DisplayColour, RGB};
-use crate::hardware::ppu::register_flags::{AttributeFlags, LcdControl};
-use crate::hardware::ppu::tiledata::{Tile, BACKGROUND_TILE_SIZE};
-///! This module is purely for CGB specific rendering, look in ppu/mod.rs for DMG mode rendering.
-use crate::hardware::ppu::{is_sprite_on_scanline, PPU, RESOLUTION_WIDTH, RGB_CHANNELS};
 use itertools::Itertools;
 use num_integer::Integer;
+
+///! This module is purely for CGB specific rendering, look in ppu/mod.rs for DMG mode rendering.
+use crate::hardware::ppu::{is_sprite_on_scanline, PPU};
+use crate::hardware::ppu::cgb_vram::CgbTileAttribute;
+use crate::hardware::ppu::register_flags::{AttributeFlags, LcdControl};
+use crate::hardware::ppu::tiledata::BACKGROUND_TILE_SIZE;
 
 impl PPU {
     pub fn draw_cgb_scanline(&mut self) {
@@ -34,7 +34,7 @@ impl PPU {
     fn draw_cgb_bg_scanline(&mut self) {
         let scanline_to_be_rendered = self.current_y.wrapping_add(self.scroll_y);
         let tile_lower_bound = ((scanline_to_be_rendered / 8) as u16 * 32) + (self.scroll_x / 8) as u16;
-        let mut tile_higher_bound = (tile_lower_bound + 20);
+        let mut tile_higher_bound = tile_lower_bound + 20;
 
         // Which particular y coordinate to use from an 8x8 tile.
         let tile_line_y = scanline_to_be_rendered as usize % 8;
@@ -55,10 +55,10 @@ impl PPU {
                 i -= 32;
             }
             // Modulo for the y-wraparound if scroll_y > 111
-            let mut tile_relative_address = self.get_tile_address_bg(i % BACKGROUND_TILE_SIZE as u16) as usize;
+            let tile_relative_address = self.get_tile_address_bg(i % BACKGROUND_TILE_SIZE as u16) as usize;
             let tile_attributes = self.get_tile_attributes_cgb_bg(i % BACKGROUND_TILE_SIZE as u16);
             // We always add an offset in case we're supposed to look in VRAM bank 1.
-            let mut tile_address = tile_relative_address
+            let tile_address = tile_relative_address
                 + (384 * tile_attributes.contains(CgbTileAttribute::TILE_VRAM_BANK_NUMBER) as usize);
 
             self.draw_cgb_background_window_line(
@@ -73,7 +73,7 @@ impl PPU {
     }
 
     fn draw_cgb_window_scanline(&mut self) {
-        let mut window_x = (self.window_x as i16).wrapping_sub(7);
+        let window_x = (self.window_x as i16).wrapping_sub(7);
         // If the window x is out of scope, don't bother rendering.
         if !self.window_triggered || window_x >= 160 {
             return;
@@ -92,9 +92,9 @@ impl PPU {
         self.window_counter += 1;
 
         for i in tile_lower_bound..tile_higher_bound {
-            let mut tile_relative_address = self.get_tile_address_window(i) as usize;
+            let tile_relative_address = self.get_tile_address_window(i) as usize;
             let tile_attributes = self.get_tile_attributes_cgb_window(i);
-            let mut tile_address = tile_relative_address
+            let tile_address = tile_relative_address
                 + (384 * tile_attributes.contains(CgbTileAttribute::TILE_VRAM_BANK_NUMBER) as usize);
 
             self.draw_cgb_background_window_line(
@@ -169,7 +169,7 @@ impl PPU {
                     if (pixel < 0)
                         || (pixel > 159)
                         || ((is_background_sprite || self.scanline_buffer_unpalette[pixel as usize].1)
-                            && self.scanline_buffer_unpalette[pixel as usize].0 != 0)
+                        && self.scanline_buffer_unpalette[pixel as usize].0 != 0)
                     {
                         continue;
                     }
@@ -229,8 +229,8 @@ impl PPU {
             let tile = &self.tiles[tile_address];
             // Yes this is ugly, yes this means a vtable call, yes I'd like to do it differently.
             // Only other way is to duplicate the for loop since the .rev() is a different iterator.
-            let iterator: Box<dyn Iterator<Item = usize>> = if x_flip {
-                Box::new((tile_pixel_y..=tile_pixel_y_offset))
+            let iterator: Box<dyn Iterator<Item=usize>> = if x_flip {
+                Box::new(tile_pixel_y..=tile_pixel_y_offset)
             } else {
                 Box::new((tile_pixel_y..=tile_pixel_y_offset).rev())
             };

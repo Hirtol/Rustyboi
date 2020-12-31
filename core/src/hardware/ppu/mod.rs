@@ -1,14 +1,14 @@
 use itertools::Itertools;
 use num_integer::Integer;
 
-use crate::gb_emu::{GameBoyModel, CYCLES_PER_FRAME};
+use crate::gb_emu::{GameBoyModel};
 use crate::hardware::ppu::cgb_vram::{CgbPalette, CgbPaletteIndex, CgbTileMap};
 use crate::hardware::ppu::palette::{DisplayColour, Palette, RGB};
 use crate::hardware::ppu::register_flags::*;
 use crate::hardware::ppu::tiledata::*;
 use crate::hardware::ppu::Mode::{Hblank, LcdTransfer, OamSearch, Vblank};
 use crate::io::interrupts::{InterruptFlags, Interrupts};
-use crate::scheduler::{Event, EventType, Scheduler};
+use crate::scheduler::{EventType, Scheduler};
 
 pub const RESOLUTION_WIDTH: usize = 160;
 pub const RESOLUTION_HEIGHT: usize = 144;
@@ -241,11 +241,11 @@ impl PPU {
     fn draw_bg_scanline(&mut self) {
         let scanline_to_be_rendered = self.current_y.wrapping_add(self.scroll_y);
         let tile_lower_bound = ((scanline_to_be_rendered / 8) as u16 * 32) + (self.scroll_x / 8) as u16;
-        let mut tile_higher_bound = (tile_lower_bound + 20);
+        let mut tile_higher_bound = tile_lower_bound + 20;
 
         // Which particular y coordinate to use from an 8x8 tile.
         let tile_pixel_y = (scanline_to_be_rendered as usize % 8) * 8;
-        let tile_pixel_y_offset = (tile_pixel_y + 7);
+        let tile_pixel_y_offset = tile_pixel_y + 7;
         let mut pixels_drawn: i16 = 0;
         // For cases where the scroll x is not nicely aligned on tile boundries.
         let mut pixels_to_skip = self.scroll_x % 8;
@@ -264,7 +264,7 @@ impl PPU {
                 i -= 32;
             }
             // Modulo for the y-wraparound if scroll_y > 111
-            let mut tile_relative_address = self.get_tile_address_bg(i % BACKGROUND_TILE_SIZE as u16) as usize;
+            let tile_relative_address = self.get_tile_address_bg(i % BACKGROUND_TILE_SIZE as u16) as usize;
             let mut tile_address = tile_relative_address;
 
             // If we've selected the 8800-97FF mode we need to add a 256 offset, and then
@@ -287,7 +287,7 @@ impl PPU {
         // -7 is apparently necessary for some reason
         // We need the i16 cast as there are games (like Aladdin) which have a wx < 7, but still
         // want their windows to be rendered.
-        let mut window_x = (self.window_x as i16).wrapping_sub(7);
+        let window_x = (self.window_x as i16).wrapping_sub(7);
         // If the window x is out of scope, don't bother rendering.
         if !self.window_triggered || window_x >= 160 {
             return;
@@ -300,7 +300,7 @@ impl PPU {
         let tile_higher_bound = (tile_lower_bound as u16 + ((160 - window_x) as u16).div_ceil(&8)) as u16;
 
         let tile_pixel_y = (self.window_counter as usize % 8) * 8;
-        let tile_pixel_y_offset = (tile_pixel_y + 7);
+        let tile_pixel_y_offset = tile_pixel_y + 7;
 
         // If window is less than 0 we want to skip those amount of pixels, otherwise we render as normal.
         // This means that we must take the absolute value of window_x for the pixels_skip, therefore the -
@@ -313,7 +313,7 @@ impl PPU {
         self.window_counter += 1;
 
         for i in tile_lower_bound..tile_higher_bound {
-            let mut tile_relative_address = self.get_tile_address_window(i) as usize;
+            let tile_relative_address = self.get_tile_address_window(i) as usize;
             let mut tile_address = tile_relative_address;
 
             // If we've selected the 8800-97FF mode we need to add a 256 offset, and then
@@ -445,7 +445,7 @@ impl PPU {
     /// get_pixel_calls().
     #[inline(always)]
     fn draw_contiguous_bg_window_block(&mut self, pixel_counter: usize, tile_address: usize, tile_line_y: usize) {
-        let mut tile = &self.tiles[tile_address];
+        let tile = &self.tiles[tile_address];
         let colour0 = tile.get_pixel(tile_line_y);
         let colour1 = tile.get_pixel(tile_line_y + 1);
         let colour2 = tile.get_pixel(tile_line_y + 2);

@@ -1,11 +1,9 @@
 //! Purely here to provide an extra implementation block so that the main mod.rs doesn't get
 //! too cluttered.
 
-use crate::hardware::cpu::instructions::get_assembly_from_opcode;
 use crate::hardware::cpu::CPU;
-use crate::hardware::mmu::{MemoryMapper, INTERRUPTS_ENABLE, INTERRUPTS_FLAG};
-use crate::io::interrupts::{InterruptFlags, Interrupts};
-use crate::scheduler::{Event, EventType};
+use crate::hardware::cpu::instructions::get_assembly_from_opcode;
+use crate::hardware::mmu::{INTERRUPTS_ENABLE, INTERRUPTS_FLAG, MemoryMapper};
 
 impl<M: MemoryMapper> CPU<M> {
     /// Add 4 cycles to the internal counter
@@ -22,7 +20,7 @@ impl<M: MemoryMapper> CPU<M> {
     pub fn cb_prefix_call(&mut self) {
         self.opcode = self.get_instr_u8();
         #[cfg(feature = "cpu-logging")]
-        log::trace!("Executing opcode: {:04X} - registers: {}", self.opcode, self.registers,);
+        log::trace!("Executing opcode: {:04X} - registers: {}", self.opcode, self.registers, );
         self.execute_prefix(self.opcode);
     }
 
@@ -50,11 +48,7 @@ impl<M: MemoryMapper> CPU<M> {
             if !self.ime {
                 self.halted = false;
             } else {
-                let interrupt = self.mmu.interrupts().get_highest_priority();
-                #[cfg(feature = "cpu-logging")]
-                log::debug!("Firing {:?} interrupt", interrupt);
-
-                self.interrupts_routine(interrupt);
+                self.interrupts_routine();
                 return true;
             }
         }

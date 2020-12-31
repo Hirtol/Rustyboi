@@ -1,4 +1,3 @@
-use crate::hardware::ppu::palette::RGB;
 use crate::hardware::ppu::register_flags::AttributeFlags;
 use bitflags::_core::fmt::Formatter;
 use std::fmt;

@@ -35,7 +35,7 @@ impl Wram {
     }
 
     pub fn read_echo_ram(&self, address: u16) -> u8 {
-        let match_addr = (address - ECHO_RAM_OFFSET);
+        let match_addr = address - ECHO_RAM_OFFSET;
         match match_addr {
             WRAM_BANK_00_START..=WRAM_BANK_00_END => self.read_bank_0(match_addr),
             WRAM_BANK_NN_START..=WRAM_BANK_NN_END => self.read_bank_n(match_addr),
@@ -57,7 +57,7 @@ impl Wram {
     }
 
     pub fn write_echo_ram(&mut self, address: u16, value: u8) {
-        let match_addr = (address - ECHO_RAM_OFFSET);
+        let match_addr = address - ECHO_RAM_OFFSET;
         match match_addr {
             WRAM_BANK_00_START..=WRAM_BANK_00_END => self.write_bank_0(match_addr, value),
             WRAM_BANK_NN_START..=WRAM_BANK_NN_END => self.write_bank_n(match_addr, value),
@@ -66,7 +66,7 @@ impl Wram {
     }
 
     pub fn write_bank_select(&mut self, value: u8) {
-        self.bank_select = (value & 0x7);
+        self.bank_select = value & 0x7;
         self.internal_bank_select = self.bank_select as usize;
 
         if self.internal_bank_select == 0 {
