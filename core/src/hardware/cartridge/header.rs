@@ -229,6 +229,15 @@ back_to_enum! {
     }
 }
 
+impl CartridgeType {
+    pub fn has_battery(&self) -> bool {
+        match *self as u8 {
+            0x3 | 0x6 | 0x9 | 0xD | 0xF | 0x10 | 0x13 | 0x1B | 0x1E | 0x22 | 0xFF => true,
+            _ => false,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::hardware::cartridge::header::{read_cgb_flag, read_title, CartridgeHeader};

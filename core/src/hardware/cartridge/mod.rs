@@ -24,7 +24,8 @@ pub struct Cartridge {
 impl Cartridge {
     pub fn new(rom: &[u8], saved_ram: Option<Vec<u8>>) -> Self {
         let header = CartridgeHeader::new(rom);
-        let (mbc, has_battery) = create_mbc(&header);
+        let mbc = create_mbc(&header);
+        let has_battery = header.cartridge_type.has_battery();
         let mut ex_ram = vec![INVALID_READ; header.ram_size.to_usize()];
 
         if let Some(mut ram) = saved_ram {
@@ -172,13 +173,9 @@ impl Debug for Cartridge {
     }
 }
 
-fn create_mbc(header: &CartridgeHeader) -> (MBC, bool) {
+fn create_mbc(header: &CartridgeHeader) -> MBC {
     use MBC::*;
-    let has_battery = match header.cartridge_type as u8 {
-        0x3 | 0x6 | 0x9 | 0xD | 0xF | 0x10 | 0x13 | 0x1B | 0x1E | 0x22 | 0xFF => true,
-        _ => false,
-    };
-    let mbc = match header.cartridge_type as u8 {
+    match header.cartridge_type as u8 {
         0x0 => MBC0,
         0x1..=0x3 => MBC1(MBC1State::default()),
         0xF..=0x13 => MBC3(MBC3State::default()),
@@ -188,7 +185,5 @@ fn create_mbc(header: &CartridgeHeader) -> (MBC, bool) {
             "Unsupported cartridge type, please add support for: {:#?}",
             header.cartridge_type
         ),
-    };
-
-    (mbc, has_battery)
+    }
 }
