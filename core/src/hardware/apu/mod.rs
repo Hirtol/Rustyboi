@@ -4,7 +4,7 @@
 //! only running to the cycle it *should* be at when a memory access/vblank occurs to one of the APU
 //! registers.
 
-use crate::gb_emu::{DMG_CLOCK_SPEED, GameBoyModel};
+use crate::gb_emu::{GameBoyModel, DMG_CLOCK_SPEED};
 use crate::hardware::apu::noise_channel::NoiseChannel;
 use crate::hardware::apu::square_channel::SquareWaveChannel;
 use crate::hardware::apu::wave_channel::WaveformChannel;
@@ -18,6 +18,8 @@ mod wave_channel;
 
 // Currently assumes 44100 Hz
 pub const SAMPLE_SIZE_BUFFER: usize = 1480;
+/// The frame sequencer component clocks at 512Hz.
+/// 4194304/512 = 8192 cycles
 pub const FRAME_SEQUENCE_CYCLES: u64 = 8192;
 /// The amount of cycles (normalised to 4Mhz) between every sample.
 pub const SAMPLE_CYCLES: u64 = 95;
@@ -34,7 +36,7 @@ pub struct APU {
     voice3: WaveformChannel,
     voice4: NoiseChannel,
     audio_output: AudioOutput,
-    // The vins are unused by by games, but for the sake of accuracy tests will be kept here.
+    // The vins are unused by by games, but for the sake of accuracy we'll keep them.
     vin_l_enable: bool,
     vin_r_enable: bool,
     left_volume: u8,
@@ -114,15 +116,6 @@ impl APU {
             self.generate_sample();
             samples -= 1;
         }
-
-        #[cfg(feature = "apu-logging")]
-        log::debug!(
-            "Voice 3, remaining timer: {} - cycles: {} - scheduler time: {} - load value: {}",
-            self.voice3.timer,
-            self.voice3.cycles_done,
-            scheduler.current_time,
-            self.voice3.timer_load_value
-        );
     }
 
     /// Ticks, if it is required, the frame sequencer.
@@ -131,8 +124,6 @@ impl APU {
     fn tick_frame_sequencer(&mut self, scheduler: &mut Scheduler, speed_multiplier: u64) {
         let mut cycle_delta = (scheduler.current_time - self.last_frame_sequence_tick) >> speed_multiplier;
         while cycle_delta >= FRAME_SEQUENCE_CYCLES {
-            // The frame sequencer component clocks at 512Hz apparently.
-            // 4194304/512 = 8192 cycles
             match self.frame_sequencer_step {
                 0 | 4 => self.tick_length(),
                 2 | 6 => {
@@ -158,8 +149,7 @@ impl APU {
         // handler a value of *almost* exactly 45.
 
         // If we ever want to implement a low pass filter we would probably have to generate
-        // samples at native rate (so every 4/8 clocks) in each individual channel. Could consider
-        // trying SIMD then?
+        // samples at native rate (so every 4/8 clocks) in each individual channel.
 
         // These values are purely personal preference, may even want to defer this to the emulator
         // consumer.
@@ -169,10 +159,10 @@ impl APU {
         let left_sample = self.generate_audio(self.left_channel_enable, left_final_volume);
         let right_sample = self.generate_audio(self.right_channel_enable, right_final_volume);
 
-        let result_samples = self.audio_output.apply_highpass_filter(left_sample, right_sample);
+        let (left_sample, right_sample) = self.audio_output.apply_highpass_filter(left_sample, right_sample);
 
-        self.output_buffer.push(result_samples.0);
-        self.output_buffer.push(result_samples.1);
+        self.output_buffer.push(left_sample);
+        self.output_buffer.push(right_sample);
     }
 
     pub fn get_audio_buffer(&self) -> &[f32] {

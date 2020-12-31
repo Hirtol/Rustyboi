@@ -33,4 +33,3 @@ pub trait ImmediateGui {
     /// Handles `SDL` events for things like keypresses/mouse movement
     fn handle_event(&mut self, event: &Event);
 }
-

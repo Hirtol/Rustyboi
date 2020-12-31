@@ -99,8 +99,7 @@ fn read_sgb_flag(rom: &[u8]) -> bool {
 fn read_cartridge_type(rom: &[u8]) -> CartridgeType {
     let c_type = rom[0x147];
 
-    CartridgeType::try_from(c_type)
-        .expect(&format!("Invalid Cartridge Type supplied by ROM: {:#X}", c_type))
+    CartridgeType::try_from(c_type).expect(&format!("Invalid Cartridge Type supplied by ROM: {:#X}", c_type))
 }
 
 fn read_rom_size(rom: &[u8]) -> u8 {
@@ -195,7 +194,6 @@ macro_rules! back_to_enum {
     }
 }
 
-
 back_to_enum! {
     #[repr(u8)]
     #[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
@@ -233,7 +231,7 @@ back_to_enum! {
 
 #[cfg(test)]
 mod tests {
-    use crate::hardware::cartridge::header::{CartridgeHeader, read_cgb_flag, read_title};
+    use crate::hardware::cartridge::header::{read_cgb_flag, read_title, CartridgeHeader};
 
     #[test]
     fn test_read_title() {

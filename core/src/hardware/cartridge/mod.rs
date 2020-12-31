@@ -3,7 +3,7 @@ use std::fmt;
 use bitflags::_core::fmt::{Debug, Formatter};
 
 use crate::hardware::cartridge::header::CartridgeHeader;
-use crate::hardware::cartridge::mbc::{MBC, MBC1State, MBC3State, MBC5State, ROM_BANK_SIZE};
+use crate::hardware::cartridge::mbc::{MBC1State, MBC3State, MBC5State, MBC, ROM_BANK_SIZE};
 use crate::hardware::mmu::INVALID_READ;
 
 pub mod header;
@@ -146,7 +146,7 @@ impl Cartridge {
                     self.ram_offset = state.get_ram_offset();
                 }
                 _ => {}
-            }
+            },
         }
     }
 

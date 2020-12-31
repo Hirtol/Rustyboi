@@ -1,4 +1,4 @@
-use crate::hardware::mmu::{INVALID_READ};
+use crate::hardware::mmu::INVALID_READ;
 
 pub const IO_SIZE: usize = 0x80;
 

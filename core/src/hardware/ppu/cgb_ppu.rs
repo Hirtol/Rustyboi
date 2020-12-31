@@ -1,11 +1,12 @@
+///! This module is purely for CGB specific rendering, look in ppu/mod.rs for DMG mode rendering.
+
 use itertools::Itertools;
 use num_integer::Integer;
 
-///! This module is purely for CGB specific rendering, look in ppu/mod.rs for DMG mode rendering.
-use crate::hardware::ppu::{is_sprite_on_scanline, PPU};
 use crate::hardware::ppu::cgb_vram::CgbTileAttribute;
 use crate::hardware::ppu::register_flags::{AttributeFlags, LcdControl};
 use crate::hardware::ppu::tiledata::BACKGROUND_TILE_SIZE;
+use crate::hardware::ppu::{is_sprite_on_scanline, PPU};
 
 impl PPU {
     pub fn draw_cgb_scanline(&mut self) {
@@ -169,7 +170,7 @@ impl PPU {
                     if (pixel < 0)
                         || (pixel > 159)
                         || ((is_background_sprite || self.scanline_buffer_unpalette[pixel as usize].1)
-                        && self.scanline_buffer_unpalette[pixel as usize].0 != 0)
+                            && self.scanline_buffer_unpalette[pixel as usize].0 != 0)
                     {
                         continue;
                     }
@@ -179,10 +180,8 @@ impl PPU {
 
                 // The colour 0 should be transparent for sprites.
                 if colour != 0x0 {
-                    self.scanline_buffer[pixel as usize] = self
-                        .cgb_sprite_palette[sprite.attribute_flags.get_cgb_palette_number()]
-                        .colours[colour as usize]
-                        .rgb;
+                    self.scanline_buffer[pixel as usize] = self.cgb_sprite_palette
+                        [sprite.attribute_flags.get_cgb_palette_number()].colours[colour as usize].rgb;
                     self.scanline_buffer_unpalette[pixel as usize] = (colour, false);
                 }
             }
@@ -229,7 +228,7 @@ impl PPU {
             let tile = &self.tiles[tile_address];
             // Yes this is ugly, yes this means a vtable call, yes I'd like to do it differently.
             // Only other way is to duplicate the for loop since the .rev() is a different iterator.
-            let iterator: Box<dyn Iterator<Item=usize>> = if x_flip {
+            let iterator: Box<dyn Iterator<Item = usize>> = if x_flip {
                 Box::new(tile_pixel_y..=tile_pixel_y_offset)
             } else {
                 Box::new((tile_pixel_y..=tile_pixel_y_offset).rev())

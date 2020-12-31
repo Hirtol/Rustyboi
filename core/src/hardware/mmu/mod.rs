@@ -5,23 +5,21 @@ use log::*;
 
 use hram::Hram;
 
-use crate::EmulatorOptions;
 use crate::gb_emu::GameBoyModel;
-use crate::hardware::apu::{
-    APU, APU_MEM_END, APU_MEM_START, WAVE_SAMPLE_END, WAVE_SAMPLE_START,
-};
+use crate::hardware::apu::{APU, APU_MEM_END, APU_MEM_START, WAVE_SAMPLE_END, WAVE_SAMPLE_START};
 use crate::hardware::cartridge::Cartridge;
 use crate::hardware::mmu::cgb_mem::{CgbSpeedData, HdmaRegister};
 use crate::hardware::mmu::wram::Wram;
-use crate::hardware::ppu::{Mode, PPU};
 use crate::hardware::ppu::memory_binds::DMA_TRANSFER;
 use crate::hardware::ppu::timing::{OAM_SEARCH_DURATION, SCANLINE_DURATION};
+use crate::hardware::ppu::{Mode, PPU};
 use crate::io::bootrom::BootRom;
 use crate::io::interrupts::{InterruptFlags, Interrupts};
 use crate::io::io_registers::IORegisters;
 use crate::io::joypad::JoyPad;
-use crate::io::timer::{TIMER_CONTROL, TIMER_COUNTER, TimerRegisters};
+use crate::io::timer::{TimerRegisters, TIMER_CONTROL, TIMER_COUNTER};
 use crate::scheduler::{EventType, Scheduler};
+use crate::EmulatorOptions;
 
 pub mod cgb_mem;
 mod dma;
@@ -275,7 +273,10 @@ impl Memory {
                 self.emulated_model,
                 self.cgb_data.double_speed as u64,
             ),
-            WAVE_SAMPLE_START..=WAVE_SAMPLE_END => self.apu.write_wave_sample(address, value, &mut self.scheduler, self.cgb_data.double_speed as u64),
+            WAVE_SAMPLE_START..=WAVE_SAMPLE_END => {
+                self.apu
+                    .write_wave_sample(address, value, &mut self.scheduler, self.cgb_data.double_speed as u64)
+            }
             DMA_TRANSFER => self.dma_transfer(value),
             CGB_PREPARE_SWITCH => self.cgb_data.write_prepare_switch(value),
             0xFF4E => self.io_registers.write_byte(address, value),
@@ -331,33 +332,31 @@ impl Memory {
                 }
                 EventType::Vblank => {
                     self.ppu.vblank(&mut self.interrupts);
-                    self.scheduler
-                        .push_full_event(event.update_self(EventType::VblankWait, SCANLINE_DURATION << self.get_speed_shift()));
+                    self.scheduler.push_event(EventType::VblankWait, event.timestamp + (SCANLINE_DURATION << self.get_speed_shift()));
                     vblank_occurred = true;
                     // Used for APU syncing.
                     self.synchronise_state_for_vblank();
                 }
                 EventType::OamSearch => {
                     self.ppu.oam_search(&mut self.interrupts);
-                    self.scheduler
-                        .push_full_event(event.update_self(EventType::LcdTransfer, OAM_SEARCH_DURATION << self.get_speed_shift()));
+                    self.scheduler.push_event(EventType::LcdTransfer, event.timestamp + (OAM_SEARCH_DURATION << self.get_speed_shift()));
                 }
                 EventType::LcdTransfer => {
                     self.ppu.lcd_transfer(&self.scheduler);
-                    self.scheduler
-                        .push_full_event(event.update_self(EventType::Hblank, self.ppu.get_lcd_transfer_duration() << self.get_speed_shift()));
+                    self.scheduler.push_event(EventType::Hblank, event.timestamp + (self.ppu.get_lcd_transfer_duration() << self.get_speed_shift()));
                 }
                 EventType::Hblank => {
                     self.ppu.hblank(&mut self.interrupts);
 
-                    // First 144 lines
-                    if self.ppu.current_y != 143 {
-                        self.scheduler
-                            .push_full_event(event.update_self(EventType::OamSearch, self.ppu.get_hblank_duration() << self.get_speed_shift()));
+                    let next_event = if self.ppu.current_y != 143 {
+                        // First 144 lines
+                        EventType::OamSearch
                     } else {
-                        self.scheduler
-                            .push_full_event(event.update_self(EventType::Vblank, self.ppu.get_hblank_duration() << self.get_speed_shift()));
-                    }
+                        // Line 144-153
+                        EventType::Vblank
+                    };
+
+                    self.scheduler.push_event(next_event, event.timestamp + (self.ppu.get_hblank_duration() << self.get_speed_shift()));
 
                     // HDMA transfers 16 bytes every HBLANK
                     self.hdma_check_and_transfer();
@@ -365,14 +364,14 @@ impl Memory {
                 EventType::VblankWait => {
                     self.ppu.vblank_wait(&mut self.interrupts);
 
-                    if self.ppu.current_y != 153 {
-                        self.scheduler
-                            .push_full_event(event.update_self(EventType::VblankWait, SCANLINE_DURATION << self.get_speed_shift()));
+                    let next_event = if self.ppu.current_y != 153 {
+                        EventType::VblankWait
                     } else {
-                        self.scheduler
-                            .push_full_event(event.update_self(EventType::OamSearch, SCANLINE_DURATION << self.get_speed_shift()));
                         self.scheduler.push_relative(EventType::Y153TickToZero, 4);
-                    }
+                        EventType::OamSearch
+                    };
+
+                    self.scheduler.push_event(next_event, event.timestamp + (SCANLINE_DURATION << self.get_speed_shift()));
                 }
                 EventType::TimerOverflow => {
                     self.timers.timer_overflow(&mut self.scheduler, &mut self.interrupts);

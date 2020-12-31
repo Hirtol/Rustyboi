@@ -41,7 +41,7 @@ impl TimerRegisters {
             TIMER_COUNTER => self.timer_counter,
             TIMER_MODULO => self.timer_modulo,
             TIMER_CONTROL => self.timer_control.to_bits(),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -50,7 +50,7 @@ impl TimerRegisters {
             TIMER_COUNTER => self.set_timer_counter(value, scheduler),
             TIMER_MODULO => self.set_tma(value),
             TIMER_CONTROL => self.set_timer_control(value, scheduler),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 

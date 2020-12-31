@@ -146,15 +146,15 @@ impl PPU {
             BG_PALETTE => {
                 self.set_bg_palette(value);
                 self.handle_mid_scanline_palette(scheduler);
-            },
+            }
             OB_PALETTE_0 => {
                 self.set_oam_palette_0(value);
                 self.handle_mid_scanline_palette(scheduler);
-            },
+            }
             OB_PALETTE_1 => {
                 self.set_oam_palette_1(value);
                 self.handle_mid_scanline_palette(scheduler);
-            },
+            }
             WY_REGISTER => self.window_y = value, // No effect on current drawing scanline (if done mid scanline)
             WX_REGISTER => self.window_x = value, // No effect on current drawing scanline (if done mid scanline)
             CGB_VRAM_BANK_REGISTER => self.tile_bank_currently_used = value & 0x1,

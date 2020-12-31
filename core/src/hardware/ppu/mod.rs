@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use num_integer::Integer;
 
-use crate::gb_emu::{GameBoyModel};
+use crate::gb_emu::GameBoyModel;
 use crate::hardware::ppu::cgb_vram::{CgbPalette, CgbPaletteIndex, CgbTileMap};
 use crate::hardware::ppu::palette::{DisplayColour, Palette, RGB};
 use crate::hardware::ppu::register_flags::*;

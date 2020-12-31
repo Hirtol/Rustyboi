@@ -1,4 +1,4 @@
-use std::fs::{read};
+use std::fs::read;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -196,7 +196,8 @@ fn main() {
                 format!(
                     "RustyBoi - {:.2} FPS",
                     (loop_cycles as f64 / last_update_time.elapsed().as_secs_f64())
-                ).as_str(),
+                )
+                .as_str(),
             );
             last_update_time = Instant::now();
             loop_cycles = 0;
@@ -247,7 +248,10 @@ fn handle_events(
             win_event: WindowEvent::Close,
             ..
         }
-        | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+        | Event::KeyDown {
+            keycode: Some(Keycode::Escape),
+            ..
+        } => {
             renderer.close_immediate_gui();
             renderer.main_window.window_mut().raise();
         }
@@ -270,7 +274,11 @@ fn handle_events(
                 warn!("Attempted opening of file: {} which is not a GameBoy rom!", filename);
             }
         }
-        Event::KeyDown { keycode: Some(key), window_id: 1, .. } => {
+        Event::KeyDown {
+            keycode: Some(key),
+            window_id: 1,
+            ..
+        } => {
             if let Some(input_key) = keycode_to_input(key) {
                 gameboy_runner.handle_input(input_key, true);
             } else {
@@ -309,7 +317,11 @@ fn handle_events(
                 }
             }
         }
-        Event::KeyUp { keycode: Some(key), window_id: 1, .. } => {
+        Event::KeyUp {
+            keycode: Some(key),
+            window_id: 1,
+            ..
+        } => {
             if let Some(input_key) = keycode_to_input(key) {
                 gameboy_runner.handle_input(input_key, false);
             } else {

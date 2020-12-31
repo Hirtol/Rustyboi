@@ -30,7 +30,7 @@ impl Default for Event {
     fn default() -> Self {
         Event {
             timestamp: 0,
-            event_type: EventType::None
+            event_type: EventType::None,
         }
     }
 }
@@ -53,20 +53,9 @@ impl Ord for Event {
     }
 }
 
-impl Event {
-    /// Update the current event with new data.
-    ///
-    /// `delta_timestamp` will add the given time to the current `Event`'s `timestamp`.
-    pub fn update_self(mut self, new_event_type: EventType, delta_timestamp: u64) -> Self {
-        self.timestamp += delta_timestamp;
-        self.event_type = new_event_type;
-        self
-    }
-}
-
 #[derive(Debug)]
 pub struct Scheduler {
-    // Want the smallest timestamp first, so MinComparator
+    // Want the smallest timestamp first
     event_queue: BinaryHeap<Event, MinComparator>,
     pub current_time: u64,
 }
@@ -112,14 +101,6 @@ impl Scheduler {
             timestamp: self.current_time + relative_timestamp,
             event_type,
         });
-    }
-
-    /// Add an event to the `Scheduler`.
-    /// This function is best used when we want to avoid an allocation for a new event,
-    /// say in the `pop_closest()` loop for the scheduler. Instead we can then reuse that event
-    /// and push it back in here.
-    pub fn push_full_event(&mut self, event: Event) {
-        self.add_event(event)
     }
 
     #[inline(always)]

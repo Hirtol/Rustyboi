@@ -1,7 +1,7 @@
 use crate::hardware::ppu::Mode;
 
-use bitflags::*;
 use crate::hardware::ppu::memory_binds::{TILE_BLOCK_0_START, TILE_BLOCK_1_START};
+use bitflags::*;
 
 // # PPU FLAGS #
 

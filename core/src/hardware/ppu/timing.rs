@@ -1,9 +1,9 @@
 use itertools::Itertools;
 
-use crate::hardware::ppu::{is_sprite_on_scanline, PPU};
-use crate::hardware::ppu::Mode::LcdTransfer;
 use crate::hardware::ppu::register_flags::LcdControl;
 use crate::hardware::ppu::tiledata::SpriteAttribute;
+use crate::hardware::ppu::Mode::LcdTransfer;
+use crate::hardware::ppu::{is_sprite_on_scanline, PPU};
 use crate::scheduler::Scheduler;
 
 pub const SCANLINE_DURATION: u64 = 456;
@@ -89,7 +89,11 @@ impl PPU {
         let mut actual_pixels_drawn = 0;
         let mut cycles_to_go = *pixels_drawn;
         let window_trigger = self.window_triggered && self.window_x < 168 && self.lcd_control.contains(LcdControl::WINDOW_DISPLAY);
-        let window_x = if window_trigger { (self.window_x as i16).saturating_sub(7) } else { 255 };
+        let window_x = if window_trigger {
+            (self.window_x as i16).saturating_sub(7)
+        } else {
+            255
+        };
         let mut sprites_to_draw = self.get_drawable_sprites().collect_vec();
 
         while cycles_to_go > 0 {
