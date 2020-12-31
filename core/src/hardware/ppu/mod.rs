@@ -411,7 +411,7 @@ impl PPU {
     /// `pixels_to_skip` will skip pixels so long as it's greater than 0
     fn draw_background_window_line(
         &mut self,
-        pixel_counter: &mut i16,
+        pixels_drawn: &mut i16,
         pixels_to_skip: &mut u8,
         tile_address: usize,
         tile_line_y: usize,
@@ -419,9 +419,9 @@ impl PPU {
     ) {
         // If we can draw 8 pixels in one go, we should.
         // pixel_counter Should be less than 152 otherwise we'd go over the 160 allowed pixels.
-        if *pixels_to_skip == 0 && *pixel_counter < 152 {
-            self.draw_contiguous_bg_window_block(*pixel_counter as usize, tile_address, tile_line_y);
-            *pixel_counter += 8;
+        if *pixels_to_skip == 0 && *pixels_drawn < 152 {
+            self.draw_contiguous_bg_window_block(*pixels_drawn as usize, tile_address, tile_line_y);
+            *pixels_drawn += 8;
         } else {
             let tile = &self.tiles[tile_address];
             for j in (tile_line_y..=tile_pixel_y_offset).rev() {
@@ -431,13 +431,13 @@ impl PPU {
                     continue;
                 }
                 // We've exceeded the amount we need to draw, no need to do anything more.
-                if *pixel_counter > 159 {
+                if *pixels_drawn > 159 {
                     break;
                 }
                 let colour = tile.get_pixel(j);
-                self.scanline_buffer[*pixel_counter as usize] = self.bg_window_palette.colour(colour);
-                self.scanline_buffer_unpalette[*pixel_counter as usize] = (colour, false);
-                *pixel_counter += 1;
+                self.scanline_buffer[*pixels_drawn as usize] = self.bg_window_palette.colour(colour);
+                self.scanline_buffer_unpalette[*pixels_drawn as usize] = (colour, false);
+                *pixels_drawn += 1;
             }
         }
     }
@@ -445,12 +445,12 @@ impl PPU {
     /// This function will immediately draw 8 pixels, skipping several checks and manual
     /// get_pixel_calls().
     #[inline(always)]
-    fn draw_contiguous_bg_window_block(&mut self, pixel_counter: usize, tile_address: usize, tile_line_y: usize) {
+    fn draw_contiguous_bg_window_block(&mut self, pixels_drawn: usize, tile_address: usize, tile_line_y: usize) {
         let tile = &self.tiles[tile_address];
         let pixel_line = tile.get_true_pixel_line(tile_line_y);
 
         for (i, colour) in pixel_line.iter().rev().copied().enumerate() {
-            let index = pixel_counter + i;
+            let index = pixels_drawn + i;
             self.scanline_buffer[index] = self.bg_window_palette.colour(colour);
             self.scanline_buffer_unpalette[index] = (colour, false);
         }
