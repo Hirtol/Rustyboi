@@ -141,13 +141,6 @@ impl PPU {
     pub fn increment_current_y(&mut self, interrupts: &mut Interrupts) {
         self.current_y = self.current_y.wrapping_add(1);
         self.ly_lyc_compare(interrupts);
-        // As soon as wy == ly ANYWHERE in the frame, the window will be considered
-        // triggered for the remainder of the frame, and thus can only be disabled
-        // if LCD Control WINDOW_DISPlAY is reset.
-        // This trigger can happen even if the WINDOW_DISPLAY bit is not set.
-        if !self.window_triggered {
-            self.window_triggered = self.current_y == self.window_y;
-        }
     }
 
     pub fn oam_search(&mut self, interrupts: &mut Interrupts) {
@@ -217,7 +210,16 @@ impl PPU {
         self.frame_buffer[current_address..current_address + RESOLUTION_WIDTH].copy_from_slice(&self.scanline_buffer);
     }
 
+    #[inline(always)]
     pub fn draw_scanline(&mut self) {
+        // As soon as wy == ly ANYWHERE in the frame, the window will be considered
+        // triggered for the remainder of the frame, and thus can only be disabled
+        // if LCD Control WINDOW_DISPlAY is reset.
+        // This trigger can happen even if the WINDOW_DISPLAY bit is not set.
+        if !self.window_triggered {
+            self.window_triggered = self.current_y == self.window_y;
+        }
+
         if self.lcd_control.contains(LcdControl::BG_WINDOW_PRIORITY) {
             if self.lcd_control.contains(LcdControl::WINDOW_DISPLAY) {
                 if !self.window_triggered || self.window_x > 7 {
