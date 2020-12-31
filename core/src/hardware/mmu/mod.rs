@@ -317,7 +317,7 @@ impl Memory {
         self.apu.synchronise(&mut self.scheduler, speed_multiplier);
     }
 
-    /// Ticks the scheduler by 4 cycles, executes any events if they come up.
+    /// Executes any scheduled events if they should happen at this point in time.
     /// Returns true if a vblank interrupt happened.
     #[inline(always)]
     fn execute_scheduled_events(&mut self) -> bool {

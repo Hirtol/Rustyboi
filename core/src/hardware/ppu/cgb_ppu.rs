@@ -10,14 +10,6 @@ use crate::hardware::ppu::{is_sprite_on_scanline, PPU};
 
 impl PPU {
     pub fn draw_cgb_scanline(&mut self) {
-        // As soon as wy == yc ANYWHERE in the frame, the window will be considered
-        // triggered for the remainder of the frame, and thus can only be disabled
-        // if LCD Control WINDOW_DISPlAY is reset.
-        // This trigger can happen even if the WINDOW_DISPLAY bit is not set.
-        if !self.window_triggered {
-            self.window_triggered = self.current_y == self.window_y;
-        }
-
         if self.lcd_control.contains(LcdControl::WINDOW_DISPLAY) {
             if !self.window_triggered || self.window_x > 7 {
                 self.draw_cgb_bg_scanline();
