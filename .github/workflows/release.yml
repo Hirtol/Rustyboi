@@ -89,6 +89,22 @@ jobs:
           command: build
           args: --release --target ${{ matrix.config.target }}
 
+      - name: Compress binaries Linux/Mac
+        if: "!startsWith(matrix.config.os, 'windows')"
+        uses: svenstaro/upx-action@v2
+        with:
+          file: ./target/${{ matrix.config.target }}/release/rustyboi_sdl
+          args: --best
+          strip: true
+
+      - name: Compress binaries Windows
+        if: "startsWith(matrix.config.os, 'windows')"
+        uses: svenstaro/upx-action@v2
+        with:
+          file: ./target/${{ matrix.config.target }}/release/rustyboi_sdl.exe
+          args: --best
+          strip: true
+
       - name: Package asset as gzip
         if: "!startsWith(matrix.config.os, 'windows')"
         run: |
