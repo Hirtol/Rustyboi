@@ -7,6 +7,11 @@ use crate::hardware::mmu::INVALID_READ;
 /// This is a rather dirty implementation where voice 1 and 2 are merged, the latter
 /// simply not having its sweep function called.
 ///
+/// TODO: Pretty sure our current implementation of the square channel isn't *entirely* correct,
+/// we probably need a separate timer for the advancing of the wave_table_index like SameBoy (and
+/// as PanDocs describes), though this will only be relevant for passing tests probably, as most
+/// things sound fine.
+///
 /// # Properties:
 /// * Sweep (only voice 1)
 /// * Volume Envelope
