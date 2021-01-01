@@ -116,7 +116,7 @@ fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>, emulator_mode:
             let mut frames_to_render = 600;
             let mut emu_frames_drawn = 0;
             let mut options_builder = EmulatorOptionsBuilder::new()
-                .boot_rom(boot_rom)
+                .with_boot_rom(boot_rom)
                 .with_display_colour(TEST_COLOURS);
 
             options_builder = if emulator_mode.is_dmg() {

@@ -106,8 +106,8 @@ fn main() {
 
     let mut timer = sdl_context.timer().unwrap();
     let emu_opts = EmulatorOptionsBuilder::new()
-        //.boot_rom(Some(bootrom_file_cgb))
-        .with_mode(DMG)
+        .with_boot_rom(Some(_bootrom_file_cgb))
+        .with_mode(CGB)
         .with_display_colour(KIRBY_DISPLAY_COLOURS)
         .build();
 

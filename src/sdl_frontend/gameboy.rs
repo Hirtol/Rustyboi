@@ -21,6 +21,7 @@ pub struct GameboyRunner {
 
 impl GameboyRunner {
     pub fn new(rom_path: impl AsRef<Path>, options: EmulatorOptions) -> GameboyRunner {
+        log::info!("Starting new thread for emulator with options: {:#X?}", options);
         let (frame_sender, frame_receiver) = bounded(1);
         let (request_sender, request_receiver) = unbounded::<EmulatorNotification>();
         let (response_sender, response_receiver) = unbounded::<EmulatorResponse>();

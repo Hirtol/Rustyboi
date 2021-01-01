@@ -212,6 +212,14 @@ impl PPU {
 
     #[inline(always)]
     pub fn draw_scanline(&mut self) {
+        if self.cgb_rendering {
+            self.draw_cgb_scanline();
+        } else {
+            self.draw_dmg_scanline();
+        }
+    }
+    #[inline(always)]
+    pub fn draw_dmg_scanline(&mut self) {
         // As soon as wy == ly ANYWHERE in the frame, the window will be considered
         // triggered for the remainder of the frame, and thus can only be disabled
         // if LCD Control WINDOW_DISPlAY is reset.

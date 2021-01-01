@@ -156,12 +156,12 @@ impl Memory {
     pub fn new(rom_data: &[u8], emu_opts: EmulatorOptions) -> Self {
         let cartridge = Cartridge::new(rom_data, emu_opts.saved_ram);
         Memory {
-            boot_rom: BootRom::new(emu_opts.boot_rom),
+            boot_rom: BootRom::new(emu_opts.boot_rom.clone()),
             ppu: PPU::new(
                 emu_opts.bg_display_colour,
                 emu_opts.sp0_display_colour,
                 emu_opts.sp1_display_colour,
-                cartridge.cartridge_header().cgb_flag && emu_opts.emulator_mode.is_cgb(),
+                emu_opts.emulator_mode.is_cgb() && (cartridge.cartridge_header().cgb_flag || emu_opts.boot_rom.is_some()),
                 emu_opts.emulator_mode,
             ),
             cartridge,
@@ -294,6 +294,8 @@ impl Memory {
             }
             0xFF50 if !self.boot_rom.is_finished => {
                 self.boot_rom.is_finished = true;
+                // We may have ran the CGB bootrom, which requires CGB rendering.
+                self.ppu.set_cgb_rendering(self.cartridge.cartridge_header().cgb_flag);
                 info!("Finished executing BootRom!");
             }
             CGB_RP => self.io_registers.write_byte(address, value),

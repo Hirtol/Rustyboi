@@ -82,7 +82,7 @@ impl GameBoyEmulator {
     /// This can be changed while the emulator is running (though if done mid-frame will produce
     /// artifacts for that one frame)
     pub fn set_dmg_display_colour(&mut self, bg_palette: DisplayColour, sp0_palette: DisplayColour, sp1_palette: DisplayColour) {
-        self.cpu.mmu.ppu.update_display_colours(bg_palette, sp0_palette, sp1_palette, self.emulator_mode());
+        self.cpu.mmu.ppu.update_display_colours(bg_palette, sp0_palette, sp1_palette);
     }
 
     /// Run the emulator until it has reached Vblank (every 70224 t-cycles)

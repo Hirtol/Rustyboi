@@ -44,7 +44,7 @@ pub fn create_emulator(rom_path: impl AsRef<Path>, options: EmulatorOptions) -> 
         saved_ram.is_some()
     );
 
-    let emu_options = EmulatorOptionsBuilder::from(options).saved_ram(saved_ram).build();
+    let emu_options = EmulatorOptionsBuilder::from(options).with_saved_ram(saved_ram).build();
 
     GameBoyEmulator::new(&rom, emu_options)
 }

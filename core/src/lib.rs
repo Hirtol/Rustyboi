@@ -53,12 +53,12 @@ impl EmulatorOptionsBuilder {
         }
     }
 
-    pub fn boot_rom(mut self, boot_rom: Option<Vec<u8>>) -> Self {
+    pub fn with_boot_rom(mut self, boot_rom: Option<Vec<u8>>) -> Self {
         self.boot_rom = boot_rom;
         self
     }
 
-    pub fn saved_ram(mut self, saved_ram: Option<Vec<u8>>) -> Self {
+    pub fn with_saved_ram(mut self, saved_ram: Option<Vec<u8>>) -> Self {
         self.saved_ram = saved_ram;
         self
     }

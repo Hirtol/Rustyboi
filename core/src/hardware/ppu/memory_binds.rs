@@ -419,10 +419,9 @@ impl PPU {
         bg_palette: DisplayColour,
         sp0_palette: DisplayColour,
         sp1_palette: DisplayColour,
-        emu_mode: GameBoyModel,
     ) {
         // We don't want to overwrite CGB registers if we're actually running a CGB game.
-        if emu_mode.is_dmg() {
+        if !self.cgb_rendering {
             let (cgb_bg_palette, cgb_sprite_palette) = initialise_cgb_palette(bg_palette, sp0_palette, sp1_palette);
             self.cgb_bg_palette = cgb_bg_palette;
             self.cgb_sprite_palette = cgb_sprite_palette;
@@ -430,6 +429,10 @@ impl PPU {
             self.set_oam_palette_0(self.oam_palette_0.into());
             self.set_oam_palette_1(self.oam_palette_1.into());
         }
+    }
+
+    pub fn set_cgb_rendering(&mut self, cgb_rendering: bool) {
+        self.cgb_rendering = cgb_rendering;
     }
 }
 
