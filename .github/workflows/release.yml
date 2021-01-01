@@ -1,46 +1,41 @@
-name: CI
+# This particular release.yml is mostly taken from:
+# https://github.com/bjeanes/indexer-sync/blob/master/.github/workflows/ci.yml
+# and Jormungandr:
+# https://github.com/input-output-hk/jormungandr/blob/master/.github/workflows/release.yml
+
+name: Stable Release
 on:
   push:
-    branches: [ master ]
-  pull_request:
-
+    tags:
+      - 'v[0-9]+.*' # Release tags matching v*, i.e. v1.0, v20.15.10
   workflow_dispatch:
 
 jobs:
-  test:
+  create_release:
+    name: Create Github Release
     runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.github_create_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.VERSION }}
     steps:
-      - uses: actions/checkout@master
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/}
 
-      - uses: actions-rs/toolchain@v1
-        id: rust-toolchain
+      - name: Create Release
+        id: github_create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          toolchain: stable
-          profile: default
-          override: true
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          release_name: Rustyboi ${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          prerelease: true
 
-      - name: Cache Cargo Artifacts
-        uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-artifacts-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-artifacts-${{ hashFiles('**/Cargo.toml') }}
-            ${{ runner.os }}-cargo-artifacts-
-            ${{ runner.os }}-cargo
-
-      - name: Run tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: -p rustyboi-core --verbose
-
-  build:
-    needs: test
+  build_release_assets:
     name: Build release assets
+    needs: [create_release]
     runs-on: ${{ matrix.config.os }}
     strategy:
       fail-fast: false
@@ -97,7 +92,7 @@ jobs:
       - name: Package asset as gzip
         if: "!startsWith(matrix.config.os, 'windows')"
         run: |
-          archive=Rustyboi-${{ matrix.config.target }}.tar.gz
+          archive=Rustyboi-${{ needs.create_release.outputs.version }}-${{ matrix.config.target }}.tar.gz
           env GZIP=-9 tar zvcf $archive -C ./target/${{ matrix.config.target }}/release rustyboi_sdl
           cat <<EOF >> $GITHUB_ENV
           RELEASE_ARCHIVE=$archive
@@ -105,17 +100,22 @@ jobs:
           EOF
 
       - name: Package asset as zip
-        if: "startsWith(matrix.config.os, 'windows')"
+        if: startsWith(matrix.config.os, 'windows')
         run: |
-          $archive = "Rustyboi-${{ matrix.config.target }}.zip"
+          $archive = "Rustyboi-${{ needs.create_release.outputs.version }}-${{ matrix.config.target }}.zip"
           Compress-Archive -LiteralPath .\target\${{ matrix.config.target }}\release\rustyboi_sdl.exe -DestinationPath $archive
           @"
           RELEASE_ARCHIVE=$archive
           RELEASE_CONTENT_TYPE=application/zip
           "@ | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v2
+      - name: Upload binaries to our release
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: Rustyboi-${{ matrix.config.target }}
-          path: ${{ env.RELEASE_ARCHIVE }}
+          upload_url: ${{ needs.create_release.outputs.upload_url }}
+          asset_path: ./${{ env.RELEASE_ARCHIVE }}
+          asset_name: ${{ env.RELEASE_ARCHIVE }}
+          asset_content_type: ${{ env.RELEASE_CONTENT_TYPE }}
