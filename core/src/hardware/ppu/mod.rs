@@ -160,11 +160,7 @@ impl PPU {
         self.lcd_status.set_mode_flag(LcdTransfer);
 
         // Draw our actual line once we enter Drawing mode.
-        if self.cgb_rendering {
-            self.draw_cgb_scanline();
-        } else {
-            self.draw_scanline();
-        }
+        self.draw_scanline();
     }
 
     pub fn hblank(&mut self, interrupts: &mut Interrupts) {
@@ -212,14 +208,6 @@ impl PPU {
 
     #[inline(always)]
     pub fn draw_scanline(&mut self) {
-        if self.cgb_rendering {
-            self.draw_cgb_scanline();
-        } else {
-            self.draw_dmg_scanline();
-        }
-    }
-    #[inline(always)]
-    pub fn draw_dmg_scanline(&mut self) {
         // As soon as wy == ly ANYWHERE in the frame, the window will be considered
         // triggered for the remainder of the frame, and thus can only be disabled
         // if LCD Control WINDOW_DISPlAY is reset.
@@ -228,6 +216,14 @@ impl PPU {
             self.window_triggered = self.current_y == self.window_y;
         }
 
+        if self.cgb_rendering {
+            self.draw_cgb_scanline();
+        } else {
+            self.draw_dmg_scanline();
+        }
+    }
+    #[inline(always)]
+    pub fn draw_dmg_scanline(&mut self) {
         if self.lcd_control.contains(LcdControl::BG_WINDOW_PRIORITY) {
             if self.lcd_control.contains(LcdControl::WINDOW_DISPLAY) {
                 if !self.window_triggered || self.window_x > 7 {

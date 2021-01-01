@@ -21,7 +21,7 @@ pub trait ImmediateGui {
     /// Returns a list of `DebugRequests` the GUI wishes to have fulfilled.
     /// Requests can be dropped, in which case the GUI shouldn't display anything and will send the
     /// request again at the next opportunity.
-    fn query_emulator(&mut self) -> Vec<DebugMessage>;
+    fn query_emulator(&mut self) -> Option<Vec<DebugMessage>>;
 
     /// Fulfills the GUI's request presented at `query_emulator`.
     fn fulfill_query(&mut self, debug_response: DebugMessage);

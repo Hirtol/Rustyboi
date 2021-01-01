@@ -1,22 +1,20 @@
-use imgui::*;
+use std::sync::Arc;
 
+use imgui::*;
 use imgui_opengl_renderer::Renderer;
 use imgui_sdl2::ImguiSdl2;
+use sdl2::event::Event;
 use sdl2::mouse::MouseState;
-
 use sdl2::VideoSubsystem;
 
-use crate::rendering::imgui::state::{DebugState, GuiState};
-use crate::rendering::immediate::ImmediateGui;
 use font::COUSINE_REGULAR_UNCOMPRESSED_DATA;
-
 use rustyboi::storage::{FileStorage, Storage};
-use std::sync::Arc;
 
 use crate::communication::DebugMessage;
 use crate::rendering::imgui::interface::*;
 use crate::rendering::imgui::settings::render_settings;
-use sdl2::event::Event;
+use crate::rendering::imgui::state::{DebugState, GuiState};
+use crate::rendering::immediate::ImmediateGui;
 
 mod animate;
 mod font;
@@ -81,14 +79,17 @@ impl ImmediateGui for ImguiBoi {
         Self::new(video_subsystem, host_window, storage)
     }
 
-    fn query_emulator(&mut self) -> Vec<DebugMessage> {
+    fn query_emulator(&mut self) -> Option<Vec<DebugMessage>> {
         use DebugMessage::*;
         let mut result = Vec::with_capacity(10);
+
         result.push(Mode(None));
+
         if self.gui_state.palette_window {
             result.push(Palette(None));
         }
-        result
+
+        Some(result)
     }
 
     fn fulfill_query(&mut self, debug_response: DebugMessage) {

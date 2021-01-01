@@ -40,7 +40,7 @@ where
 {
     pub fn new(sdl_video_system: VideoSubsystem, storage: Arc<FileStorage>) -> anyhow::Result<Self> {
         let mut main_window = sdl_video_system
-            .window("RustyBoi", 800, 720)
+            .window("RustyBoi - [0 FPS | 0%]", 800, 720)
             .position_centered()
             .resizable()
             .allow_highdpi()
@@ -64,9 +64,9 @@ where
 
     /// Closes the debug window, and drops any contexts that were present.
     pub fn close_immediate_gui(&mut self) {
+        self.gl_context = None;
         self.debug_window = None;
         self.immediate_gui = None;
-        self.gl_context = None;
     }
 
     /// Render a new frame in the main window.
@@ -80,7 +80,7 @@ where
         self.main_window.present();
     }
 
-    /// Render, if the immediate GUI has been setup, a new frame in the ImGUI.
+    /// Render, if the immediate GUI has been set up, a new frame in the ImGUI.
     /// Can be called very frequently, will never render more than the current monitor's refresh rate.
     #[inline(always)]
     pub fn render_immediate_gui(&mut self, event_pump: &EventPump) -> Option<Vec<DebugMessage>> {
@@ -108,7 +108,7 @@ where
 
                 window.gl_swap_window();
 
-                return Some(gui.query_emulator());
+                return gui.query_emulator();
             }
         }
 

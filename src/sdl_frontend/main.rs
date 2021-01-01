@@ -101,13 +101,13 @@ fn main() {
 
     let _cartridge = "roms/Zelda.gb";
     let _yellow = "roms/Prehistorik Man (U).gb";
-    let _cpu_test = "roms/Kirby's Dream Land 2.gb";
+    let _cpu_test = "roms/Dr. Mario.gb";
     let _cpu_test2 = "test roms/auto-run/hdma_timing-C.gbc";
 
     let mut timer = sdl_context.timer().unwrap();
     let emu_opts = EmulatorOptionsBuilder::new()
-        .with_boot_rom(Some(_bootrom_file_cgb))
-        .with_mode(CGB)
+        //.with_boot_rom(Some(_bootrom_file_dmg))
+        .with_mode(DMG)
         .with_display_colour(KIRBY_DISPLAY_COLOURS)
         .build();
 
@@ -192,10 +192,11 @@ fn main() {
         }
 
         if last_update_time.elapsed().as_millis() >= 1000 {
+            let frames_rendered = loop_cycles as f64 / last_update_time.elapsed().as_secs_f64();
             renderer.main_window.window_mut().set_title(
                 format!(
-                    "RustyBoi - {:.2} FPS",
-                    (loop_cycles as f64 / last_update_time.elapsed().as_secs_f64())
+                    "RustyBoi - [{:.2} FPS | {}%]",
+                    frames_rendered, (frames_rendered / 59.725 * 100.0) as usize
                 )
                 .as_str(),
             );
