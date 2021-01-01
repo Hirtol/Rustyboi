@@ -157,7 +157,7 @@ impl NoiseChannel {
 
                 self.length.length_enable = test_bit(value, 6);
 
-                if no_l_next {
+                if self.length.length_enable && !old_length_enable && no_l_next {
                     self.length
                         .second_half_enable_tick(&mut self.trigger, old_length_enable);
                 }

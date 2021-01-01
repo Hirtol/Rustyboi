@@ -383,7 +383,7 @@ impl AudioOutput {
 
 fn no_length_tick_next_step(next_frame_sequence_val: u8) -> bool {
     // Due to the fact that we increment frame_sequencer immediately we have to check for current_step + 1
-    [1, 3, 5, 7].contains(&next_frame_sequence_val)
+    (next_frame_sequence_val & 0x1) == 1
 }
 
 fn get_highpass_rate(cycles_per_sample: u64) -> f32 {

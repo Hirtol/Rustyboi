@@ -101,7 +101,7 @@ fn main() {
 
     let _cartridge = "roms/Zelda.gb";
     let _yellow = "roms/Prehistorik Man (U).gb";
-    let _cpu_test = "test roms/auto-run/mooneye/tests/misc/ppu/vblank_stat_intr-C.gb";
+    let _cpu_test = "roms/Kirby's Dream Land 2.gb";
     let _cpu_test2 = "test roms/auto-run/hdma_timing-C.gbc";
 
     let mut timer = sdl_context.timer().unwrap();

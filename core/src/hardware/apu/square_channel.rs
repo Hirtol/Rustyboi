@@ -130,7 +130,7 @@ impl SquareWaveChannel {
                     self.timer_load_value = temp_timer_load;
                 }
 
-                if no_l_next {
+                if self.length.length_enable && !old_length_enable && no_l_next {
                     self.length
                         .second_half_enable_tick(&mut self.trigger, old_length_enable);
                 }
@@ -154,8 +154,6 @@ impl SquareWaveChannel {
         self.timer_load_value = (2048 - self.frequency) * 4;
         self.timer = self.timer_load_value;
         self.sweep.trigger_sweep(&mut self.trigger, self.frequency);
-        // Default wave form should be selected.
-        self.duty_select = 0x2;
         // If the DAC doesn't have power we ignore this trigger.
         // Why the add mode is relevant eludes me, but the PanDocs specifically mention it so..
         if self.envelope.volume_load == 0 && !self.envelope.envelope_add_mode {
