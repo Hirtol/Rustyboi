@@ -114,7 +114,6 @@ fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>, emulator_mode:
         spawn(move || {
             let file_stem = path.file_stem().unwrap().to_owned();
             let mut frames_to_render = 600;
-            let mut emu_frames_drawn = 0;
             let mut options_builder = EmulatorOptionsBuilder::new()
                 .with_boot_rom(boot_rom)
                 .with_display_colour(TEST_COLOURS);
@@ -132,10 +131,10 @@ fn run_path(path: impl AsRef<str>, boot_rom_vec: Option<Vec<u8>>, emulator_mode:
                 frames_to_render = *frames;
             }
 
-            while emu_frames_drawn < frames_to_render {
+            for _ in 0..frames_to_render {
                 emu.run_to_vblank();
-                emu_frames_drawn += 1;
             }
+
             let file_path = format!(
                 "{}{}_{}.png",
                 if emulator_mode.is_dmg() {

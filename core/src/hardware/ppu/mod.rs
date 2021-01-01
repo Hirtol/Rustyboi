@@ -254,7 +254,7 @@ impl PPU {
         let tile_pixel_y = (scanline_to_be_rendered as usize % 8) * 8;
         let tile_pixel_y_offset = tile_pixel_y + 7;
         let mut pixels_drawn: i16 = 0;
-        // For cases where the scroll x is not nicely aligned on tile boundries.
+        // For cases where the scroll x is not nicely aligned on tile boundaries.
         let mut pixels_to_skip = self.scroll_x % 8;
         // If the tile is not nicely aligned on % 8 boundaries we'll need an additional tile for the
         // last 8-pixels_to_skip pixels of the scanline.

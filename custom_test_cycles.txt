@@ -1,7 +1,7 @@
 11-op a,(hl)=1600
 10-bit ops=1200
-oam_bug=2000
-cpu_instrs=3800
+oam_bug=1800
+cpu_instrs=3550
 cgb_sound=2600
 dmg_sound_2=2600
 09-op r,r=1100
