@@ -94,9 +94,12 @@ impl PPU {
 
     #[inline]
     pub fn read_vram(&self, address: u16) -> u8 {
+        //TODO: Reimplement, however it seems to break CGB bootrom?:
+        //TILE_BLOCK_0_START..=TILE_BLOCK_2_END if self.can_access_vram()
+        //TILEMAP_9800_START..=TILEMAP_9C00_END if self.can_access_vram()
         match address {
-            TILE_BLOCK_0_START..=TILE_BLOCK_2_END if self.can_access_vram() => self.get_tile_byte(address),
-            TILEMAP_9800_START..=TILEMAP_9C00_END if self.can_access_vram() => self.get_tilemap_byte(address),
+            TILE_BLOCK_0_START..=TILE_BLOCK_2_END => self.get_tile_byte(address),
+            TILEMAP_9800_START..=TILEMAP_9C00_END => self.get_tilemap_byte(address),
             OAM_ATTRIBUTE_START..=OAM_ATTRIBUTE_END if self.can_access_oam() => self.get_oam_byte(address),
             // *** I/O Registers ***
             LCD_CONTROL_REGISTER => self.lcd_control.bits(),
@@ -122,13 +125,12 @@ impl PPU {
 
     #[inline]
     pub fn write_vram(&mut self, address: u16, value: u8, scheduler: &mut Scheduler, interrupts: &mut Interrupts) {
-        // if address != LY_REGISTER && address != LYC_REGISTER {
-        //      log::warn!("Writing {:4X}, latest access: {}", address, scheduler.current_time - self.latest_lcd_transfer_start);
-        //      self.latest_lcd_transfer_start = scheduler.current_time;
-        // }
+        //TODO: Reimplement, however it seems to break CGB bootrom (and tests don't seem to mind)?:
+        //TILE_BLOCK_0_START..=TILE_BLOCK_2_END if self.can_access_vram()
+        //TILEMAP_9800_START..=TILEMAP_9C00_END if self.can_access_vram()
         match address {
-            TILE_BLOCK_0_START..=TILE_BLOCK_2_END if self.can_access_vram() => self.set_tile_byte(address, value),
-            TILEMAP_9800_START..=TILEMAP_9C00_END if self.can_access_vram() => self.set_tilemap_byte(address, value),
+            TILE_BLOCK_0_START..=TILE_BLOCK_2_END => self.set_tile_byte(address, value),
+            TILEMAP_9800_START..=TILEMAP_9C00_END => self.set_tilemap_byte(address, value),
             OAM_ATTRIBUTE_START..=OAM_ATTRIBUTE_END if self.can_access_oam() => self.set_oam_byte(address, value),
             // *** I/O Registers ***
             LCD_CONTROL_REGISTER => self.set_lcd_control(value, scheduler, interrupts),
