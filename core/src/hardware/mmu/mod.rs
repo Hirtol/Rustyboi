@@ -68,6 +68,7 @@ pub const SIO_CONT: u16 = 0xFF02;
 ///
 /// Note: The divider is affected by CGB double speed mode, and will increment at 32768Hz in double speed.
 pub const DIVIDER_REGISTER: u16 = 0xFF04;
+pub const BOOT_ROM_REGISTER: u16 = 0xFF50;
 
 pub const PPU_IO_START: u16 = 0xF40;
 pub const PPU_IO_END: u16 = 0xFF4F;
@@ -292,11 +293,14 @@ impl Memory {
                     self.hdma_check_and_transfer()
                 }
             }
-            0xFF50 if !self.boot_rom.is_finished => {
-                self.boot_rom.is_finished = true;
-                // We may have ran the CGB bootrom, which requires CGB rendering.
-                self.ppu.set_cgb_rendering(self.cartridge.cartridge_header().cgb_flag);
-                info!("Finished executing BootRom!");
+            BOOT_ROM_REGISTER => {
+                // Ignore writes to the bootrom register after the bootrom has been ran.
+                if !self.boot_rom.is_finished {
+                    self.boot_rom.is_finished = true;
+                    // We may have ran the CGB bootrom, which requires CGB rendering.
+                    self.ppu.set_cgb_rendering(self.cartridge.cartridge_header().cgb_flag);
+                    info!("Finished executing BootRom!");
+                }
             }
             CGB_RP => self.io_registers.write_byte(address, value),
             PPU_CGB_IO_START..=PPU_CGB_IO_END => self.ppu.write_vram(address, value, &mut self.scheduler, &mut self.interrupts),
