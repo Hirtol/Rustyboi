@@ -6,7 +6,7 @@ use nanoserde::*;
 use std::str::FromStr;
 use std::time::Duration;
 
-use crate::state::{DisplayColourConfigurable, DisplayColourDTO};
+use crate::data::state::{DisplayColourConfigurable, DisplayColourDTO};
 
 const SUB_MENUS: [&str; 3] = ["General", "Audio", "Display"];
 

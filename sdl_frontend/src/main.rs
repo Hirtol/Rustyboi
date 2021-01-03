@@ -4,39 +4,35 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use gumdrop::Options;
-use log::LevelFilter;
 use log::*;
+use log::LevelFilter;
 use once_cell::sync::Lazy;
-
 use sdl2::event::{Event, WindowEvent};
 use sdl2::keyboard::Keycode;
-use simplelog::{CombinedLogger, Config, ConfigBuilder, TermLogger, TerminalMode, WriteLogger};
+use simplelog::{CombinedLogger, Config, ConfigBuilder, TerminalMode, TermLogger, WriteLogger};
 
 use audio::AudioPlayer;
-use rustyboi::storage::{FileStorage, Storage};
+use data::communication::{DebugMessage, EmulatorNotification, EmulatorResponse};
+use data::state::{AppEmulatorState, AppState};
+use data::storage::{FileStorage, Storage};
+use options::AppOptions;
 use rustyboi_core::{EmulatorOptionsBuilder, InputKey};
-
 use rustyboi_core::gb_emu::GameBoyModel::{CGB, DMG};
-
-use rustyboi_core::hardware::ppu::palette::{DisplayColour, RGB};
 use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
-
-use crate::communication::{DebugMessage, EmulatorNotification, EmulatorResponse};
+use rustyboi_core::hardware::ppu::palette::{DisplayColour, RGB};
 
 use crate::gameboy::GameboyRunner;
-use crate::options::AppOptions;
 use crate::rendering::imgui::ImguiBoi;
 use crate::rendering::immediate::ImmediateGui;
 use crate::rendering::Renderer;
-use crate::state::{AppEmulatorState, AppState};
 
 mod audio;
 mod benchmarking;
-mod communication;
 mod gameboy;
-mod options;
 mod rendering;
-mod state;
+mod actions;
+mod data;
+pub mod options;
 
 const KIRBY_DISPLAY_COLOURS: DisplayColour = DisplayColour {
     black: RGB(44, 44, 150),

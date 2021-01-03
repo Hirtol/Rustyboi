@@ -1,0 +1,36 @@
+[package]
+name = "rustyboi_sdl"
+version = "0.1.0"
+authors = ["Hirtol <gameboy@hirtol.top>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4.11"
+anyhow = "1.0.32"
+simplelog = "0.8.0"
+rustyboi_core = {path = "../core", features=[]}
+image = "0.23.8"
+gumdrop = "0.8.0"
+directories = "3.0.1"
+memmap2 = "0.1.0"
+crossbeam = "0.8.0"
+nanoserde = "0.1.20"
+once_cell = "1.4.1"
+
+gl = "0.14.0"
+imgui = "0.5.0"
+imgui-opengl-renderer = "0.9.0"
+imgui-sdl2 = "0.12.0"
+
+[dependencies.sdl2]
+version = "0.34.3"
+features = ["unsafe_textures", "bundled", "static-link"]
+
+#[profile.release]
+#debug = true
+#[profile.release]
+#lto = 'fat'
+#panic = 'abort'
+#codegen-units = 1

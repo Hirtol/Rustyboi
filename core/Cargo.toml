@@ -1,5 +1,5 @@
 [package]
-name = "rustyboi-core"
+name = "rustyboi_core"
 version = "0.1.0"
 authors = ["Hirtol <gameboy@hirtol.top>"]
 edition = "2018"

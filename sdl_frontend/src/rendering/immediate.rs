@@ -1,7 +1,7 @@
 use sdl2::mouse::MouseState;
 
-use crate::communication::DebugMessage;
-use rustyboi::storage::FileStorage;
+use crate::data::communication::DebugMessage;
+use crate::data::storage::FileStorage;
 use sdl2::event::Event;
 use std::sync::Arc;
 

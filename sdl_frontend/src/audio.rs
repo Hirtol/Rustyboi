@@ -1,4 +1,4 @@
-use crate::communication::EmulatorNotification;
+use crate::data::communication::EmulatorNotification;
 use crate::gameboy::GameboyRunner;
 use crate::{AUDIO_FREQUENCY, MAX_AUDIO_SAMPLES, MIN_AUDIO_SAMPLES};
 use sdl2::audio::{AudioQueue, AudioSpecDesired};

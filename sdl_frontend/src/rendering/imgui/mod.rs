@@ -8,9 +8,9 @@ use sdl2::mouse::MouseState;
 use sdl2::VideoSubsystem;
 
 use font::COUSINE_REGULAR_UNCOMPRESSED_DATA;
-use rustyboi::storage::{FileStorage, Storage};
+use crate::data::storage::{FileStorage, Storage};
 
-use crate::communication::DebugMessage;
+use crate::data::communication::DebugMessage;
 use crate::rendering::imgui::interface::*;
 use crate::rendering::imgui::settings::render_settings;
 use crate::rendering::imgui::state::{DebugState, GuiState};

@@ -1,5 +1,5 @@
 [package]
-name = "rustyboi-test-runner"
+name = "rustyboi_test_runner"
 version = "0.1.0"
 authors = ["Hirtol <gameboy@hirtol.top>"]
 edition = "2018"
@@ -10,7 +10,7 @@ edition = "2018"
 log = "0.4.11"
 anyhow = "1.0.32"
 simplelog = "0.8.0"
-rustyboi-core = {path = "../core", features=[]}
+rustyboi_core = {path = "../core", features=[]}
 image = "0.23.8"
 blake2 = "0.9.0"
 gumdrop = "0.8.0"

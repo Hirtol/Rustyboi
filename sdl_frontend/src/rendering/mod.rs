@@ -9,9 +9,9 @@ use sdl2::{EventPump, VideoSubsystem};
 use rustyboi_core::hardware::ppu::palette::RGB;
 use rustyboi_core::hardware::ppu::{FRAMEBUFFER_SIZE, RESOLUTION_WIDTH};
 
-use crate::communication::DebugMessage;
+use crate::data::communication::DebugMessage;
 use crate::rendering::immediate::ImmediateGui;
-use rustyboi::storage::FileStorage;
+use crate::data::storage::FileStorage;
 use sdl::{setup_sdl, transmute_framebuffer};
 
 pub mod imgui;

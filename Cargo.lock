@@ -1020,29 +1020,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustyboi"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "crossbeam",
- "directories",
- "gl",
- "gumdrop",
- "image",
- "imgui",
- "imgui-opengl-renderer",
- "imgui-sdl2",
- "log",
- "memmap2",
- "nanoserde",
- "once_cell",
- "rustyboi-core",
- "sdl2",
- "simplelog",
-]
-
-[[package]]
-name = "rustyboi-core"
+name = "rustyboi_core"
 version = "0.1.0"
 dependencies = [
  "binary-heap-plus",
@@ -1058,7 +1036,29 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustyboi-test-runner"
+name = "rustyboi_sdl"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "crossbeam",
+ "directories",
+ "gl",
+ "gumdrop",
+ "image",
+ "imgui",
+ "imgui-opengl-renderer",
+ "imgui-sdl2",
+ "log",
+ "memmap2",
+ "nanoserde",
+ "once_cell",
+ "rustyboi_core",
+ "sdl2",
+ "simplelog",
+]
+
+[[package]]
+name = "rustyboi_test_runner"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -1068,7 +1068,7 @@ dependencies = [
  "gumdrop",
  "image",
  "log",
- "rustyboi-core",
+ "rustyboi_core",
  "serde",
  "simplelog",
 ]

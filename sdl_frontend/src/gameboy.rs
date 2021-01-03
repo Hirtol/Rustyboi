@@ -4,13 +4,13 @@ use std::thread::JoinHandle;
 
 use crossbeam::channel::*;
 
-use rustyboi::actions::{create_emulator, save_rom};
+use crate::actions::{create_emulator, save_rom};
 use rustyboi_core::gb_emu::GameBoyEmulator;
 use rustyboi_core::hardware::ppu::palette::RGB;
 use rustyboi_core::hardware::ppu::FRAMEBUFFER_SIZE;
 use rustyboi_core::{EmulatorOptions, InputKey};
 
-use crate::communication::{DebugMessage, EmulatorNotification, EmulatorResponse};
+use crate::data::communication::{DebugMessage, EmulatorNotification, EmulatorResponse};
 
 pub struct GameboyRunner {
     current_thread: Option<JoinHandle<()>>,
