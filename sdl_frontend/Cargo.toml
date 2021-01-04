@@ -27,10 +27,3 @@ imgui-sdl2 = "0.12.0"
 [dependencies.sdl2]
 version = "0.34.3"
 features = ["unsafe_textures", "bundled", "static-link"]
-
-#[profile.release]
-#debug = true
-#[profile.release]
-#lto = 'fat'
-#panic = 'abort'
-#codegen-units = 1

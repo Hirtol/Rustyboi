@@ -1,4 +1,4 @@
-use crate::DEFAULT_DISPLAY_COLOURS;
+use crate::KIRBY_DISPLAY_COLOURS;
 use nanoserde::{DeJson, SerJson};
 use rustyboi_core::hardware::ppu::palette::DisplayColour;
 
@@ -55,9 +55,9 @@ pub struct DisplayColourConfigurable {
 impl Default for DisplayColourConfigurable {
     fn default() -> Self {
         DisplayColourConfigurable {
-            dmg_bg_colour: DEFAULT_DISPLAY_COLOURS.into(),
-            dmg_sprite_colour_0: DEFAULT_DISPLAY_COLOURS.into(),
-            dmg_sprite_colour_1: DEFAULT_DISPLAY_COLOURS.into(),
+            dmg_bg_colour: KIRBY_DISPLAY_COLOURS.into(),
+            dmg_sprite_colour_0: KIRBY_DISPLAY_COLOURS.into(),
+            dmg_sprite_colour_1: KIRBY_DISPLAY_COLOURS.into(),
         }
     }
 }

@@ -1,7 +1,6 @@
 use crate::options::AppOptions;
 use crate::rendering::immediate::ImmediateGui;
 use crate::rendering::Renderer;
-use crate::DEFAULT_DISPLAY_COLOURS;
 use crossbeam::channel::*;
 use rustyboi_core::gb_emu::GameBoyEmulator;
 use rustyboi_core::gb_emu::GameBoyModel::CGB;
@@ -12,13 +11,14 @@ use std::fs::read;
 use std::path::Path;
 use std::process::exit;
 use std::time::Instant;
+use crate::KIRBY_DISPLAY_COLOURS;
 
 #[inline(always)]
 pub fn run_benchmark(options: &AppOptions) {
     if options.benchmark {
         let benchmarking_opts = EmulatorOptionsBuilder::new()
             .with_mode(CGB)
-            .with_display_colour(DEFAULT_DISPLAY_COLOURS)
+            .with_display_colour(KIRBY_DISPLAY_COLOURS)
             .build();
         Benchmarking::benchmark_without_render(&options.rom_path, benchmarking_opts);
         exit(0);

@@ -32,27 +32,13 @@ mod gameboy;
 mod rendering;
 mod actions;
 mod data;
-pub mod options;
+mod options;
 
 const KIRBY_DISPLAY_COLOURS: DisplayColour = DisplayColour {
     black: RGB(44, 44, 150),
     dark_grey: RGB(119, 51, 231),
     light_grey: RGB(231, 134, 134),
     white: RGB(247, 190, 247),
-};
-
-const GBC_UNR_DISPLAY_COLOURS: DisplayColour = DisplayColour {
-    white: RGB(255, 255, 255),
-    light_grey: RGB(123, 255, 49),
-    dark_grey: RGB(0, 99, 197),
-    black: RGB(0, 0, 0),
-};
-
-const DEFAULT_DISPLAY_COLOURS: DisplayColour = DisplayColour {
-    white: RGB(175, 203, 70),
-    light_grey: RGB(121, 170, 109),
-    dark_grey: RGB(34, 111, 95),
-    black: RGB(8, 41, 85),
 };
 
 const CONFIG_FILENAME: &str = "config.json";
